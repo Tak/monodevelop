@@ -1,8 +1,0 @@
-prefix=@prefix@
-exec_prefix=${prefix}
-libdir=${exec_prefix}/lib
-                                                                                
-Name: MonoDevelop
-Description: Free .NET Development Environment
-Version: @VERSION@
-Libs: -r:${libdir}/monodevelop/bin/MonoDevelop.Core.dll -r:${libdir}/monodevelop/bin/MonoDevelop.Core.Gui.dll -r:${libdir}/monodevelop/bin/MonoDevelop.Projects.dll -r:${libdir}/monodevelop/bin/MonoDevelop.Projects.Gui.dll -r:${libdir}/monodevelop/bin/MonoDevelop.Ide.dll -r:${libdir}/monodevelop/bin/MonoDevelop.Components.dll -r:${libdir}/monodevelop/bin/NRefactory.dll

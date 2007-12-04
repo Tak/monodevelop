@@ -1,6 +1,0 @@
-<objects>
-  <object type="MonoDevelop.AspNet.Deployment.WebDeployOptionsPanelWidget" palette-category="AspNetAddIn" allow-children="false" base-type="Gtk.Bin">
-    <itemgroups />
-    <signals />
-  </object>
-</objects>

@@ -1,30 +1,20 @@
-<Combine name="MonoDevelop" fileversion="2.0" outputpath="build/bin/" MakePkgConfig="False" MakeLibPC="True">
+<Combine name="MonoDevelop" fileversion="2.0" ctype="Workspace">
   <Configurations active="Debug">
     <Configuration name="Debug" ctype="CombineConfiguration">
-      <Entry build="True" name="Core" configuration="Debug" />
-      <Entry build="True" name="Extras" configuration="Debug" />
-      <Entry build="True" name="po" configuration="Debug" />
-      <Entry build="True" name="contrib" configuration="Debug" />
+      <Entry build="True" name="Main" configuration="Debug" />
+      <Entry build="True" name="extras" configuration="" />
     </Configuration>
     <Configuration name="Release" ctype="CombineConfiguration">
-      <Entry build="True" name="Core" configuration="Release" />
-      <Entry build="True" name="Extras" configuration="Release" />
-      <Entry build="True" name="po" configuration="Release" />
-      <Entry build="True" name="contrib" configuration="Release" />
+      <Entry build="True" name="Main" configuration="Release" />
+      <Entry build="True" name="extras" configuration="" />
     </Configuration>
   </Configurations>
-  <StartMode startupentry="Core" single="True">
-    <Execute type="None" entry="Core" />
-    <Execute type="None" entry="Extras" />
-    <Execute type="None" entry="contrib" />
-    <Execute type="None" entry="po" />
-    <Execute type="None" entry="contrib" />
+  <StartMode startupentry="Main" single="True">
+    <Execute type="None" entry="Main" />
+    <Execute type="None" entry="extras" />
   </StartMode>
-  <DeployTargets />
   <Entries>
-    <Entry filename="Core/src/Core.mds" />
-    <Entry filename="Extras/Extras.mds" />
-    <Entry filename="po/po.mdp" />
-    <Entry filename="contrib/contrib.mds" />
+    <Entry filename="main/MonoDevelop.mds" />
+    <Entry filename="extras/extras.mds" />
   </Entries>
 </Combine>
