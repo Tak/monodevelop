@@ -1,0 +1,4 @@
+Set relative MONO_FRAMEWORK_PATH
+Replace /Library/Frameworks/Mono.framework in all .config and .pc files, as well as gdk pixbuf loaders file, and launch scripts in $MONO_FRAMEWORK_PATH/bin
+Set MONO_*, GTK_*, GDK_PIXBUF_*, PANGO_*, in monodevelop launcher script
+Create $MONO_FRAMEWORK_PATH/etc/pango/pangorc and set PANGO_RC_FILE
