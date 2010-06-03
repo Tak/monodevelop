@@ -34,6 +34,20 @@ namespace Mono.TextEditor.Vi
 	
 	public static class ViActionMaps
 	{
+	
+		public static Action<TextEditorData> GetEditObjectCharAction (char c)
+		{
+			switch (c) {
+			case 'W':
+			case 'w':
+				return ViActions.WordEnd;
+			case 'B':
+			case 'b':
+				return ViActions.WordStart;
+			}
+			return GetNavCharAction (c);
+		}
+		
 		public static Action<TextEditorData> GetNavCharAction (char c)
 		{
 			switch (c) {
@@ -89,11 +103,11 @@ namespace Mono.TextEditor.Vi
 					
 				case Gdk.Key.Up:
 				case Gdk.Key.KP_Up:
-					return CaretMoveActions.Up;
+					return ViActions.Up;
 					
 				case Gdk.Key.Down:
 				case Gdk.Key.KP_Down:
-					return CaretMoveActions.Down;
+					return ViActions.Down;
 				
 				//not strictly vi, but more useful IMO
 				case Gdk.Key.KP_Home:
@@ -102,7 +116,7 @@ namespace Mono.TextEditor.Vi
 					
 				case Gdk.Key.KP_End:
 				case Gdk.Key.End:
-					return CaretMoveActions.LineEnd;
+					return ViActions.LineEnd;
 
 				case Gdk.Key.Page_Up:
 				case Gdk.Key.KP_Page_Up:

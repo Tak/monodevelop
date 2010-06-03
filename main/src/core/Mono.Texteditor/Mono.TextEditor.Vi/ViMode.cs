@@ -30,6 +30,7 @@ using System;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Mono.TextEditor.Vi
 {
@@ -119,12 +120,32 @@ namespace Mono.TextEditor.Vi
 				if (1 < command.Length) {
 					Editor.HighlightSearchPattern = true;
 					Editor.SearchEngine = new RegexSearchEngine ();
-					Editor.SearchPattern = command.Substring (1);
+					var pattern = command.Substring (1);
+					Editor.SearchPattern = pattern;
+					var caseSensitive = pattern.ToCharArray ().Any (c => char.IsUpper (c));
+					Editor.SearchEngine.SearchRequest.CaseSensitive = caseSensitive;
 				}
 				return Search ();
 			}
 			
 			return "Command not recognised";
+		}
+		
+		void SearchWordAtCaret ()
+		{
+			Editor.SearchEngine = new RegexSearchEngine ();
+			var s = Data.FindCurrentWordStart (Data.Caret.Offset);
+			var e = Data.FindCurrentWordEnd (Data.Caret.Offset);
+			if (s < 0 || e <= s)
+				return;
+			
+			var word = Document.GetTextBetween (s, e);
+			//use negative lookahead and lookbehind for word characters to make sure we only get fully matching words
+			word = "(?<!\\w)" + System.Text.RegularExpressions.Regex.Escape (word) + "(?!\\w)";
+			Editor.SearchPattern = word;
+			Editor.SearchEngine.SearchRequest.CaseSensitive = true;
+			searchBackward = false;
+			Search ();
 		}
 		
 		public override bool WantsToPreemptIM {
@@ -141,6 +162,16 @@ namespace Mono.TextEditor.Vi
 			} else if (state == State.Visual && !Data.IsSomethingSelected) {
 				Reset ("");
 			}
+		}
+		
+		protected override void CaretPositionChanged ()
+		{
+			if (state == ViEditMode.State.Replace || state == ViEditMode.State.Insert)
+				return;
+			else if (state == ViEditMode.State.Normal || state == ViEditMode.State.Unknown)
+				ViActions.RetreatFromLineEnd (Data);
+			else
+				Reset ("");
 		}
 		
 		void CheckVisualMode ()
@@ -161,13 +192,21 @@ namespace Mono.TextEditor.Vi
 			if (data == null)
 				return;
 			data.ClearSelection ();
-			if (CaretMode.Block != data.Caret.Mode)
+			
+			Editor.HighlightSearchPattern = false;
+			
+			if (CaretMode.Block != data.Caret.Mode) {
 				data.Caret.Mode = CaretMode.Block;
+				if (data.Caret.Column > 0)
+					data.Caret.Column--;
+			}
+			ViActions.RetreatFromLineEnd (data);
 		}
 		
 		protected override void OnAddedToEditor (TextEditorData data)
 		{
 			data.Caret.Mode = CaretMode.Block;
+			ViActions.RetreatFromLineEnd (data);
 		}
 		
 		protected override void OnRemovedFromEditor (TextEditorData data)
@@ -177,8 +216,9 @@ namespace Mono.TextEditor.Vi
 		
 		void Reset (string status)
 		{
-			ResetEditorState (Data);
 			state = State.Normal;
+			ResetEditorState (Data);
+			
 			commandBuffer.Length = 0;
 			Status = status;
 		}
@@ -221,6 +261,7 @@ namespace Mono.TextEditor.Vi
 			}
 			
 			Action<TextEditorData> action = null;
+			bool lineAction = false;
 			
 			switch (state) {
 			case State.Unknown:
@@ -248,7 +289,8 @@ namespace Mono.TextEditor.Vi
 						goto case 'i';
 					
 					case 'a':
-						RunAction (ViActions.Right);
+						//use CaretMoveActions so that we can move past last character on line end
+						RunAction (CaretMoveActions.Right);
 						goto case 'i';
 					case 'i':
 						Caret.Mode = CaretMode.Insert;
@@ -312,14 +354,19 @@ namespace Mono.TextEditor.Vi
 						return;
 						
 					case 'x':
+						if (Data.Caret.Column == Data.Document.GetLine (Data.Caret.Line).EditableLength)
+							return;
 						Status = string.Empty;
 						if (!Data.IsSomethingSelected)
 							RunActions (SelectionActions.FromMoveAction (CaretMoveActions.Right), ClipboardActions.Cut);
 						else
 							RunAction (ClipboardActions.Cut);
+						ViActions.RetreatFromLineEnd (Data);
 						return;
 						
 					case 'X':
+						if (Data.Caret.Column == 0)
+							return;
 						Status = string.Empty;
 						if (!Data.IsSomethingSelected && 0 < Caret.Offset)
 							RunActions (SelectionActions.FromMoveAction (CaretMoveActions.Left), ClipboardActions.Cut);
@@ -427,6 +474,9 @@ namespace Mono.TextEditor.Vi
 						currentMacro = null;
 						Reset("Macro Recorded");
 						return;
+					case '*':
+						SearchWordAtCaret ();
+						return;
 					}
 					
 				}
@@ -446,9 +496,10 @@ namespace Mono.TextEditor.Vi
 				
 			case State.Delete:
 				if (((modifier & (Gdk.ModifierType.ShiftMask | Gdk.ModifierType.ControlMask)) == 0 
-				     && key == Gdk.Key.d))
+				     && unicodeKey == 'd'))
 				{
 					action = SelectionActions.LineActionFromMoveAction (CaretMoveActions.LineEnd);
+					lineAction = true;
 				} else {
 					action = ViActionMaps.GetNavCharAction ((char)unicodeKey);
 					if (action == null)
@@ -458,7 +509,10 @@ namespace Mono.TextEditor.Vi
 				}
 				
 				if (action != null) {
-					RunActions (action, ClipboardActions.Cut);
+					if (lineAction)
+						RunActions (action, ClipboardActions.Cut, CaretMoveActions.LineFirstNonWhitespace);
+					else
+						RunActions (action, ClipboardActions.Cut);
 					Reset ("");
 				} else {
 					Reset ("Unrecognised motion");
@@ -468,13 +522,12 @@ namespace Mono.TextEditor.Vi
 
 			case State.Yank:
 				int offset = Caret.Offset;
-				bool lineyank = false;
 				
 				if (((modifier & (Gdk.ModifierType.ShiftMask | Gdk.ModifierType.ControlMask)) == 0 
-				     && key == Gdk.Key.y))
+				     && unicodeKey == 'y'))
 				{
 					action = SelectionActions.LineActionFromMoveAction (CaretMoveActions.LineEnd);
-					lineyank = true;
+					lineAction	= true;
 				} else {
 					action = ViActionMaps.GetNavCharAction ((char)unicodeKey);
 					if (action == null)
@@ -485,7 +538,7 @@ namespace Mono.TextEditor.Vi
 				
 				if (action != null) {
 					RunAction (action);
-					if (Data.IsSomethingSelected && !lineyank)
+					if (Data.IsSomethingSelected && !lineAction)
 						offset = Data.SelectionRange.Offset;
 					RunAction (ClipboardActions.Copy);
 					Reset (string.Empty);
@@ -499,11 +552,12 @@ namespace Mono.TextEditor.Vi
 			case State.Change:
 				//copied from delete action
 				if (((modifier & (Gdk.ModifierType.ShiftMask | Gdk.ModifierType.ControlMask)) == 0 
-				     && key == Gdk.Key.c))
+				     && unicodeKey == 'c'))
 				{
 					action = SelectionActions.LineActionFromMoveAction (CaretMoveActions.LineEnd);
+					lineAction = true;
 				} else {
-					action = ViActionMaps.GetNavCharAction ((char)unicodeKey);
+					action = ViActionMaps.GetEditObjectCharAction ((char)unicodeKey);
 					if (action == null)
 						action = ViActionMaps.GetDirectionKeyAction (key, modifier);
 					if (action != null)
@@ -511,8 +565,11 @@ namespace Mono.TextEditor.Vi
 				}
 				
 				if (action != null) {
-					RunActions (action, ClipboardActions.Cut);
-					Reset ("-- INSERT --");
+					if (lineAction)
+						RunActions (action, ClipboardActions.Cut, ViActions.NewLineAbove);
+					else
+						RunActions (action, ClipboardActions.Cut);
+					Status = "-- INSERT --";
 					state = State.Insert;
 					Caret.Mode = CaretMode.Insert;
 				} else {
@@ -617,15 +674,15 @@ namespace Mono.TextEditor.Vi
 					RunAction (SelectionActions.StartSelection);
 					int   roffset = Data.SelectionRange.Offset;
 					InsertCharacter ((char) unicodeKey);
-					Caret.Offset = roffset;
 					Reset (string.Empty);
+					Caret.Offset = roffset;
 				} else {
 					Reset ("Keystroke was not a character");
 				}
 				return;
 				
 			case State.Indent:
-				if (((modifier & (Gdk.ModifierType.ControlMask)) == 0 && ((char)unicodeKey) == '>'))
+				if (((modifier & (Gdk.ModifierType.ControlMask)) == 0 && unicodeKey == '>'))
 				{
 					RunAction (MiscActions.IndentSelection);
 					Reset ("");

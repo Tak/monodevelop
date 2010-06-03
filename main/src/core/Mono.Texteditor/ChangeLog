@@ -1,3 +1,89 @@
+2010-06-01  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Reset on external caret change
+	  if not in insert/replace mode.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Better handling of '*'.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Improve testability. Fix dd
+	  and cc behaviour.
+
+	* Mono.TextEditor/EditMode.cs: Made RunActions take params,
+	  not just two.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViActionMaps.cs: New EditObject map for
+	  'c' to use word start/end instead of word navigation
+	  boundaries.
+
+	* Mono.TextEditor/EmacsWordFindStrategy.cs:
+	* Mono.TextEditor.Vi/ViWordFindStrategy.cs:
+	* Mono.TextEditor/SharpDevelopWordFindStrategy.cs: Move code
+	  to abstract base class.
+
+	* Mono.TextEditor.Vi/ViActions.cs: Added WordStart and WordEnd
+	  move actions.
+
+	* Mono.TextEditor.Vi/ViMode.cs: Implemented '*'. Also, 'c'
+	  uses the EditObject map.
+
+	* Mono.TextEditor/TextEditorData.cs: Added FindCurrentWordEnd
+	  and FindCurrentWordStart methods that use the
+	  IWordFindStrategy.
+
+	* Mono.TextEditor/IWordFindStrategy.cs: New abstract base
+	  class. Added new FindCurrentWordEnd and FindCurrentWordStart
+	  methods to interface, with default implementation taken from
+	  TextViewMargin.
+
+	* Mono.TextEditor/TextViewMargin.cs: Use the WordFindStrategy
+	  for word selection.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViActions.cs: Fix possible exception.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Single-char offset should not
+	  move caret position.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Smart casing for searches. Fix
+	  'cw' insertion position.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Retreat from line end after x
+	  and on reset. Don't allow x to delete line delimiters.
+
+2010-05-31  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViActionMaps.cs: Use vi up/down/end
+	  commands with arrow and end keys too.
+
+	* Mono.TextEditor.Vi/ViActions.cs: RetreatFromLineEnd now only
+	  retreats in caret is in block mode.
+
+	* Mono.TextEditor.Vi/ViMode.cs: Retreat after exiting insert
+	  mode. Retreat from line end after caret placed with mouse.
+	  Fix 'a' at line end.
+
+	* Mono.TextEditor/EditMode.cs:
+	* Mono.TextEditor/TextEditor.cs: Added a caret position change
+	  notification for edit modes.
+
+2010-05-31  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/InsertionCursorEditMode.cs: Worked on
+	  insertion cursor mode.
+
 2010-05-31  Mike Krüger  <mkrueger@novell.com>
 
 	* Mono.TextEditor/TextEditor.cs: added new scroll to overload.

@@ -200,6 +200,16 @@ namespace Mono.TextEditor.Vi
 			data.Caret.DesiredColumn = desiredColumn;
 		}
 		
+		public static void WordEnd (TextEditorData data)
+		{
+			data.Caret.Offset = data.FindCurrentWordEnd (data.Caret.Offset);
+		}
+		
+		public static void WordStart (TextEditorData data)
+		{
+			data.Caret.Offset = data.FindCurrentWordStart (data.Caret.Offset);
+		}
+		
 		public static void LineEnd (TextEditorData data)
 		{
 			int desiredColumn = System.Math.Max (data.Caret.Column, data.Caret.DesiredColumn);
@@ -215,10 +225,13 @@ namespace Mono.TextEditor.Vi
 			return (c == '\r' || c == '\n');
 		}
 		
-		static void RetreatFromLineEnd (TextEditorData data)
+		internal static void RetreatFromLineEnd (TextEditorData data)
 		{
-			while (0 < data.Caret.Column && IsEol (data.Document.GetCharAt (data.Caret.Offset))) {
-				Left (data);
+			if (data.Caret.Mode == CaretMode.Block) {
+				while (0 < data.Caret.Column && (data.Caret.Offset >= data.Document.Length
+				                                 || IsEol (data.Document.GetCharAt (data.Caret.Offset)))) {
+					Left (data);
+				}
 			}
 		}
 	}

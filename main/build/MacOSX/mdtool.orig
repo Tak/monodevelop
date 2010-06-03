@@ -3,21 +3,8 @@
 # Author: Marc Christensen (mchristensen@novell.com)
 #         Michael Hutchinson (mhutchinson@novell.com)
 
-DIR=$(cd "$(dirname "$0")"; pwd)
-
-MONO_FRAMEWORK_PATH=$DIR/../Frameworks/Mono.framework/Versions/Current
+MONO_FRAMEWORK_PATH=/Library/Frameworks/Mono.framework/Versions/Current
 export DYLD_FALLBACK_LIBRARY_PATH=$MONO_FRAMEWORK_PATH/lib:/lib:/usr/lib
-export MONO_GAC_PREFIX=$MONO_FRAMEWORK_PATH
-export MONO_PATH=$MONO_FRAMEWORK_PATH/lib/mono:$MONO_FRAMEWORK_PATH/lib/gtk-sharp-2.0:$MONO_FRAMEWORK_PATH/lib/mono/2.0:$MONO_FRAMEWORK_PATH/lib/mono/1.0
-export MONO_CONFIG=$MONO_FRAMEWORK_PATH/etc/mono/config
-export XDG_DATA_HOME=$MONO_FRAMEWORK_PATH/share
-export GDK_PIXBUF_MODULE_FILE=$MONO_FRAMEWORK_PATH/etc/gtk-2.0/gdk-pixbuf.loaders
-export GDK_PIXBUF_MODULEDIR=$MONO_FRAMEWORK_PATH/lib/gtk-2.0/2.10.0/loaders
-export PANGO_RC_FILE=$MONO_FRAMEWORK_PATH/etc/pango/pangorc
-export GTK_DATA_PREFIX=$MONO_FRAMEWORK_PATH
-export GTK_EXE_PREFIX=$MONO_FRAMEWORK_PATH
-export GTK_PATH=$MONO_FRAMEWORK_PATH/lib/gtk-2.0:$MONO_FRAMEWORK_PATH/lib/gtk-2.0/2.10.0
-export GTK2_RC_FILES=$MONO_FRAMEWORK_PATH/etc/gtk-2.0/gtkrc
 
 #we need lots of file handles
 ulimit -n 1024

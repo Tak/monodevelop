@@ -340,7 +340,12 @@ namespace Mono.Debugging.Soft
 		{
 			EndLaunch ();
 			if (vm != null)
-				vm.Exit (0);
+				try {
+					vm.Exit (0);
+				} catch (SocketException se) {
+					// This will often happen during normal operation
+					LoggingService.LogError ("Error closing debugger session", se);
+				}
 			QueueEnsureExited ();
 			exited = true;
 		}
@@ -649,6 +654,12 @@ namespace Mono.Debugging.Soft
 				);
 				foreach (string typename in affectedTypes) {
 					types.Remove (typename);
+				}
+				
+				foreach (var pair in source_to_type) {
+					pair.Value.RemoveAll (delegate (TypeMirror mirror){
+						return mirror.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase);
+					});
 				}
 				OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", aue.Assembly.Location));
 			}
