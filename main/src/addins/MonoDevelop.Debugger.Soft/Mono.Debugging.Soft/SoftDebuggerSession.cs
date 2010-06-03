@@ -676,13 +676,12 @@ namespace Mono.Debugging.Soft
 				var t = ((TypeLoadEvent)e).Type;
 				
 				string typeName = t.FullName;
-				
-				if (types.ContainsKey (typeName)) {
-					if (typeName != "System.Exception")
-						LoggingService.LogError ("Type '" + typeName + "' loaded more than once", null);
-				} else {
-					ResolveBreakpoints (t);
-				}
+
+                if (types.ContainsKey(typeName)) {
+                    if (typeName != "System.Exception")
+                        LoggingService.LogError("Type '" + typeName + "' loaded more than once", null);
+                }
+				ResolveBreakpoints (t);
 			}
 			
 			if (e is BreakpointEvent) {
