@@ -104,6 +104,7 @@ namespace MonoDevelop.Platform.Updater
 		
 		public static void RunCheckDialog (UpdateInfo[] updateInfos, bool automatic)
 		{
+			return; // Disable updates
 			if (updateInfos == null || updateInfos.Length == 0 || (automatic && !CheckAutomatically))
 				return;
 			
@@ -128,6 +129,7 @@ namespace MonoDevelop.Platform.Updater
 		
 		static void ShowUpdateDialog ()
 		{
+			return; // Disable updates
 			Gtk.Application.Invoke (delegate {
 				if (visibleDialog == null) {
 					visibleDialog = new UpdateDialog ();
