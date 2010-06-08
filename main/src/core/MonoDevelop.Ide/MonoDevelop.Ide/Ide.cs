@@ -303,7 +303,8 @@ namespace MonoDevelop.Ide
 			bool foundSln = false;
 			foreach (var file in files) {
 				if (Services.ProjectService.IsWorkspaceItemFile (file.FileName)) {
-					if (!foundSln) {
+					// Don't reload the currently open solution
+					if (!foundSln && null == Workspace.Items.FirstOrDefault (x => (x.FileName.Equals(file.FileName)))) {
 						try {
 							Workspace.OpenWorkspaceItem (file.FileName);
 							foundSln = true;
