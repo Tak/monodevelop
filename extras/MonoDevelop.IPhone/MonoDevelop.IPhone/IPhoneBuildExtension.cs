@@ -34,9 +34,10 @@ using MonoDevelop.Core.ProgressMonitoring;
 using System.Xml;
 using System.Text;
 using System.Diagnostics;
-using PropertyList;
+using MonoDevelop.MacDev.Plist;
 using System.CodeDom.Compiler;
 using System.Security.Cryptography.X509Certificates;
+using MonoDevelop.MacDev;
 
 namespace MonoDevelop.IPhone
 {
@@ -131,7 +132,7 @@ namespace MonoDevelop.IPhone
 				string output;
 				int code;
 				monitor.Log.WriteLine ("{0} {1}", mtouch.FileName, mtouch.Arguments);
-				if ((code = ExecuteCommand (monitor, mtouch, out output)) != 0) {
+				if ((code = MacBuildUtilities.ExecuteCommand (monitor, mtouch, out output)) != 0) {
 					if (String.IsNullOrEmpty (output)) {
 						result.AddError (null, 0, 0, code.ToString (), "mtouch failed with no output");
 					} else {
@@ -237,13 +238,11 @@ namespace MonoDevelop.IPhone
 		BuildResult UpdateInfoPlist (IProgressMonitor monitor, IPhoneProject proj, IPhoneProjectConfiguration conf,
 		                             IPhoneAppIdentity identity, ProjectFile template, string plistOut)
 		{
-			return CreateMergedPlist (monitor, conf, template, plistOut, 
-				(IPhoneProjectConfiguration config, PlistDocument doc) => 
-			{
+			return MacBuildUtilities.CreateMergedPlist (monitor, template, plistOut, (PlistDocument doc) => {
 				var result = new BuildResult ();
 				var dict = doc.Root as PlistDictionary;
 				if (dict == null)
-					doc.Root = dict = new PropertyList.PlistDictionary ();
+					doc.Root = dict = new PlistDictionary ();
 				
 				bool sim = conf.Platform != IPhoneProject.PLAT_IPHONE;
 				
@@ -286,7 +285,7 @@ namespace MonoDevelop.IPhone
 					dict["CFBundleResourceSpecification"] = "ResourceRules.plist";
 				SetIfNotPresent (dict, "CFBundleSignature", "????");
 				SetIfNotPresent (dict,  "CFBundleSupportedPlatforms",
-					new PropertyList.PlistArray () { sim? "iPhoneSimulator" : "iPhoneOS" });
+					new PlistArray () { sim? "iPhoneSimulator" : "iPhoneOS" });
 				SetIfNotPresent (dict, "CFBundleVersion", proj.BundleVersion ?? "1.0");
 				SetIfNotPresent (dict, "DTPlatformName", sim? "iphonesimulator" : "iphoneos");
 				SetIfNotPresent (dict, "DTSDKName", (sim? "iphonesimulator" : "iphoneos")  + conf.MtouchSdkVersion);
@@ -300,6 +299,22 @@ namespace MonoDevelop.IPhone
 				SetNibProperty (dict, proj, proj.MainNibFile, "NSMainNibFile");
 				if (proj.SupportedDevices == TargetDevice.IPhoneAndIPad)
 					SetNibProperty (dict, proj, proj.MainNibFileIPad, "NSMainNibFile~ipad");
+				
+				var sdkversion = IPhoneSdkVersion.Parse (conf.MtouchSdkVersion);
+				if (sdkversion.CompareTo (new IPhoneSdkVersion (new [] { 3, 2 })) >= 0) {
+					if (!dict.ContainsKey (OrientationUtil.KEY)) {
+						result.AddWarning ("Supported orientations have not been set (iPhone Application options panel)");
+					} else {
+						var val = OrientationUtil.Parse ((PlistArray)dict[OrientationUtil.KEY]);
+						if (!OrientationUtil.IsValidPair (val))
+							result.AddWarning ("Supported orientations are not matched pairs (Info.plist)");
+						if (dict.ContainsKey (OrientationUtil.KEY_IPAD)) {
+							var pad = OrientationUtil.Parse ((PlistArray)dict[OrientationUtil.KEY_IPAD]);
+							if (pad != Orientation.None && !OrientationUtil.IsValidPair (pad))
+								result.AddWarning ("iPad orientations are not matched pairs (Info.plist)");
+						}
+					}
+				}   
 				
 				return result;
 			});
@@ -352,27 +367,7 @@ namespace MonoDevelop.IPhone
 		
 		internal ProcessStartInfo GetMTouch (IPhoneProject project, IProgressMonitor monitor, out BuildResult error)
 		{
-			return GetTool ("mtouch", project, monitor, out error);
-		}
-		
-		internal ProcessStartInfo GetTool (string tool, IPhoneProject project, IProgressMonitor monitor,
-		                                   out BuildResult error)
-		{
-			var toolPath = project.TargetRuntime.GetToolPath (project.TargetFramework, tool);
-			if (String.IsNullOrEmpty (toolPath)) {
-				var err = GettextCatalog.GetString ("Error: Unable to find '" + tool + "' tool.");
-				monitor.ReportError (err, null);
-				error = new BuildResult ();
-				error.AddError (null, 0, 0, null, err);
-				return null;
-			}
-			
-			error = null;
-			return new ProcessStartInfo (toolPath) {
-				UseShellExecute = false,
-				RedirectStandardError = true,
-				RedirectStandardOutput = true,
-			};
+			return MacBuildUtilities.GetTool ("mtouch", project, monitor, out error);
 		}
 		
 		protected override bool GetNeedsBuilding (SolutionEntityItem item, ConfigurationSelector configuration)
@@ -399,7 +394,7 @@ namespace MonoDevelop.IPhone
 				return true;
 			
 			//Interface Builder files
-			if (GetIBFilePairs (proj.Files, conf.AppDirectory).Where (NeedsBuilding).Any ())
+			if (MacBuildUtilities.GetIBFilePairs (proj.Files, conf.AppDirectory).Where (NeedsBuilding).Any ())
 				return true;
 			
 			//Content files
@@ -447,60 +442,23 @@ namespace MonoDevelop.IPhone
 				return base.Compile (monitor, item, buildData);
 			
 			var cfg = (IPhoneProjectConfiguration) buildData.Configuration;
+			var projFiles = buildData.Items.OfType<ProjectFile> ();
+			string appDir = cfg.AppDirectory;
 			
 			//make sure the codebehind files are updated before building
-			monitor.BeginTask (GettextCatalog.GetString ("Updating CodeBehind files"), 0);	
-			var cbWriter = MonoDevelop.DesignerSupport.CodeBehindWriter.CreateForProject (monitor, proj);
-			BuildResult result = null;
-			if (cbWriter.SupportsPartialTypes) {
-				bool forceRegen = !Directory.Exists (cfg.AppDirectory);
-				result = CodeBehind.UpdateXibCodebehind (cbWriter, proj, buildData.Items.OfType<ProjectFile> (), forceRegen);
-				cbWriter.WriteOpenFiles ();
-				if (cbWriter.WrittenCount > 0)
-					monitor.Log.WriteLine (GettextCatalog.GetString ("Updated {0} CodeBehind files", cbWriter.WrittenCount));
-			} else {
-				monitor.ReportWarning ("Cannot generate designer code, because CodeDom " +
-					"provider does not support partial classes.");
-			}
-			monitor.EndTask ();
+			bool forceRegen = !Directory.Exists (appDir);
 			
-			if (base.GetNeedsBuilding (item, buildData.ConfigurationSelector)) {
-				result = base.Compile (monitor, item, buildData).Append (result);
-				if (result.ErrorCount > 0)
-					return result;
-			}
+			var result = MacBuildUtilities.UpdateCodeBehind (monitor, proj.CodeBehindGenerator, projFiles, forceRegen);
+			if (result.ErrorCount > 0)
+				return result;
 			
-			string appDir = ((IPhoneProjectConfiguration)buildData.Configuration).AppDirectory;
+			if (result.Append (base.Compile (monitor, item, buildData)).ErrorCount > 0)
+				return result;
 			
-			var ibfiles = GetIBFilePairs (buildData.Items.OfType<ProjectFile> (), appDir).Where (NeedsBuilding).ToList ();
+			if (result.Append (MacBuildUtilities.CompileXibFiles (monitor, projFiles, appDir)).ErrorCount > 0)
+				return result;
 			
-			if (ibfiles.Count > 0) {
-				monitor.BeginTask (GettextCatalog.GetString ("Compiling interface definitions"), 0);	
-				foreach (var file in ibfiles) {
-					file.EnsureOutputDirectory ();
-					var psi = new ProcessStartInfo ("ibtool",
-						String.Format ("\"{0}\" --compile \"{1}\"", file.Input, file.Output)
-					);
-					monitor.Log.WriteLine (psi.FileName + " " + psi.Arguments);
-					psi.WorkingDirectory = cfg.OutputDirectory;
-					string errorOutput;
-					int code;
-					try {
-					code = ExecuteCommand (monitor, psi, out errorOutput);
-					} catch (System.ComponentModel.Win32Exception ex) {
-						LoggingService.LogError ("Error running ibtool", ex);
-						result.AddError (null, 0, 0, null, "ibtool not found. Please ensure the Apple SDK is installed.");
-						return result;
-					}
-					if (code != 0) {
-						//FIXME: parse the plist that ibtool returns
-						result.AddError (null, 0, 0, null, "ibtool returned error code " + code);
-					}
-				}
-				monitor.EndTask ();
-			}
-			
-			var contentFiles = GetContentFilePairs (buildData.Items.OfType<ProjectFile> (), appDir)
+			var contentFiles = GetContentFilePairs (projFiles, appDir)
 				.Where (NeedsBuilding).ToList ();
 			
 			if (!proj.BundleIcon.IsNullOrEmpty) {
@@ -572,7 +530,7 @@ namespace MonoDevelop.IPhone
 			
 			monitor.Log.WriteLine (optTool.FileName + " " + optTool.Arguments);
 			string errorOutput;
-			int code = ExecuteCommand (monitor, optTool, out errorOutput);
+			int code = MacBuildUtilities.ExecuteCommand (monitor, optTool, out errorOutput);
 			if (code != 0) {
 				var result = new BuildResult ();
 				result.AddError ("Compressing the resources failed: " + errorOutput);
@@ -956,7 +914,7 @@ namespace MonoDevelop.IPhone
 			psi.EnvironmentVariables.Add ("CODESIGN_ALLOCATE",
 				"/Developer/Platforms/iPhoneOS.platform/Developer/usr/bin/codesign_allocate");
 			string output;
-			if ((signResultCode = ExecuteCommand (monitor, psi, out output)) != 0) {
+			if ((signResultCode = MacBuildUtilities.ExecuteCommand (monitor, psi, out output)) != 0) {
 				monitor.Log.WriteLine (output);
 				return BuildError (string.Format ("Code signing failed with error code {0}. See output for details.", signResultCode));
 			}
@@ -970,19 +928,6 @@ namespace MonoDevelop.IPhone
 			var br = new BuildResult ();
 			br.AddError (error);
 			return br;
-		}
-		
-		static IEnumerable<FilePair> GetIBFilePairs (IEnumerable<ProjectFile> allItems, string outputRoot)
-		{
-			return allItems.OfType<ProjectFile> ()
-				.Where (pf => pf.BuildAction == BuildAction.Page && pf.FilePath.Extension == ".xib")
-				.Select (pf => {
-					string[] splits = ((string)pf.ProjectVirtualPath).Split (Path.DirectorySeparatorChar);
-					FilePath name = splits.Last ();
-					if (splits.Length > 1 && splits[0].EndsWith (".lproj"))
-						name = new FilePath (splits[0]).Combine (name);
-					return new FilePair (pf.FilePath, name.ChangeExtension (".nib").ToAbsolute (outputRoot));
-				});
 		}
 		
 		static IEnumerable<FilePair> GetContentFilePairs (IEnumerable<ProjectFile> allItems, string outputRoot)
@@ -1003,113 +948,6 @@ namespace MonoDevelop.IPhone
 				.Select (pf => new FilePair (pf.FilePath, pf.ProjectVirtualPath.ToAbsolute (outputRoot)));
 		}
 		
-		struct FilePair
-		{
-			public FilePair (FilePath input, FilePath output)
-			{
-				this.Input = input;
-				this.Output = output;
-			}
-			public FilePath Input, Output;
-			
-			public bool NeedsBuilding ()
-			{
-				return !File.Exists (Output) || File.GetLastWriteTime (Input) > File.GetLastWriteTime (Output);
-			}
-			
-			public void EnsureOutputDirectory ()
-			{
-				if (!Directory.Exists (Output.ParentDirectory))
-					Directory.CreateDirectory (Output.ParentDirectory);
-			}
-		}
-		
-		//copied from MoonlightBuildExtension
-		static int ExecuteCommand (IProgressMonitor monitor, System.Diagnostics.ProcessStartInfo startInfo, out string errorOutput)
-		{
-			startInfo.UseShellExecute = false;
-			startInfo.RedirectStandardError = true;
-			startInfo.RedirectStandardOutput = true;
-			
-			errorOutput = string.Empty;
-			int exitCode = -1;
-			
-			var swError = new StringWriter ();
-			var chainedError = new LogTextWriter ();
-			chainedError.ChainWriter (monitor.Log);
-			chainedError.ChainWriter (swError);
-			
-			AggregatedOperationMonitor operationMonitor = new AggregatedOperationMonitor (monitor);
-			
-			try {
-				var p = Runtime.ProcessService.StartProcess (startInfo, monitor.Log, chainedError, null);
-				operationMonitor.AddOperation (p); //handles cancellation
-				
-				p.WaitForOutput ();
-				errorOutput = swError.ToString ();
-				exitCode = p.ExitCode;
-				p.Dispose ();
-				
-				if (monitor.IsCancelRequested) {
-					monitor.Log.WriteLine (GettextCatalog.GetString ("Build cancelled"));
-					monitor.ReportError (GettextCatalog.GetString ("Build cancelled"), null);
-					if (exitCode == 0)
-						exitCode = -1;
-				}
-			} finally {
-				chainedError.Close ();
-				swError.Close ();
-				operationMonitor.Dispose ();
-			}
-			
-			return exitCode;
-		}
-		
-		static BuildResult CreateMergedPlist (IProgressMonitor monitor, IPhoneProjectConfiguration conf,
-			ProjectFile template, string outPath,
-			Func<IPhoneProjectConfiguration, PlistDocument,BuildResult> merge)
-		{
-			var result = new BuildResult ();
-			
-			var doc = new PlistDocument ();
-			if (template != null) {
-				try {
-					doc.LoadFromXmlFile (template.FilePath);
-				} catch (Exception ex) {
-					if (ex is XmlException)
-						result.AddError (template.FilePath, ((XmlException)ex).LineNumber,
-						                 ((XmlException)ex).LinePosition, null, ex.Message);
-					else
-						result.AddError (template.FilePath, 0, 0, null, ex.Message);
-					monitor.ReportError (GettextCatalog.GetString ("Could not load file '{0}': {1}",
-					                                               template.FilePath, ex.Message), null);
-					return result;
-				}
-			}
-			
-			if (result.Append (merge (conf, doc)).ErrorCount > 0)
-				return result;
-			
-			try {
-				EnsureDirectoryForFile (outPath);
-				using (XmlTextWriter writer = new XmlTextWriter (outPath, Encoding.UTF8)) {
-					writer.Formatting = Formatting.Indented;
-					doc.Write (writer);
-				}
-			} catch (Exception ex) {
-				result.AddError (outPath, 0, 0, null, ex.Message);
-				monitor.ReportError (GettextCatalog.GetString ("Could not write file '{0}'", outPath), ex);
-			}
-			return result;
-		}
-		
-		static void EnsureDirectoryForFile (string filename)
-		{
-			string dir = Path.GetDirectoryName (filename);
-			if (!Directory.Exists (dir))
-				Directory.CreateDirectory (dir);
-		}
-		
 		static BuildResult UpdateDebugSettingsPlist (IProgressMonitor monitor, IPhoneProjectConfiguration conf,
 		                                             ProjectFile template, string target)
 		{
@@ -1120,7 +958,7 @@ namespace MonoDevelop.IPhone
 			//copied cleanly or deleted
 			if (!conf.DebugMode) {
 				if (template != null) {
-					EnsureDirectoryForFile (target);
+					MacBuildUtilities.EnsureDirectoryForFile (target);
 					File.Copy (template.FilePath, target, true);
 				} else if (File.Exists (target)) {
 					File.Delete (target);
@@ -1128,12 +966,10 @@ namespace MonoDevelop.IPhone
 				return null;
 			}
 			
-			return CreateMergedPlist (monitor, conf, template, target,
-				(IPhoneProjectConfiguration config, PlistDocument doc) =>
-			{
+			return MacBuildUtilities.CreateMergedPlist (monitor, template, target, (PlistDocument doc) => {
 				var br = new BuildResult ();
 				var debuggerIP = System.Net.IPAddress.Any;
-				bool sim = config.Platform == IPhoneProject.PLAT_SIM;
+				bool sim = conf.Platform == IPhoneProject.PLAT_SIM;
 				
 				try {
 					debuggerIP = IPhoneSettings.GetDebuggerHostIP (sim);
@@ -1143,7 +979,7 @@ namespace MonoDevelop.IPhone
 				
 				var dict = doc.Root as PlistDictionary;
 				if (dict == null)
-					doc.Root = dict = new PropertyList.PlistDictionary ();
+					doc.Root = dict = new PlistDictionary ();
 				
 				SetIfNotPresent (dict, "Title", "AppSettings");
 				SetIfNotPresent (dict, "StringsTable", "Root");

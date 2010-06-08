@@ -1,3 +1,92 @@
+2010-06-07  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.Templates/SingleFileDescriptionTemplate.cs:
+	  Always use the original identifier for ${Name}, not the new
+	  constructed filename. Makes things easier in templates that
+	  produce multiple files.
+
+	* MonoDevelop.Ide.Templates/FileTemplate.cs: Track
+	  SingleFileDescription template API.
+
+2010-06-04  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Ide.Commands/ToolsCommands.cs: Use the correct
+	  tag model when parsing the working directory and command.
+
+2010-06-03  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.CodeTemplates/EditTemplateDialog.cs: Fix GTK
+	  warnings.
+
+2010-06-03  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Components.Docking/DockFrame.cs:
+	* MonoDevelop.Components.Docking/DockBarItem.cs: Resize the
+	  autohide frame when the main frame size changes. Fixes bug
+	  #611071 - Resizing while output window is open doesn't
+	  resizie the output window.
+
+2010-06-03  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Components.DockToolbars/DockToolbar.cs: Don't
+	  enable the arrow button by default. This is handled by
+	  DockToolbarPanel.
+
+	* MonoDevelop.Components.DockToolbars/DockToolbarPanel.cs:
+	  Improved toolbar resizing algorithm in PackRow. Instead of
+	  reducing size in all toolbars pixel by pixel, it will now
+	  reduce button by button. Fixes bug #545746 - Toolbar on
+	  small screens.
+
+2010-06-03  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Components.DockToolbars/DockToolbar.cs: Disable
+	  custom drawing on the toolbar background since it hides the
+	  arrow button.
+
+2010-06-01  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Ide.Templates/ProjectTemplate.cs:
+	* MonoDevelop.Ide.Templates/SolutionDescriptor.cs:
+	* MonoDevelop.Ide.Templates/SolutionItemDescriptor.cs: Lookup
+	  solution types through the add-in instance. Fixes bug
+	  #610150 - Unable to create Packaging Project.
+
+2010-06-01  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Components.Commands/CommandManager.cs: Disable
+	  data item check in the default command handler since it may
+	  cause regressions.
+
+2010-06-01  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Ide.Gui/ViewCommandHandlers.cs: Bypass the
+	  cut/copy/paste commands if the current view doesn't support
+	  it.
+
+2010-06-01  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Components.AutoTest/AutoTestSession.cs: The
+	  current object is now always the active widget unless some
+	  other specific object is set.
+
+	* MonoDevelop.Components.AutoTest/AutoTestService.cs: Added
+	  basic support for recording a test session.
+
+	* MonoDevelop.Components.Commands/CommandInfo.cs:
+	* MonoDevelop.Components.Commands/CommandManager.cs:
+	* MonoDevelop.Components.Commands/CommandArrayInfo.cs: Notofy
+	  key presses through the new KeyPressed event. Include the
+	  selected data item in the CommandActivated event args.
+	  Properly notify CommandActivated event when running the
+	  default handler of a command.
+
+	* MonoDevelop.Components.Commands/ActionCommand.cs: Removed
+	  DispatchCommand and UpdateCommandInfo virtuals. They are not
+	  used and makes things more complex in the command manager.
+
+	* MonoDevelop.Ide.Desktop/RecentItem.cs: Implemented Equals.
+
 2010-05-31  Lluis Sanchez Gual  <lluis@novell.com>
 
 	* MonoDevelop.Ide.Gui.Dialogs/AlertDialog.cs: Allow selecting

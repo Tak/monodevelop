@@ -38,6 +38,9 @@ using MonoDevelop.Projects.Dom;
 using MonoDevelop.Projects.Dom.Parser;
 using MonoDevelop.Projects.CodeGeneration;
 using MonoDevelop.Ide;
+using Mono.TextEditor;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace MonoDevelop.Refactoring {
 
@@ -46,7 +49,8 @@ namespace MonoDevelop.Refactoring {
 		IType declaringType;
 		ListStore store;
 		ListStore visibilityStore;
-
+		TextEditor editor;
+		
 		private const int colCheckedIndex = 0;
 		private const int colFieldNameIndex = 1;
 		private const int colPropertyNameIndex = 2;
@@ -54,16 +58,17 @@ namespace MonoDevelop.Refactoring {
 		private const int colReadOnlyIndex = 4;
 		private const int colFieldIndex = 5;
 
-		public EncapsulateFieldDialog (ProjectDom ctx, IType declaringType)
-			: this (declaringType, null)
+		public EncapsulateFieldDialog (TextEditor editor, ProjectDom ctx, IType declaringType)
+			: this (editor, declaringType, null)
 		{}
 
-		public EncapsulateFieldDialog (ProjectDom ctx, IField field)
-			: this (field.DeclaringType, field)
+		public EncapsulateFieldDialog (TextEditor editor, ProjectDom ctx, IField field)
+			: this (editor, field.DeclaringType, field)
 		{}
 
-		private EncapsulateFieldDialog (IType declaringType, IField field)
+		private EncapsulateFieldDialog (TextEditor editor, IType declaringType, IField field)
 		{
+			this.editor = editor;
 			this.declaringType = declaringType;
 			this.Build ();
 
@@ -358,16 +363,29 @@ namespace MonoDevelop.Refactoring {
 		{
 			((Widget) this).Destroy ();
 		}
-
+		class FieldData {
+			public IField Field { get; set; }
+			public string PropertyName { get; set; }
+			public bool ReadOnly { get; set; }
+			public Modifiers Modifiers { get; set; }
+			
+			public FieldData (IField field, string propertyName, bool readOnly, Modifiers modifiers)
+			{
+				this.Field = field;
+				this.PropertyName = propertyName;
+				this.ReadOnly = readOnly;
+				this.Modifiers = modifiers;
+			}
+		}
+		
 		void OnOKClicked (object sender, EventArgs e)
 		{
 			TreeIter iter;
 			if (!store.GetIterFirst (out iter))
 				return;
-
-			CodeRefactorer refactorer = IdeApp.Workspace.GetCodeRefactorer (IdeApp.ProjectOperations.CurrentSelectedSolution);
-			IProgressMonitor monitor = IdeApp.Workbench.ProgressMonitors.GetBackgroundProgressMonitor (this.Title, null);
-
+			
+			List<FieldData> data = new List<FieldData> ();
+			
 			do {
 				bool selected = (bool) store.GetValue (iter, colCheckedIndex);
 				if (!selected)
@@ -377,12 +395,46 @@ namespace MonoDevelop.Refactoring {
 				string visibility = (string) store.GetValue (iter, colVisibilityIndex);
 				bool read_only = (bool) store.GetValue (iter, colReadOnlyIndex);
 				IField field = (IField) store.GetValue (iter, colFieldIndex);
-
-				refactorer.EncapsulateField (
-						monitor, declaringType, field, propertyName,
-						StringToMemberAttributes (visibility), !read_only, radioUpdateAll.Active);
+				Modifiers mod = Modifiers.None;
+				if (visibility.ToUpper () == "PUBLIC")
+					mod = Modifiers.Public;
+				if (visibility.ToUpper () == "PRIVATE")
+					mod = Modifiers.Private;
+				if (visibility.ToUpper () == "PROTECTED")
+					mod = Modifiers.Protected;
+				if (visibility.ToUpper () == "INTERNAL")
+					mod = Modifiers.Internal;
+				data.Add (new FieldData (field, propertyName, read_only, mod));
 			} while (store.IterNext (ref iter));
-
+			
+			InsertionCursorEditMode mode = new InsertionCursorEditMode (editor, HelperMethods.GetInsertionPoints (editor.Document, declaringType));
+			mode.CurIndex = mode.InsertionPoints.Count - 1;
+			int idx = -1, i = 0;
+			DomLocation lastLocation = DomLocation.Empty;
+			foreach (IMember member in declaringType.Members) {
+				if (lastLocation != member.Location && data.Any (d => d.Field.Location == member.Location))
+					idx = i;
+				lastLocation = member.Location;
+				i++;
+			}
+			if (idx >= 0)
+				mode.CurIndex = idx + 1;
+			mode.StartMode ();
+			mode.Exited += delegate(object s, InsertionCursorEventArgs args) {
+				if (args.Success) {
+					CodeGenerator generator = CodeGenerator.CreateGenerator (editor.Document.MimeType);
+					StringBuilder code = new StringBuilder ();
+					for (int j = 0; j < data.Count; j++) {
+						if (j > 0) {
+							code.AppendLine ();
+							code.AppendLine ();
+						}
+						var f = data[j];
+						code.Append (generator.CreateFieldEncapsulation (declaringType, f.Field, f.PropertyName, f.Modifiers, f.ReadOnly));
+					}
+					args.InsertionPoint.Insert (editor, code.ToString ());
+				}
+			};
 			((Widget) this).Destroy ();
 		}
 

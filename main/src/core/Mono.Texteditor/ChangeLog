@@ -1,3 +1,77 @@
+2010-06-05  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs: Fixed 'Bug
+	  611947 - XML highlighting broken'.
+
+2010-06-04  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs:
+	* Mono.TextEditor/TextEditorAccessibility.cs: Disabled
+	  accessibility (produces a compile error on linux - on mac it
+	  works - the Atk.ObjectFactory implementation differs between
+	  my two systems).
+
+2010-06-04  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* Mono.TextEditor.csproj:
+	* Mono.TextEditor/TextEditor.cs:
+	* Mono.TextEditor/TextEditorAccessibility.cs: Worked on
+	  accessibility.
+
+2010-06-04  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs: atk impl. improvements
+
+2010-06-04  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs: Added accessibility support.
+
+2010-06-04  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs:
+	* Mono.TextEditor.Highlighting/JaySyntaxMode.cs: Fixed syntax
+	  highlighting bug.
+
+2010-06-03  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/InsertionCursorEditMode.cs: Don't start
+	  insertion cursor mode without insertion points.
+
+2010-06-02  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextViewMargin.cs:
+	* Mono.TextEditor/SelectionActions.cs: Fixed virtual space
+	  drawing.
+
+2010-06-02  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViActions.cs: Fix navigation in visual
+	  mode.
+
+	* Mono.TextEditor/SelectionActions.cs: Fix pivot around origin
+	  for line selection actions.
+
+2010-06-02  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/InsertionCursorEditMode.cs: Corrected
+	  indenting of insertion.
+
+2010-06-01  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Fix tests.
+
+2010-06-01  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs:
+	* Mono.TextEditor/InsertionCursorEditMode.cs: Worked on
+	  insertion cursor mode.
+
+2010-06-01  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/InsertionCursorEditMode.cs: Worked on
+	  insertioncursoreditmode.
+
 2010-06-01  Michael Hutchinson  <mhutchinson@novell.com>
 
 	* Mono.TextEditor.Vi/ViMode.cs: Reset on external caret change

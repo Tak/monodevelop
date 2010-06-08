@@ -359,7 +359,7 @@ namespace Mono.TextEditor.Highlighting
 				}
 			}
 			
-			protected virtual bool ScanSpanEnd (Span cur, int i)
+			protected virtual bool ScanSpanEnd (Span cur, ref int i)
 			{
 				if (cur.End != null) {
 					RegexMatch match = cur.End.TryMatch (doc, i);
@@ -406,7 +406,7 @@ namespace Mono.TextEditor.Highlighting
 								continue;
 							}
 						}
-						if (ScanSpanEnd (cur, i))
+						if (ScanSpanEnd (cur, ref i))
 							continue;
 					}
 					

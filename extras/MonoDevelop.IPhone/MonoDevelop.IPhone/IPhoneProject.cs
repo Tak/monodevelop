@@ -35,6 +35,7 @@ using MonoDevelop.Core.ProgressMonitoring;
 using MonoDevelop.Core.Execution;
 using MonoDevelop.Ide;
 using System.Reflection;
+using MonoDevelop.MacDev.Plist;
 
 namespace MonoDevelop.IPhone
 {
@@ -46,7 +47,7 @@ namespace MonoDevelop.IPhone
 		IPad =   1 << 1,
 		IPhoneAndIPad = IPhone | IPad,
 	}
-	
+
 	public class IPhoneProject : DotNetProject
 	{
 		internal const string PLAT_IPHONE = "iPhone";
@@ -210,6 +211,10 @@ namespace MonoDevelop.IPhone
 			}
 		}
 		
+		public IPhoneCodeBehind CodeBehindGenerator {
+			get; private set;
+		}
+		
 		#endregion
 		
 		#region Constructors
@@ -274,6 +279,8 @@ namespace MonoDevelop.IPhone
 		
 		void Init ()
 		{
+			CodeBehindGenerator = new IPhoneCodeBehind (this);
+			
 			//set parameters to ones required for IPhone build
 			TargetFramework = Runtime.SystemAssemblyService.GetTargetFramework (FX_IPHONE);
 		}
@@ -311,22 +318,13 @@ namespace MonoDevelop.IPhone
 		public override SolutionItemConfiguration CreateConfiguration (string name)
 		{
 			var conf = new IPhoneProjectConfiguration (name);
+			conf.CopyFrom (base.CreateConfiguration (name));
 			
-			var dir = new FilePath ("bin");
-			if (!String.IsNullOrEmpty (conf.Platform))
-				dir.Combine (conf.Platform);
-			dir.Combine (conf.Name);
-			
-			conf.OutputDirectory = BaseDirectory.IsNullOrEmpty? dir : BaseDirectory.Combine (dir);
-			conf.OutputAssembly = Name;
 			if (conf.Platform == PLAT_IPHONE) {
 				conf.CodesignKey = Keychain.DEV_CERT_PREFIX;
 			} else if (conf.Platform == PLAT_SIM) {
 				conf.MtouchLink = MtouchLinkMode.None;
 			}
-			
-			if (LanguageBinding != null)
-				conf.CompilationParameters = LanguageBinding.CreateCompilationParameters (null);
 			return conf;
 		}
 		
@@ -466,8 +464,7 @@ namespace MonoDevelop.IPhone
 			
 			//find any related files, e.g codebehind
 			//FIXME: base this on the controller class names defined in the xib
-			IEnumerable<string> filesToAdd = MonoDevelop.DesignerSupport.CodeBehind.GuessDependencies
-				(this, e.ProjectFile, groupedExtensions);
+			var filesToAdd = MonoDevelop.DesignerSupport.CodeBehind.GuessDependencies (this, e.ProjectFile, groupedExtensions);
 			
 			//let the base fire the event before we add files
 			//don't want to fire events out of order of files being added
@@ -482,14 +479,18 @@ namespace MonoDevelop.IPhone
 			}
 		}
 		
-		protected override void OnFileChangedInProject (MonoDevelop.Projects.ProjectFileEventArgs e)
-		{
-			//update codebehind
-			if (e.ProjectFile.BuildAction == BuildAction.Page && e.ProjectFile.FilePath.Extension ==".xib")
-				System.Threading.ThreadPool.QueueUserWorkItem (delegate { CodeBehind.UpdateXibCodebehind (e.ProjectFile); });
-			base.OnFileChangedInProject (e);
-		}
-		
 		#endregion
+		
+		public ProjectFile GetInfoPlist ()
+		{
+			var name = BaseDirectory.Combine ("Info.plist");
+			var pf = Files.GetFile (name);
+			if (pf != null)
+				return pf;
+			var doc = new PlistDocument ();
+			doc.Root = new PlistDictionary ();
+			doc.WriteToFile (name);
+			return AddFile (name);
+		}
 	}
 }

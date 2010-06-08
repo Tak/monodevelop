@@ -29,6 +29,13 @@ using System.Collections.Generic;
 
 namespace Mono.TextEditor
 {
+	public enum NewLineInsertion
+	{
+		None,
+		Eol,
+		BlankLine
+	}
+	
 	public class InsertionPoint 
 	{
 		public DocumentLocation Location {
@@ -36,19 +43,52 @@ namespace Mono.TextEditor
 			set;
 		}
 		
-		public bool ShouldInsertNewLineBefore { get; set; }
-		public bool ShouldInsertNewLineAfter { get; set; }
+		public NewLineInsertion LineBefore { get; set; }
+		public NewLineInsertion LineAfter { get; set; }
 		
-		public InsertionPoint (DocumentLocation location, bool shouldInsertNewLineBefore, bool shouldInsertNewLineAfter)
+		public InsertionPoint (DocumentLocation location, NewLineInsertion lineBefore, NewLineInsertion lineAfter)
 		{
 			this.Location = location;
-			this.ShouldInsertNewLineBefore = shouldInsertNewLineBefore;
-			this.ShouldInsertNewLineAfter = shouldInsertNewLineAfter;
+			this.LineBefore = lineBefore;
+			this.LineAfter = lineAfter;
 		}
 		
 		public override string ToString ()
 		{
-			return string.Format ("[InsertionPoint: Location={0}, ShouldInsertNewLineBefore={1}, ShouldInsertNewLineAfter={2}]", Location, ShouldInsertNewLineBefore, ShouldInsertNewLineAfter);
+			return string.Format ("[InsertionPoint: Location={0}, LineBefore={1}, LineAfter={2}]", Location, LineBefore, LineAfter);
+		}
+		
+		public void InsertNewLine (TextEditor editor, NewLineInsertion insertion, ref int offset)
+		{
+			string str = null;
+			switch (insertion) {
+			case NewLineInsertion.Eol:
+				str = editor.GetTextEditorData ().EolMarker;
+				break;
+			case NewLineInsertion.BlankLine:
+				str = editor.GetTextEditorData ().EolMarker + editor.GetTextEditorData ().EolMarker;
+				break;
+			default:
+				return;
+			}
+			
+			editor.Insert (offset, str);
+			offset += str.Length;
+		}
+		
+		public void Insert (TextEditor editor, string text)
+		{
+			int offset = editor.Document.LocationToOffset (Location);
+			editor.Document.BeginAtomicUndo ();
+			InsertNewLine (editor, LineBefore, ref offset);
+			LineSegment line = editor.Document.GetLineByOffset (offset);
+			string indent = editor.Document.GetLineIndent (line) ?? "";
+			editor.Replace (line.Offset, indent.Length, text);
+			offset = line.Offset + text.Length;
+			InsertNewLine (editor, LineAfter, ref offset);
+			if (!string.IsNullOrEmpty (indent))
+				editor.Insert (offset, indent);
+			editor.Document.EndAtomicUndo ();
 		}
 	}
 	
@@ -87,14 +127,14 @@ namespace Mono.TextEditor
 				if (CurIndex > 0)
 					CurIndex--;
 				DocumentLocation loc = insertionPoints[CurIndex].Location;
-				editor.ScrollTo (loc.Line - 1, 0);
+				editor.CenterTo (loc.Line - 1, 0);
 				editor.QueueDraw ();
 				break;
 			case Gdk.Key.Down:
 				if (CurIndex < insertionPoints.Count - 1)
 					CurIndex++;
 				loc = insertionPoints[CurIndex].Location;
-				editor.ScrollTo (loc.Line + 1, 0);
+				editor.CenterTo (loc.Line + 1, 0);
 				editor.QueueDraw ();
 				break;
 				
@@ -112,6 +152,8 @@ namespace Mono.TextEditor
 		EditMode oldMode;
 		public void StartMode ()
 		{
+			if (insertionPoints.Count == 0)
+				return;
 			oldMode = editor.CurrentMode;
 			
 			

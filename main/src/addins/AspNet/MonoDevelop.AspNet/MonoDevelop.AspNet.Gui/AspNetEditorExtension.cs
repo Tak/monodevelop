@@ -116,18 +116,18 @@ namespace MonoDevelop.AspNet.Gui
 		LocalDocumentInfo localDocumentInfo;
 		DocumentInfo documentInfo;
 		
+		
 		protected override ICompletionDataList HandleCodeCompletion (CodeCompletionContext completionContext,
 		                                                            bool forced, ref int triggerWordLength)
 		{
 			ITextBuffer buf = this.Buffer;
-			
 			// completionChar may be a space even if the current char isn't, when ctrl-space is fired t
 			char currentChar = completionContext.TriggerOffset < 1? ' ' : buf.GetCharAt (completionContext.TriggerOffset - 1);
 			//char previousChar = completionContext.TriggerOffset < 2? ' ' : buf.GetCharAt (completionContext.TriggerOffset - 2);
 			
 			//directive names
 			if (Tracker.Engine.CurrentState is AspNetDirectiveState) {
-				AspNetDirective directive = Tracker.Engine.Nodes.Peek () as AspNetDirective;
+				var directive = Tracker.Engine.Nodes.Peek () as AspNetDirective;
 				if (HasDoc && directive != null && directive.Region.Start.Line == completionContext.TriggerLine &&
 				    directive.Region.Start.Column + 4 == completionContext.TriggerLineOffset)
 				{
@@ -135,7 +135,7 @@ namespace MonoDevelop.AspNet.Gui
 				}
 				return null;
 			} else if (Tracker.Engine.CurrentState is S.XmlNameState && Tracker.Engine.CurrentState.Parent is AspNetDirectiveState) {
-				AspNetDirective directive = Tracker.Engine.Nodes.Peek () as AspNetDirective;
+				var directive = Tracker.Engine.Nodes.Peek () as AspNetDirective;
 				if (HasDoc && directive != null && directive.Region.Start.Line == completionContext.TriggerLine &&
 				    directive.Region.Start.Column + 5 == completionContext.TriggerLineOffset && char.IsLetter (currentChar))
 				{
@@ -144,14 +144,16 @@ namespace MonoDevelop.AspNet.Gui
 				}
 				return null;
 			}
-
+			
+			bool isAspExprState =  Tracker.Engine.CurrentState is AspNetExpressionState;
+			
 			//non-xml tag completion
-			if (currentChar == '<' && !(Tracker.Engine.CurrentState is S.XmlFreeState)) {
+			if (currentChar == '<' && !(isAspExprState || Tracker.Engine.CurrentState is S.XmlFreeState)) {
 				var list = new CompletionDataList ();
 				AddAspBeginExpressions (list);
 				return list;
 			}
-
+			
 			if (!HasDoc || aspDoc.Info.DocType == null) {
 				//FIXME: get doctype from master page
 				DocType = null;
@@ -163,40 +165,87 @@ namespace MonoDevelop.AspNet.Gui
 			}
 			
 			//completion for ASP.NET expressions
-			// TODO: Detect <script> state here !!!
-			if (documentBuilder != null && Tracker.Engine.CurrentState is AspNetExpressionState) {
-				int start = Document.TextEditor.CursorPosition - Tracker.Engine.CurrentStateLength;
-				if (Document.TextEditor.GetCharAt (start) == '=') {
-					start++;
-				}
-				
-				string sourceText = Document.TextEditor.GetText (start, Document.TextEditor.CursorPosition);
-
-				var loc = new MonoDevelop.AspNet.Parser.Internal.Location ();
-				int line, col;
- 				Document.TextEditor.GetLineColumnFromPosition (start, out line, out col);
-				loc.EndLine = loc.BeginLine = line;
-				loc.EndColumn = loc.BeginColumn = col;
-				
-				localDocumentInfo = documentBuilder.BuildLocalDocument (documentInfo, TextEditorData, sourceText, true);
-				
-				var viewContent = new MonoDevelop.Ide.Gui.HiddenTextEditorViewContent ();
-				viewContent.Project = Document.Project;
-				viewContent.ContentName = localDocumentInfo.ParsedLocalDocument.FileName;
-				
-				viewContent.Text = localDocumentInfo.LocalDocument;
-				viewContent.GetTextEditorData ().Caret.Offset = localDocumentInfo.CaretPosition;
-				var workbenchWindow = new MonoDevelop.Ide.Gui.HiddenWorkbenchWindow ();
-				workbenchWindow.ViewContent = viewContent;
-				hiddenDocument = new MonoDevelop.Ide.Gui.Document (workbenchWindow);
-				
-				hiddenDocument.ParsedDocument = localDocumentInfo.ParsedLocalDocument;
-				
+			if (documentBuilder != null && isAspExprState) {
+				InitializeCodeCompletion ();
 				return documentBuilder.HandleCompletion (hiddenDocument, documentInfo, localDocumentInfo, 
 					 new AspProjectDomWrapper (documentInfo), currentChar, ref triggerWordLength);
 			}
 			
+			if (Tracker.Engine.CurrentState is HtmlScriptBodyState) {
+				var el = Tracker.Engine.Nodes.Peek () as S.XElement;
+				if (el != null) {
+					var att = GetHtmlAtt (el, "runat");
+					if (att != null && "server".Equals (att.Value, StringComparison.OrdinalIgnoreCase)) {
+						if (documentBuilder != null) {
+							// TODO: C# completion
+						}
+					}
+					/*
+					else {
+						att = GetHtmlAtt (el, "language");
+						if (att == null || "javascript".Equals (att.Value, StringComparison.OrdinalIgnoreCase)) {
+						    att = GetHtmlAtt (el, "type");
+							if (att == null || "text/javascript".Equals (att.Value, StringComparison.OrdinalIgnoreCase)) {
+								// TODO: JS completion
+							}
+						}
+					}*/
+				}
+				
+			}
+			
 			return base.HandleCodeCompletion (completionContext, forced, ref triggerWordLength);
+		}
+		
+		//case insensitive, no prefix
+		static S.XAttribute GetHtmlAtt (S.XElement el, string name)
+		{
+			return el.Attributes
+				.Where (a => a.IsNamed && !a.Name.HasPrefix && a.Name.Name.Equals (name, StringComparison.OrdinalIgnoreCase))
+				.FirstOrDefault ();
+		}
+		
+		public void InitializeCodeCompletion ()
+		{
+			int caretOffset = Document.TextEditorData.Caret.Offset;
+			int start = caretOffset - Tracker.Engine.CurrentStateLength;
+			if (Document.TextEditor.GetCharAt (start) == '=') 
+				start++;
+			
+			string sourceText = Document.TextEditor.GetText (start, caretOffset);
+			string textAfterCaret = Document.TextEditor.GetText (caretOffset, Tracker.Engine.Position + Tracker.Engine.CurrentStateLength - start);
+			
+			var loc = new MonoDevelop.AspNet.Parser.Internal.Location ();
+			var docLoc = Document.TextEditorData.Document.OffsetToLocation (start);
+			loc.EndLine = loc.BeginLine = docLoc.Line;
+			loc.EndColumn = loc.BeginColumn = docLoc.Column;
+			
+			localDocumentInfo = documentBuilder.BuildLocalDocument (documentInfo, TextEditorData, sourceText, textAfterCaret, true);
+			
+			var viewContent = new MonoDevelop.Ide.Gui.HiddenTextEditorViewContent ();
+			viewContent.Project = Document.Project;
+			viewContent.ContentName = localDocumentInfo.ParsedLocalDocument.FileName;
+			
+			viewContent.Text = localDocumentInfo.LocalDocument;
+			viewContent.GetTextEditorData ().Caret.Offset = localDocumentInfo.CaretPosition;
+
+			var workbenchWindow = new MonoDevelop.Ide.Gui.HiddenWorkbenchWindow ();
+			workbenchWindow.ViewContent = viewContent;
+			hiddenDocument = new MonoDevelop.Ide.Gui.Document (workbenchWindow);
+			
+			hiddenDocument.ParsedDocument = localDocumentInfo.ParsedLocalDocument;
+		}
+		
+		
+		public override ICompletionDataList CodeCompletionCommand (CodeCompletionContext completionContext)
+		{
+			//completion for ASP.NET expressions
+			// TODO: Detect <script> state here !!!
+			if (documentBuilder != null && Tracker.Engine.CurrentState is AspNetExpressionState) {
+				InitializeCodeCompletion ();
+				return documentBuilder.HandlePopupCompletion (hiddenDocument, documentInfo, localDocumentInfo, new AspProjectDomWrapper (documentInfo));
+			}
+			return base.CodeCompletionCommand (completionContext);
 		}
 		
 		public override IParameterDataProvider HandleParameterCompletion (CodeCompletionContext completionContext, char completionChar)
@@ -451,8 +500,14 @@ namespace MonoDevelop.AspNet.Gui
 			list.Add ("%--", "md-literal", GettextCatalog.GetString ("ASP.NET server-side comment"));
 			
 			//valid on 2.0+ runtime only
-			if (ProjClrVersion != ClrVersion.Net_1_1)
+			if (ProjClrVersion != ClrVersion.Net_1_1) {
 				list.Add ("%$", "md-literal", GettextCatalog.GetString ("ASP.NET resource expression"));
+			}
+			
+			//valid on 2.0+ runtime only
+			if (ProjClrVersion != ClrVersion.Net_4_0) {
+				list.Add ("%:", "md-literal", GettextCatalog.GetString ("ASP.NET HTML encoded expression"));
+			}
 		}
 		
 		void AddAspAttributeCompletionData (CompletionDataList list, S.XName name, Dictionary<string, string> existingAtts)
@@ -836,7 +891,5 @@ namespace MonoDevelop.AspNet.Gui
 		}
 		#endregion
 	}
-	
-	
 		
 }

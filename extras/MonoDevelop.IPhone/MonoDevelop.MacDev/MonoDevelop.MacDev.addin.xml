@@ -1,0 +1,64 @@
+<Addin id          = "MacDev"
+       namespace   = "MonoDevelop"
+       name        = "MonoDevelop Mac Development Support"
+       author      = "Geoff Norton, Michael Hutchinson"
+       copyright   = "MIT X11"
+       url         = "http://monodevelop.com/"
+       description = "Mac Development Support for MonoDevelop"
+       category    = "Mac Development"
+       version     = "2.4">
+	
+	<Runtime>
+		<Import file = "icons/application-x-mono-develop-xib-16.png"/>
+		<Import file = "icons/application-x-mono-develop-xib-22.png"/>
+		<Import file = "icons/application-x-mono-develop-xib-24.png"/>
+		<Import file = "icons/application-x-mono-develop-xib-32.png"/>
+		<Import file = "icons/application-x-mono-develop-xib-48.png"/>
+		<Import file = "icons/xib-template-application.png"/>
+		<Import file = "icons/xib-template-empty.png"/>
+		<Import file = "icons/xib-template-view.png"/>
+		<Import file = "icons/xib-template-window.png"/>
+	</Runtime>
+
+	<Dependencies>
+	    <Addin id="Ide" version="2.4"/>
+	    <Addin id="Core" version="2.4"/>
+	</Dependencies>
+	
+	<Extension path = "/MonoDevelop/Core/MimeTypes">
+		<MimeType id="application/vnd.apple-plist" _description="Mac Property List" isText="false">
+			<File pattern="*.plist" />
+		</MimeType>
+		<Condition id="Platform" value="mac">
+			<MimeType id="application/vnd.apple-interface-builder" _description="Interface Builder file"
+			          isText="false" icon="application-vnd-apple-interface-builder">
+				<File pattern="*.xib" />
+			</MimeType>
+		</Condition>
+		<Condition id="Platform" value="!mac">
+			<MimeType id="application/vnd.apple-interface-builder" _description="Interface Builder file"
+			          baseType="application/xml" icon="application-vnd-apple-interface-builder">
+				<File pattern="*.xib" />
+			</MimeType>
+		</Condition>
+	</Extension>
+	
+	<Extension path = "/MonoDevelop/Core/StockIcons">
+		<StockIcon stockid = "application-vnd-apple-interface-builder"
+		           file = "icons/application-x-mono-develop-xib-16.png" size="Menu" />
+		<StockIcon stockid = "application-vnd-apple-interface-builder"
+		           file = "icons/application-x-mono-develop-xib-22.png" size="Button" />
+		<StockIcon stockid = "application-vnd-apple-interface-builder"
+		           file = "icons/application-x-mono-develop-xib-32.png" size="Dnd" />
+		<StockIcon stockid = "application-vnd-apple-interface-builder"
+		           file = "icons/application-x-mono-develop-xib-48.png" size="Dialog" />
+		<StockIcon stockid = "xib-template-application"
+		           file = "icons/xib-template-application.png" size="Dnd" />
+		<StockIcon stockid = "xib-template-empty"
+		           file = "icons/xib-template-empty.png" size="Dnd" />
+		 <StockIcon stockid = "xib-template-view"
+		           file = "icons/xib-template-view.png" size="Dnd" />
+		<StockIcon stockid = "xib-template-window"
+		           file = "icons/xib-template-window.png" size="Dnd" />
+	</Extension>
+</Addin>

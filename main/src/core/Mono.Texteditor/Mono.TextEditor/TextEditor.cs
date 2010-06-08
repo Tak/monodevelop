@@ -120,6 +120,8 @@ namespace Mono.TextEditor
 		
 		public TextEditor () : this(new Document ())
 		{
+			// TODO: Enable accessibility factory
+			//			new TextEditorAccessible.Factory ();
 			textEditorData.Document.LineChanged += UpdateLinesOnTextMarkerHeightChange; 
 		}
 		
@@ -1184,7 +1186,22 @@ namespace Mono.TextEditor
 		
 		public void CenterToCaret ()
 		{
-			if (isDisposed || Caret.Line < 0 || Caret.Line >= Document.LineCount)
+			CenterTo (Caret.Location);
+		}
+		
+		public void CenterTo (int offset)
+		{
+			CenterTo (Document.OffsetToLocation (offset));
+		}
+		
+		public void CenterTo (int line, int column)
+		{
+			CenterTo (new DocumentLocation (line, column));
+		}
+		
+		public void CenterTo (DocumentLocation p)
+		{
+			if (isDisposed || p.Line < 0 || p.Line >= Document.LineCount)
 				return;
 			SetAdjustments (this.Allocation);
 			//			Adjustment adj;
@@ -1195,13 +1212,13 @@ namespace Mono.TextEditor
 			}
 			
 			//	int yMargin = 1 * this.LineHeight;
-			int caretPosition = LineToVisualY (Caret.Line);
+			int caretPosition = LineToVisualY (p.Line);
 			this.textEditorData.VAdjustment.Value = caretPosition - this.textEditorData.VAdjustment.PageSize / 2;
 			
 			if (this.textEditorData.HAdjustment.Upper < Allocation.Width)  {
 				this.textEditorData.HAdjustment.Value = 0;
 			} else {
-				int caretX = textViewMargin.ColumnToVisualX (Document.GetLine (Caret.Line), Caret.Column);
+				int caretX = textViewMargin.ColumnToVisualX (Document.GetLine (p.Line), p.Column);
 				int textWith = Allocation.Width - textViewMargin.XOffset;
 				if (this.textEditorData.HAdjustment.Value > caretX) {
 					this.textEditorData.HAdjustment.Value = caretX;
@@ -2584,7 +2601,6 @@ namespace Mono.TextEditor
 				textEditorData.Document.CommitLineToEndUpdate (textEditorData.Document.OffsetToLineNumber (e.Line.Offset));
 			lineHeights[e.Line.Offset] = currentHeight;
 		}
-		
 	}
 	
 	public interface ITextEditorDataProvider
