@@ -5,6 +5,7 @@ MAC_APP_LIB_DIR=$(MACOS)/lib/monodevelop
 ADDINS=$(MACOS)/lib/monodevelop/AddIns
 BUNDLED_FRAMEWORK_DIR=$(MAC_APP_DIR)/Contents/Frameworks/Mono.framework
 FINAL_INSTALL_DIR=/Applications/$(MAC_APP_DIR)
+MODERN_GTK_DIR=../../../../gtk
 
 CLEANFILES = MonoDevelop.dmg MonoDevelop.app
 #DISTCLEANFILES = 
@@ -83,6 +84,7 @@ mono-bundle: MonoDevelop.app
 # Copy system mono framework
 	echo "Copying system framework"
 	cp -R /Library/Frameworks/Mono.framework $(MAC_APP_DIR)/Contents/Frameworks
+	./transplant_gtk.sh $(MODERN_GTK_DIR) $(BUNDLED_FRAMEWORK_DIR)/Versions/Current
 	mkdir -p $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango
 	cp pangorc $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango
 	cp monodevelop $(MACOS)/monodevelop
