@@ -57,7 +57,7 @@ namespace MonoDevelop.Ide.Gui
 		readonly static string toolbarsPath    = "/MonoDevelop/Ide/Toolbar";
 		readonly static string stockLayoutsPath    = "/MonoDevelop/Ide/WorkbenchLayouts";
 		
-		static string configFile = System.IO.Path.Combine (PropertyService.ConfigPath, "EditingLayout2.xml");
+		static string configFileBase = "EditingLayout2.xml";
 		const string fullViewModeTag = "[FullViewMode]";
 		const int MAX_LASTACTIVEWINDOWS = 10;
 		
@@ -627,7 +627,7 @@ namespace MonoDevelop.Ide.Gui
 				if (fv.EndsWith (fullViewModeTag))
 					dock.DeleteLayout (fv);
 			
-			dock.SaveLayouts (configFile);
+			dock.SaveLayouts (System.IO.Path.Combine (PropertyService.ConfigPath, configFileBase));
 			UninstallMenuBar ();
 			Remove (rootWidget);
 			
@@ -853,17 +853,20 @@ namespace MonoDevelop.Ide.Gui
 			// create DockItems for all the pads
 			foreach (PadCodon content in padContentCollection)
 				AddPad (content, content.DefaultPlacement, content.DefaultStatus);
-			
-			try {
-				if (System.IO.File.Exists (configFile)) {
-					dock.LoadLayouts (configFile);
-					foreach (string layout in dock.Layouts) {
-						if (!layouts.Contains (layout) && !layout.EndsWith (fullViewModeTag))
-							layouts.Add (layout);
+				
+			foreach (string basePath in new string[]{PropertyService.DataPath, PropertyService.ConfigPath}) {
+				string configFile = System.IO.Path.Combine (basePath, configFileBase);
+				try {
+					if (System.IO.File.Exists (configFile)) {
+						dock.LoadLayouts (configFile);
+						foreach (string layout in dock.Layouts) {
+							if (!layouts.Contains (layout) && !layout.EndsWith (fullViewModeTag))
+								layouts.Add (layout);
+						}
 					}
+				} catch (Exception ex) {
+					LoggingService.LogError (ex.ToString ());
 				}
-			} catch (Exception ex) {
-				LoggingService.LogError (ex.ToString ());
 			}
 			CurrentLayout = "Default";
 		}

@@ -65,7 +65,7 @@ namespace MonoDevelop.Core
 			get {
 				string result = System.Configuration.ConfigurationManager.AppSettings ["DataDirectory"];
 				if (String.IsNullOrEmpty (result)) 
-					result = Path.Combine (EntryAssemblyPath, Path.Combine ("..", "data"));
+					result = Path.Combine (EntryAssemblyPath, Path.Combine ("..", Path.Combine ("data", "options")));
 				return result;
 			}
 		}
