@@ -10,6 +10,7 @@ MODERN_GTK_DIR=../../../../gtk
 CLEANFILES = MonoDevelop.dmg MonoDevelop.app
 #DISTCLEANFILES = 
 EXTRA_DIST = dmg-bg.png DS_Store Info.plist.in make-dmg-bundle.sh mdtool monodevelop 
+CURRENT=$(shell readlink /Library/Frameworks/Mono.framework/Versions/Current)
 
 all: MonoDevelop.app
 
@@ -82,13 +83,23 @@ mono-bundle: MonoDevelop.app
 	mkdir -p $(MAC_APP_DIR)/Contents/Frameworks
 
 # Copy system mono framework
-	echo "Copying system framework"
-	cp -R /Library/Frameworks/Mono.framework $(MAC_APP_DIR)/Contents/Frameworks
+	echo "Copying system framework ($(CURRENT))"
+	rm -rf $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework
+	mkdir -p $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Versions
+	cp -R /Library/Frameworks/Mono.framework/Versions/$(CURRENT) $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Versions
+	ln -s Versions/Current/bin $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Commands
+	ln -s Versions/Current/include $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Headers
+	ln -s Versions/Current $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Home
+	ln -s Versions/Current/lib $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Libraries
+	ln -s Libraries/libmono.dylib $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Mono
+	ln -s Versions/Current/Resources $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Resources
+	ln -s $(CURRENT) $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Versions/Current
 	./transplant_gtk.sh $(MODERN_GTK_DIR) $(BUNDLED_FRAMEWORK_DIR)/Versions/Current
 	mkdir -p $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango
 	cp pangorc $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango
 	cp monodevelop $(MACOS)/monodevelop
 	cp mdtool $(MACOS)/mdtool
+	chmod +x $(MACOS)/monodevelop $(MACOS)/mdtool
 
 # Relocate .exe.config, .dll.config, pixbuf loaders, and .pc files
 	echo "Relocating config files"
