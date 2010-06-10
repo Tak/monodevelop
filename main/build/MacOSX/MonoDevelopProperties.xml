@@ -1,0 +1,140 @@
+﻿<MonoDevelopProperties version="2.0">
+  <Property key="MonoDevelop.Core.FirstRun" value="False" />
+  <Property key="MonoDevelop.Ide.UserInterfaceTheme" value="" />
+  <Property key="MonoDevelop.Ide.UserInterfaceLanguage" value="" />
+  <Property key="MonoDevelop.EnableInstrumentation" value="False" />
+  <Property key="MonoDevelop.Ide.DefaultTargetRuntime" value="__current" />
+  <Property key="MonoDevelop.EnableAutomatedTesting" value="False" />
+  <Property key="MonoDevelop.Debugger.DebuggingService.EnginePriority" value="Mono.Debugger.Soft,Mono.Debugger.Soft.AspNet,Mono.Debugger.Soft.Moonlight,MonoDevelop.Debugger.Soft.Unity" />
+  <Property key="MonoDevelop.ToolbarSize" value="Menu" />
+  <Property key="MonoDevelop.Ide.WorkbenchCompactness" value="Normal" />
+  <Property key="MonoDevelop.Core.Gui.CurrentWorkbenchLayout" value="Default" />
+  <Property key="MonoDevelop.Ide.CustomPadFont" value="" />
+  <Property key="MonoDevelop.Ide.ExtensibleTreeView.Zoom.ProjectPad" value="1" />
+  <Property key="SharpDevelop.Workbench.WorkbenchMemento">
+    <Property key="bounds" value="50, 50, 1340, 750" />
+    <Property key="windowState" value="Maximized" />
+    <Property key="fullscreen" value="False" />
+    <Property key="toolbarStatus">
+      <DockToolbarFrameStatus xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+        <version>2</version>
+        <layout id="">
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Standard">
+            <visible>true</visible>
+            <dockedPosition offset="0" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Search">
+            <visible>false</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Build">
+            <visible>true</visible>
+            <dockedPosition offset="419" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Layout">
+            <visible>false</visible>
+            <dockedPosition offset="870" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Navigation">
+            <visible>true</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Debugger">
+            <visible>false</visible>
+            <dockedPosition offset="745" row="0" placement="Top" />
+          </dockbar>
+        </layout>
+        <layout id="Default">
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Standard">
+            <visible>true</visible>
+            <dockedPosition offset="0" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Search">
+            <visible>false</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Build">
+            <visible>true</visible>
+            <dockedPosition offset="419" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Layout">
+            <visible>false</visible>
+            <dockedPosition offset="870" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Navigation">
+            <visible>true</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Debugger">
+            <visible>false</visible>
+            <dockedPosition offset="745" row="0" placement="Top" />
+          </dockbar>
+        </layout>
+        <layout id="Solution">
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Standard">
+            <visible>true</visible>
+            <dockedPosition offset="0" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Search">
+            <visible>false</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Build">
+            <visible>true</visible>
+            <dockedPosition offset="419" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Layout">
+            <visible>false</visible>
+            <dockedPosition offset="870" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Navigation">
+            <visible>true</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Debugger">
+            <visible>false</visible>
+            <dockedPosition offset="745" row="0" placement="Top" />
+          </dockbar>
+        </layout>
+        <layout id="Debug">
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Standard">
+            <visible>true</visible>
+            <dockedPosition offset="0" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Search">
+            <visible>false</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Build">
+            <visible>true</visible>
+            <dockedPosition offset="419" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Layout">
+            <visible>false</visible>
+            <dockedPosition offset="870" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Navigation">
+            <visible>true</visible>
+            <dockedPosition offset="320" row="0" placement="Top" />
+          </dockbar>
+          <dockbar id="/MonoDevelop/Ide/Toolbar/Debugger">
+            <visible>true</visible>
+            <dockedPosition offset="745" row="0" placement="Top" />
+          </dockbar>
+        </layout>
+      </DockToolbarFrameStatus>
+    </Property>
+  </Property>
+  <Property key="MonoDevelop.CodeCompletion.DataDirectory" value="/Users/levi/.config/MonoDevelop/CodeCompletionData" />
+  <Property key="MonoDevelop.Ide.AddinUpdater.CkeckForUpdates" value="True" />
+  <Property key="MonoDevelop.Ide.AddinUpdater.LastCheck" value="06/10/2010 16:26:16" />
+  <Property key="MonoDevelop.Ide.AddinUpdater.UpdateSpanValue" value="1" />
+  <Property key="MonoDevelop.Ide.AddinUpdater.UpdateSpanUnit" value="D" />
+  <Property key="MonoDevelop.Core.Gui.Dialog.TipOfTheDayView.ShowTipsAtStartup" value="False" />
+  <Property key="WelcomePage.ShowOnStartup" value="True" />
+  <Property key="WelcomePage.UpdateFromInternet" value="True" />
+  <Property key="SharpDevelop.LoadDocumentProperties" value="True" />
+  <Property key="MonoDevelop.Core.LastRunVersion" value="5" />
+  <Property key="MonoDevelop.Core.LastRunRevision" value="0" />
+  <Property key="SharpDevelop.LoadPrevProjectOnStartup" value="False" />
+</MonoDevelopProperties>

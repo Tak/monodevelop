@@ -38,6 +38,7 @@ MonoDevelop.app:
 	cp ../../theme-icons/Mac/*.icns $(MAC_APP_DIR)/Contents/Resources/
 	cp monodevelop.orig $(MACOS)/monodevelop
 	cp mdtool.orig $(MACOS)/mdtool
+	cp MonoDevelopProperties.xml EditingLayout2.xml $(MAC_APP_DIR)/Contents/MacOS/lib/monodevelop/data/options
 
 # copy monodevelop.pc and mono-addins.pc to Contents/MacOS/lib/pkgconfig
 	mkdir -p $(MACOS)/lib/pkgconfig
