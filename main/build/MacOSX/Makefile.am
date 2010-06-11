@@ -85,16 +85,16 @@ mono-bundle: MonoDevelop.app
 
 # Copy system mono framework
 	echo "Copying system framework ($(CURRENT))"
-	rm -rf $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework
-	mkdir -p $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Versions
-	cp -R /Library/Frameworks/Mono.framework/Versions/$(CURRENT) $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Versions
-	ln -s Versions/Current/bin $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Commands
-	ln -s Versions/Current/include $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Headers
-	ln -s Versions/Current $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Home
-	ln -s Versions/Current/lib $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Libraries
-	ln -s Libraries/libmono.dylib $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Mono
-	ln -s Versions/Current/Resources $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Resources
-	ln -s $(CURRENT) $(MAC_APP_DIR)/Contents/Frameworks/Mono.Framework/Versions/Current
+	rm -rf $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework
+	mkdir -p $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Versions
+	cp -R /Library/Frameworks/Mono.framework/Versions/$(CURRENT) $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Versions
+	ln -s Versions/Current/bin $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Commands
+	ln -s Versions/Current/include $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Headers
+	ln -s Versions/Current $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Home
+	ln -s Versions/Current/lib $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Libraries
+	ln -s Libraries/libmono.dylib $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Mono
+	ln -s Versions/Current/Resources $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Resources
+	ln -s $(CURRENT) $(MAC_APP_DIR)/Contents/Frameworks/Mono.framework/Versions/Current
 	./transplant_gtk.sh $(MODERN_GTK_DIR) $(BUNDLED_FRAMEWORK_DIR)/Versions/Current
 	mkdir -p $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango
 	cp pangorc $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango
