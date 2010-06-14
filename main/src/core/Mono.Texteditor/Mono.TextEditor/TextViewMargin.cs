@@ -1260,6 +1260,7 @@ namespace Mono.TextEditor
 						LayoutWrapper wrapper = new LayoutWrapper (PangoUtil.CreateLayout (textEditor));
 						wrapper.LineChars = virtualSpace.ToCharArray ();
 						wrapper.Layout.SetText (virtualSpace);
+						wrapper.Layout.Tabs = tabArray;
 						int vy, vx;
 						wrapper.Layout.GetSize (out vx, out vy);
 						SetVisibleCaretPosition (win, ' ', (int)((pangoPosition + vx + layout.PangoWidth) / Pango.Scale.PangoScale), y);
@@ -1737,7 +1738,7 @@ namespace Mono.TextEditor
 			
 			//NOTE: also allow super for block select on X11 because most window managers use the alt modifier already
 			if (Platform.IsX11)
-				blockSelModifier |= ModifierType.SuperMask;
+				blockSelModifier |= (ModifierType.SuperMask | ModifierType.Mod4Mask);
 			
 			if ((args.ModifierState & blockSelModifier) != 0) {
 				textEditor.SelectionMode = SelectionMode.Block;

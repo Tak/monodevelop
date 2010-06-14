@@ -227,12 +227,64 @@ namespace Mono.TextEditor.Vi
 		
 		internal static void RetreatFromLineEnd (TextEditorData data)
 		{
-			if (data.Caret.Mode == CaretMode.Block && !data.IsSomethingSelected) {
+			if (data.Caret.Mode == CaretMode.Block && !data.IsSomethingSelected && !data.Caret.PreserveSelection) {
 				while (0 < data.Caret.Column && (data.Caret.Offset >= data.Document.Length
 				                                 || IsEol (data.Document.GetCharAt (data.Caret.Offset)))) {
 					Left (data);
 				}
 			}
+		}
+		
+		public static Action<TextEditorData> VisualSelectionFromMoveAction (Action<TextEditorData> moveAction)
+		{
+			return delegate (TextEditorData data) {
+				//get info about the old selection state
+				DocumentLocation oldCaret = data.Caret.Location, oldAnchor = oldCaret, oldLead = oldCaret;
+				if (data.MainSelection != null) {
+					oldLead = data.MainSelection.Lead;
+					oldAnchor = data.MainSelection.Anchor;
+				}
+				
+				//do the action, preserving selection
+				SelectionActions.StartSelection (data);
+				moveAction (data);
+				SelectionActions.EndSelection (data);
+				
+				DocumentLocation newCaret = data.Caret.Location, newAnchor = newCaret, newLead = newCaret;
+				if (data.MainSelection != null) {
+					newLead = data.MainSelection.Lead;
+					newAnchor = data.MainSelection.Anchor;
+				}
+				
+				//Console.WriteLine ("oc{0}:{1} oa{2}:{3} ol{4}:{5}", oldCaret.Line, oldCaret.Column, oldAnchor.Line, oldAnchor.Column, oldLead.Line, oldLead.Column);
+				//Console.WriteLine ("nc{0}:{1} na{2}:{3} nl{4}:{5}", newCaret.Line, newCaret.Line, newAnchor.Line, newAnchor.Column, newLead.Line, newLead.Column);
+				
+				//pivot the anchor around the anchor character
+				if (oldAnchor < oldLead && newAnchor >= newLead) {
+					data.SetSelection (new DocumentLocation (newAnchor.Line, newAnchor.Column + 1), newLead);
+				} else if (oldAnchor > oldLead && newAnchor <= newLead) {
+					data.SetSelection (new DocumentLocation (newAnchor.Line, newAnchor.Column - 1), newLead);
+				}
+				
+				//pivot the lead about the anchor character
+				if (newAnchor == newLead) {
+					if (oldAnchor < oldLead)
+						SelectionActions.FromMoveAction (Left) (data);
+					else
+						SelectionActions.FromMoveAction (Right) (data);
+				}
+				//pivot around the anchor line
+				else {
+					if (oldAnchor < oldLead && newAnchor > newLead && (
+							(newLead.Line == newAnchor.Line && oldLead.Line == oldAnchor.Line + 1) ||
+						    (newLead.Line == newAnchor.Line - 1 && oldLead.Line == oldAnchor.Line)))
+						SelectionActions.FromMoveAction (Left) (data);
+					else if (oldAnchor > oldLead && newAnchor < newLead && (
+							(newLead.Line == newAnchor.Line && oldLead.Line == oldAnchor.Line - 1) ||
+							(newLead.Line == newAnchor.Line + 1 && oldLead.Line == oldAnchor.Line)))
+						SelectionActions.FromMoveAction (Right) (data);
+				}
+			};
 		}
 	}
 }

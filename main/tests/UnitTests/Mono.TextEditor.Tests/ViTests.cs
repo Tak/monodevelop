@@ -27,6 +27,8 @@
 using System;
 using NUnit.Framework;
 using System.Reflection;
+using Mono.TextEditor.Vi;
+using System.Text;
 
 namespace Mono.TextEditor.Tests
 {
@@ -183,6 +185,78 @@ qrstu",
    ggg ggg", mode.Text);
 		}
 		
+		[Test]
+		public void DeleteToLineBoundary ()
+		{
+			var mode = new TestViEditMode () { Text =
+@"   aaa bbb ccc ddd
+   eee fff ggg hhh
+   iii jjj kkk lll",
+			};
+			//move 3 words, delete to line end
+			mode.Input ("wwwd$");
+			Assert.AreEqual (
+@"   aaa bbb 
+   eee fff ggg hhh
+   iii jjj kkk lll", mode.Text);
+			//move down to 0 position, move 3 words, delete to home
+			mode.Input ("j0wwwd^");
+			Assert.AreEqual (
+@"   aaa bbb
+   ggg hhh
+   iii jjj kkk lll", mode.Text);
+			//move down to 0 position, move 3 words, delete to 0
+			mode.Input ("j0wwwd0");
+			Assert.AreEqual (
+@"   aaa bbb
+   ggg hhh
+kkk lll", mode.Text);
+		}
+		
+		[Test]
+		public void VisualMotion ()
+		{
+			var mode = new TestViEditMode () { Text =
+@"    aaa bbb ccc ddd
+   eee fff ggg hhh
+   iii jjj kkk lll
+   mmm nnn ooo ppp
+   qqq rrr sss ttt",
+			};
+			//move 2 lines down, 2 words in, enter visual mode
+			mode.Input ("jjwwv");
+			mode.AssertSelection (2, 7, 2, 8);
+			//2 letters to right
+			mode.Input ("ll");
+			mode.AssertSelection (2, 7, 2, 10);
+			//4 letters to left
+			mode.Input ("hhhh");
+			mode.AssertSelection (2, 8, 2, 5);
+			//1 line up
+			mode.Input ("k");
+			mode.AssertSelection (2, 8, 1, 5);
+			//1 line up
+			mode.Input ("k");
+			mode.AssertSelection (2, 8, 0, 5);
+			//5 letters to right
+			mode.Input ("lllll");
+			mode.AssertSelection (2, 8, 0, 10);
+			//3 lines down
+			mode.Input ("jjj");
+			mode.AssertSelection (2, 7, 3, 11);
+		}
+		
+		[Test]
+		public void KeyNotationRoundTrip ()
+		{
+			string command = "<C-m>av2f<Space>34<Esc><M-Space><S-C-M-Down>";
+			var keys = ViKeyNotation.Parse (command);
+			Assert.IsNotNull (keys);
+			Assert.AreEqual (11, keys.Count);
+			var s = ViKeyNotation.ToString (keys);
+			Assert.AreEqual (command, s);
+		}
+		
 		[TestFixtureSetUp] 
 		public void SetUp()
 		{
@@ -195,7 +269,7 @@ qrstu",
 		}
 	}
 	
-	class TestViEditMode : Mono.TextEditor.Vi.ViEditMode
+	class TestViEditMode : ViEditMode
 	{
 		public TestViEditMode () : this (new TextEditorData ())
 		{
@@ -282,6 +356,16 @@ qrstu",
 		{
 			foreach (char c in sequence)
 				Input ((Gdk.Key)0, c, Gdk.ModifierType.None);
+		}
+		
+		public void AssertSelection (int anchorLine, int anchorCol, int leadLine, int leadCol)
+		{
+			var sel = Data.MainSelection;
+			Assert.IsNotNull (sel);
+			Assert.AreEqual (anchorLine, sel.Anchor.Line);
+			Assert.AreEqual (anchorCol, sel.Anchor.Column);
+			Assert.AreEqual (leadLine, sel.Lead.Line);
+			Assert.AreEqual (leadCol, sel.Lead.Column);
 		}
 	}
 }

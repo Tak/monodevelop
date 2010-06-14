@@ -1,10 +1,10 @@
 // 
-// MonoMacSoftDebuggerEngine.cs
+// ViCommandBuilder.cs
 //  
 // Author:
 //       Michael Hutchinson <mhutchinson@novell.com>
 // 
-// Copyright (c) 2009-2010 Novell, Inc. (http://www.novell.com)
+// Copyright (c) 2010 Novell, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -25,44 +25,27 @@
 // THE SOFTWARE.
 
 using System;
+using Gdk;
 using System.Collections.Generic;
-using System.IO;
-using MonoDevelop.Debugger;
-using MonoDevelop.Core;
-using MonoDevelop.Core.Execution;
-using MonoDevelop.MonoMac;
-using Mono.Debugging.Client;
-using MonoDevelop.Debugger.Soft;
-using System.Net;
+using System.Text;
 
-namespace MonoDevelop.Debugger.Soft.MonoMac
+namespace Mono.TextEditor.Vi
 {
-	public class MonoMacSoftDebuggerEngine: IDebuggerEngine
+	public class ViCommandBuilder
 	{
-		public bool CanDebugCommand (ExecutionCommand command)
+		public ViCommandBuilder ()
 		{
-			var cmd = command as MonoMacExecutionCommand;
-			return cmd != null && cmd.DebugMode;
-				//&& SoftDebuggerEngine.CanDebugRuntime (cmd.TargetRuntime);
 		}
 		
-		public DebuggerStartInfo CreateDebuggerStartInfo (ExecutionCommand command)
-		{
-			var cmd = (MonoMacExecutionCommand) command;
-			
-			var startInfo = new MonoMacDebuggerStartInfo (cmd);
-			startInfo.SetUserAssemblies (cmd.UserAssemblyPaths);
-			return startInfo;
-		}
-
-		public DebuggerSession CreateSession ()
-		{
-			return new MonoMacDebuggerSession ();
-		}
+		public IList<ViKey> Command { get; private set; }
+		public bool Ready { get; private set; }
+		public string Error { get; private set; }
 		
-		public ProcessInfo[] GetAttachableProcesses ()
+		public Action<TextEditorData> GetAction ()
 		{
-			return new ProcessInfo[0];
+			throw new NotImplementedException ();
 		}
 	}
+	
 }
+

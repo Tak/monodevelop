@@ -1,3 +1,63 @@
+2010-06-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViKeyNotation.cs: Use explicit
+	  dictionaries instead of switches, to make code more
+	  readable.
+
+2010-06-11  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViKeyNotation.cs: Added vi key notation
+	  parsing and stringifying.
+
+	* Mono.TextEditor.Vi/ViCommandBuilder.cs: Added vi command
+	  builder stub.
+
+	* Makefile.am:
+	* Mono.TextEditor.csproj: Added files.
+
+2010-06-11  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor/TextViewMargin.cs: Fix super for block
+	  select.
+
+2010-06-11  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextViewMargin.cs:
+	* Mono.TextEditor/CaretMoveActions.cs: Fixed 'Bug 612001 -
+	  "Virtual tab" line spacing is incorrect'.
+
+2010-06-10  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViActions.cs: Fix some buglets in the
+	  selection line pivoting.
+
+2010-06-10  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs: Fix mouse selection enabling
+	  visual mode.
+
+2010-06-10  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViMode.cs:
+	* Mono.TextEditor.Vi/ViActions.cs: Fix the visual mode
+	  selection when pivoting around the anchor char and anchor
+	  line.
+
+2010-06-10  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Vi/ViActions.cs: Fix line end text object.
+
+2010-06-10  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor/Document.cs: Add RemoveMarker overloads
+	  allowing to skip line updates.
+
+2010-06-10  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/Document.cs:
+	* Mono.TextEditor.Vi/ViMark.cs: Fixed 'Bug 613114 - NRE in
+	  editor means error marker never goes away'.
+
 2010-06-05  Mike Krüger  <mkrueger@novell.com>
 
 	* Mono.TextEditor.Highlighting/SyntaxMode.cs: Fixed 'Bug

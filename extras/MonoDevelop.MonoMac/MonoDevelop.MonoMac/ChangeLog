@@ -1,3 +1,48 @@
+2010-06-10  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoMacBuildExtension.cs: Better build output.
+
+2010-06-09  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoMacBuildExtension.cs: Fix build deps.
+
+2010-06-09  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoMacExecutionHandler.cs: Fix build.
+
+2010-06-09  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoMacExecutionHandler.cs:
+	* MonoDevelop.MonoMac.addin.xml: Disable the debug and
+	  execution handlers cleanly on non-Mac.
+
+2010-06-09  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoMacLaunchScript.sh: Ooops, removed important line.
+
+2010-06-09  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoMacLaunchScript.sh: Fixify.
+
+2010-06-09  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoMacLaunchScript.sh: Launch script now checks for Mono
+
+2010-06-08  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* templates/MonoMacProject.xpt.xml: Add a MainWindow.
+
+2010-06-08  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.MonoMac.csproj: Remove Mono.Addins targets as
+	  they seem to be broken.
+
+2010-06-08  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* templates/MonoMacViewWithControllerXib.xft.xml:
+	* templates/MonoMacWindowWithControllerXib.xft.xml: Add some
+	  strongly typed accessors.
+
 2010-06-08  Michael Hutchinson  <mhutchinson@novell.com>
 
 	* MonoDevelop.MonoMac.csproj:
