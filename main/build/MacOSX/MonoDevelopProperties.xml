@@ -40,7 +40,7 @@
             <dockedPosition offset="320" row="0" placement="Top" />
           </dockbar>
           <dockbar id="/MonoDevelop/Ide/Toolbar/Debugger">
-            <visible>false</visible>
+            <visible>true</visible>
             <dockedPosition offset="745" row="0" placement="Top" />
           </dockbar>
         </layout>
@@ -66,7 +66,7 @@
             <dockedPosition offset="320" row="0" placement="Top" />
           </dockbar>
           <dockbar id="/MonoDevelop/Ide/Toolbar/Debugger">
-            <visible>false</visible>
+            <visible>true</visible>
             <dockedPosition offset="745" row="0" placement="Top" />
           </dockbar>
         </layout>
@@ -125,7 +125,6 @@
       </DockToolbarFrameStatus>
     </Property>
   </Property>
-  <Property key="MonoDevelop.CodeCompletion.DataDirectory" value="/Users/levi/.config/MonoDevelop/CodeCompletionData" />
   <Property key="MonoDevelop.Ide.AddinUpdater.CkeckForUpdates" value="True" />
   <Property key="MonoDevelop.Ide.AddinUpdater.LastCheck" value="06/10/2010 16:26:16" />
   <Property key="MonoDevelop.Ide.AddinUpdater.UpdateSpanValue" value="1" />
