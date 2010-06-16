@@ -38,12 +38,14 @@ namespace MonoDevelop.Platform.Updater
 	{
 		protected override void Run ()
 		{
+			return; // Disable updates
 			UpdateService.RunCheckDialog (false);
 		}
 		
 		protected override void Update (CommandInfo info)
 		{
-			info.Visible = UpdateService.DefaultUpdateInfos.Length > 0;
+			info.Visible = false;
+			// info.Visible = UpdateService.DefaultUpdateInfos.Length > 0;
 		}
 	}
 	
@@ -51,6 +53,7 @@ namespace MonoDevelop.Platform.Updater
 	{
 		protected override void Run()
 		{
+			return; // Disable updates
 			UpdateService.RunCheckDialog (true);
 		}
 	}

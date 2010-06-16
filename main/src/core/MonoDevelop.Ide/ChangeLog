@@ -33,6 +33,10 @@
 	  Use platform service CanOpenTerminal/OpenInTerminal instead
 	  of hardcoded gnome-terminal.
 
+2010-06-08  Levi Bard  <levi@unity3d.com>
+
+	* MonoDevelop.Ide/Ide.cs: Don't reload an already loaded solution.
+
 2010-06-08  Michael Hutchinson  <mhutchinson@novell.com>
 
 	* MonoDevelop.Ide.Templates/FileTemplate.cs: Use

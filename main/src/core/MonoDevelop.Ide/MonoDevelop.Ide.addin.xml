@@ -730,6 +730,7 @@
 				icon = "md-select-all" />
 		<Command id = "MonoDevelop.Ide.Commands.EditCommands.ToggleCodeComment"
 				shortcut = "Control|Alt|C"
+				macShortcut = "Meta|?"
 				_description = "Comment/Uncomment selected lines of code" 
 				_label = "_Toggle Line Comment(s)"
 				icon = "md-comment" />
@@ -1423,7 +1424,7 @@
 		
 		<Command id = "MonoDevelop.Ide.Commands.TextEditorCommands.ShowCompletionWindow"
 				_label = "Show Completion Window" 
-				macShortcut="Control|space"
+				macShortcut="Alt|Escape"
 				shortcut = "Control|space" />
 		<Command id = "MonoDevelop.Ide.Commands.TextEditorCommands.ToggleCompletionSuggestionMode"
 				defaultHandler = "MonoDevelop.Ide.Commands.ToggleCompletionSuggestionModeHandler"
@@ -1484,7 +1485,7 @@
 				shortcut="Alt|Down" />
 		<Command id = "MonoDevelop.Ide.Commands.TextEditorCommands.ShowParameterCompletionWindow"
 				_label = "Show Parameter List"
-				macShortcut = "Control|Shift|space"
+				macShortcut = "Alt|Shift|Escape"
 				shortcut = "Control|Shift|space" />
 		<Command id = "MonoDevelop.Ide.Commands.TextEditorCommands.GotoMatchingBrace"
 				_label = "Go to Matching _Brace" 
@@ -1570,6 +1571,7 @@
 		<Scheme id="VS05" _name = "Visual Studio" resource="KeyBindingSchemeVisualStudio.xml"/>
 		<Scheme id="MD1" _name = "MonoDevelop 1.0" resource="KeyBindingSchemeMonoDevelop1.xml"/>
 		<Scheme id="MD2" _name = "MonoDevelop 2.0" resource="KeyBindingSchemeMonoDevelop2.xml"/>
+		<Scheme id="OSX" _name = "OS X" resource="KeyBindingSchemeOSX.xml"/>
 	</Extension>
 	
 	<Extension path = "/MonoDevelop/Ide/ContextMenu/ProjectPad">

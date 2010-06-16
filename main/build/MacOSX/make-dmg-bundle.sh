@@ -7,7 +7,7 @@ pushd $(dirname $0) &>/dev/null
 VOLUME_NAME=MonoDevelop
 DMG_APP=MonoDevelop.app
 DMG_FILE=$VOLUME_NAME.dmg
-MOUNT_POINT=$VOLUME_NAME.mounted
+MOUNT_POINT=/tmp/$VOLUME_NAME.mounted
 
 if test ! -e $DMG_APP ; then
 	echo "Missing MonoDevelop.app"
