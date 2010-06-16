@@ -131,7 +131,7 @@
   <Property key="MonoDevelop.Ide.AddinUpdater.UpdateSpanUnit" value="D" />
   <Property key="MonoDevelop.Core.Gui.Dialog.TipOfTheDayView.ShowTipsAtStartup" value="False" />
   <Property key="WelcomePage.ShowOnStartup" value="True" />
-  <Property key="WelcomePage.UpdateFromInternet" value="True" />
+  <Property key="WelcomePage.UpdateFromInternet" value="False" />
   <Property key="SharpDevelop.LoadDocumentProperties" value="True" />
   <Property key="MonoDevelop.Core.LastRunVersion" value="5" />
   <Property key="MonoDevelop.Core.LastRunRevision" value="0" />
