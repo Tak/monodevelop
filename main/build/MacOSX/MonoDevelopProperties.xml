@@ -92,7 +92,7 @@
             <dockedPosition offset="320" row="0" placement="Top" />
           </dockbar>
           <dockbar id="/MonoDevelop/Ide/Toolbar/Debugger">
-            <visible>false</visible>
+            <visible>true</visible>
             <dockedPosition offset="745" row="0" placement="Top" />
           </dockbar>
         </layout>
