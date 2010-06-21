@@ -524,18 +524,24 @@ namespace Mono.TextEditor.Highlighting
 			{
 				if (span == null)
 					return GetSpanStyle ();
-				return span.TagColor ?? span.Color ?? GetSpanStyle ();
+				return span.Color ?? GetSpanStyle ();
 			}
 			
 			public void FoundSpanBegin (Span span, int offset, int length)
 			{
 				curChunk.Length = offset - curChunk.Offset;
-				curChunk.Style  = GetStyle (curChunk) ?? GetSpanStyle ();
+				curChunk.Style  = GetStyle (curChunk);
+				if (string.IsNullOrEmpty (curChunk.Style)) {
+					Span tmpSpan = spanParser.SpanStack.Count > 0 ? spanParser.SpanStack.Pop () : null;
+					curChunk.Style = GetSpanStyle ();
+					if (tmpSpan != null)
+						spanParser.SpanStack.Push (tmpSpan);
+				}
 				AddChunk (ref curChunk, 0, curChunk.Style);
 				
 				curChunk.Offset = offset;
 				curChunk.Length = length;
-				curChunk.Style  = GetChunkStyle (span);
+				curChunk.Style  = span.TagColor ?? GetChunkStyle (span);
 				AddChunk (ref curChunk, 0, curChunk.Style);
 				Rule spanRule = spanParser.GetRule (span);
 				if (spanRule == null)
@@ -559,7 +565,7 @@ namespace Mono.TextEditor.Highlighting
 				
 				curChunk.Offset = offset;
 				curChunk.Length = length;
-				curChunk.Style  = GetChunkStyle (span);
+				curChunk.Style  = span.TagColor ?? GetChunkStyle (span);
 				AddChunk (ref curChunk, 0, defaultStyle);
 			}
 			

@@ -1,3 +1,71 @@
+2010-06-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/ViewCommandHandlers.cs: Only update
+	  changed lines.
+
+2010-06-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/ViewCommandHandlers.cs: Fixed 'Bug
+	  615831 - Texteditor is not invalidated after remove trailing
+	  wihte spaces action'.
+
+2010-06-16  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Components.Commands/KeyBindingManager.cs: Move
+	  the consumed shift modifier restoration to a more
+	  appropriate place. Add a better comment.
+
+2010-06-15  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide/RootWorkspace.cs: Disabled
+	  OnRunProjectChecks timeout because it churns disk, wastes
+	  power on laptop.
+
+2010-06-15  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.CodeCompletion/ListWidget.cs:
+	* MonoDevelop.Ide.CodeCompletion/ListWindow.cs: when there are
+	  no matches, display a message to indicate that the
+	  completion list is still handling input
+
+2010-06-15  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.addin.xml: Set icon for the default code
+	  formatting policies panel group to match the per-item one.
+
+	* MonoDevelop.Ide.Desktop/PlatformService.cs: Handle icon for
+	  text/plain mimetype.
+
+2010-06-15  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.Desktop/PlatformService.cs: Add a
+	  description for the text/plain mimetype.
+
+2010-06-15  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.addin.xml: Remove nonexistent icon.
+
+2010-06-15  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.Projects.OptionPanels/CodeFormattingPanel.cs:
+	  Only show mimetypes with policies.
+
+2010-06-15  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.CodeCompletion/CompletionListWindow.cs:
+	  Remove debug writelines. Disable
+	  process-enter-on-exact-match behaviour change or now.
+
+2010-06-15  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Components.DockToolbars/DockToolbar.cs: Reset
+	  custom size requests before calculating the real size
+	  request. Fixes issue when getting the default size.
+
+	* MonoDevelop.Ide.Gui/Workbench.cs:
+	* MonoDevelop.Ide.Gui/DefaultWorkbench.cs: Ensure the default
+	  layout is set after loading the workbench memento.
+
 2010-06-14  Lluis Sanchez Gual  <lluis@novell.com>
 
 	* icons/SplashScreen.png: Updated.

@@ -31,21 +31,74 @@ using System.Text;
 
 namespace Mono.TextEditor.Vi
 {
-	public struct ViKey
+	public struct ViKey : IEquatable<ViKey>
 	{
-		public ViKey (Gdk.ModifierType modifiers, uint unicodeKey, Gdk.Key key): this ()
+		Gdk.ModifierType modifiers;
+		char ch;
+		Gdk.Key key;
+		
+		public ViKey (char ch) : this (ModifierType.None, ch, (Gdk.Key) 0)
 		{
-			Modifiers = modifiers & KnownModifiers;
-			UnicodeKey = unicodeKey;
-			Key = key;
 		}
 		
-		public Gdk.ModifierType Modifiers { get; private set; }
-		public uint UnicodeKey { get; private set; }
-		public Gdk.Key Key { get; private set; }
+		public ViKey (Gdk.Key key) : this (ModifierType.None, '\0', key)
+		{
+		}
+		
+		public ViKey (ModifierType modifiers, Gdk.Key key) : this (modifiers, '\0', key)
+		{
+		}
+		
+		public ViKey (ModifierType modifiers, char ch) : this (modifiers, ch, (Gdk.Key)0)
+		{
+		}
+		
+		ViKey (ModifierType modifiers, char ch, Gdk.Key key): this ()
+		{
+			this.modifiers = modifiers & KnownModifiers;
+			this.ch = ch;
+			this.key = key;
+		}
+		
+		public ModifierType Modifiers { get { return this.modifiers; } }
+		public char Char { get { return this.ch; } }
+		public Key Key { get { return this.key; } }
 		
 		static ModifierType KnownModifiers = ModifierType.ShiftMask | ModifierType.MetaMask
 			| ModifierType.ControlMask | ModifierType.Mod1Mask;
+		
+		public static implicit operator ViKey (char ch)
+		{
+			return new ViKey (ch);
+		}
+		
+		public static implicit operator ViKey (Gdk.Key key)
+		{
+			return new ViKey (key);
+		}
+		
+		public bool Equals (ViKey other)
+		{
+			return modifiers == other.modifiers && ch == other.ch && key == other.key;
+		}
+		
+		public override bool Equals (object obj)
+		{
+			if (obj == null)
+				return false;
+			if (ReferenceEquals (this, obj))
+				return true;
+			if (!(obj is ViKey))
+				return false;
+			return Equals ((ViKey)obj);
+		}
+		
+		public override int GetHashCode ()
+		{
+			unchecked {
+				return modifiers.GetHashCode () ^ ch.GetHashCode () ^ key.GetHashCode ();
+			}
+		}
 	}
 	
 	public static class ViKeyNotation
@@ -60,8 +113,8 @@ namespace Mono.TextEditor.Vi
 		
 		static void AppendToString (ViKey key, StringBuilder sb)
 		{
-			var c = GetString (key.UnicodeKey);
-			if (c != null && key.UnicodeKey != 0) {
+			var c = GetString (key.Char);
+			if (c != null && key.Char != '\0') {
 				if (c.Length == 1 && key.Modifiers == ModifierType.None) {
 					sb.Append (c);
 					return;
@@ -71,7 +124,7 @@ namespace Mono.TextEditor.Vi
 			}
 			
 			if (c == null) {
-				var msg = string.Format ("Invalid key char=0x{0:x} key={1}", (int)key.UnicodeKey, key.Key);
+				var msg = string.Format ("Invalid key char=0x{0:x} key={1}", (int)key.Char, key.Key);
 				throw new InvalidOperationException (msg);
 			}
 			
@@ -92,20 +145,17 @@ namespace Mono.TextEditor.Vi
 		
 		public static bool IsValid (ViKey key)
 		{
-			return GetString (key.UnicodeKey) != null || keyStringMaps.ContainsKey (key.Key);
+			return GetString (key.Char) != null || keyStringMaps.ContainsKey (key.Key);
 		}
 		
-		static string GetString (uint unicodeKey)
+		static string GetString (char ch)
 		{
-			string str = char.ConvertFromUtf32 ((int)unicodeKey);
-			if (str.Length == 1) {
-				string s;
-				if (charStringMaps.TryGetValue (str[0], out s))
-					return s;
-				if (char.IsControl (str[0]))
-					return null;
-			}
-			return str;
+			string s;
+			if (charStringMaps.TryGetValue (ch, out s))
+				return s;
+			if (char.IsControl (ch))
+				return null;
+			return ch.ToString ();
 		}
 		
 		static Dictionary<char, string> charStringMaps = new Dictionary<char, string> () {
@@ -288,20 +338,20 @@ namespace Mono.TextEditor.Vi
 		{
 			ViKey ret;
 			if ((k.Modifiers & ModifierType.ControlMask) == k.Modifiers &&
-			    controlMappings.TryGetValue (k.UnicodeKey, out ret))
+			    controlMappings.TryGetValue (k.Char, out ret))
 					return ret;
 			return k;
 		}
 		
 		static Dictionary<uint, ViKey> controlMappings = new Dictionary<uint, ViKey> () {
-			{ '@', new ViKey (ModifierType.None, '\0', (Gdk.Key)0)        },
-			{ 'h', new ViKey (ModifierType.None, '\0', Gdk.Key.BackSpace) },
-			{ 'i', new ViKey (ModifierType.None, '\t', Gdk.Key.Tab)       },
-			{ 'j', new ViKey (ModifierType.None, '\n', Gdk.Key.Linefeed)  },
-			{ 'l', new ViKey (ModifierType.None, '\f', (Gdk.Key)0)        },
-			{ 'm', new ViKey (ModifierType.None, '\r', Gdk.Key.Return)    },
-			{ '[', new ViKey (ModifierType.None, '\0', Gdk.Key.Escape)    },
-			{ 'p', new ViKey (ModifierType.None, '\0', Gdk.Key.Up)        },
+			{ '@', '\0'          },
+			{ 'h', Key.BackSpace },
+			{ 'i', '\t'          },
+			{ 'j', '\n'          },
+			{ 'l', '\f'          },
+			{ 'm', '\r'          },
+			{ '[', Key.Escape    },
+			{ 'p', Key.Up        },
 		};
 
 		public static IList<ViKey> Parse (string command)
@@ -316,7 +366,7 @@ namespace Mono.TextEditor.Vi
 					list.Add (ParseKeySequence (seq));
 					i = j;
 				} else {
-					list.Add (new ViKey (ModifierType.None, command[i], (Gdk.Key)0));
+					list.Add (command[i]);
 				}
 			}
 			return list;
@@ -351,7 +401,7 @@ namespace Mono.TextEditor.Vi
 			if (k == (Gdk.Key)0)
 				c = GetChar (seq);
 			
-			var key = new ViKey (modifiers, c, k);
+			var key = c == '\0'? new ViKey (modifiers, k) : new ViKey (modifiers, c);
 			if (!IsValid (key))
 				throw new FormatException ("Invalid key sequence '" + seq + "'");
 			return key;

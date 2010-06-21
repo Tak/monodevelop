@@ -39,6 +39,7 @@ FILES =  \
 	Mono.TextEditor.PopupWindow/IListDataProvider.cs \
 	Mono.TextEditor.PopupWindow/ListWidget.cs \
 	Mono.TextEditor.PopupWindow/ListWindow.cs \
+	Mono.TextEditor.PopupWindow/ModeHelpWindow.cs \
 	Mono.TextEditor.PopupWindow/TooltipWindow.cs \
 	Mono.TextEditor.Theatrics/Actor.cs \
 	Mono.TextEditor.Theatrics/AnimatedBox.cs \
@@ -54,6 +55,7 @@ FILES =  \
 	Mono.TextEditor.Vi/ViActionMaps.cs \
 	Mono.TextEditor.Vi/ViActions.cs \
 	Mono.TextEditor.Vi/ViCommandBuilder.cs \
+	Mono.TextEditor.Vi/ViEditorContext.cs \
 	Mono.TextEditor.Vi/ViKeyNotation.cs \
 	Mono.TextEditor.Vi/ViMacro.cs \
 	Mono.TextEditor.Vi/ViMark.cs \

@@ -868,7 +868,6 @@ namespace MonoDevelop.Ide.Gui
 					LoggingService.LogError (ex.ToString ());
 				}
 			}
-			CurrentLayout = "Default";
 		}
 		
 		void InitializeLayout (string name)

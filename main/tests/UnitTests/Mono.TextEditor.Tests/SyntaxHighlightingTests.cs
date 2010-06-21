@@ -38,13 +38,23 @@ namespace Mono.TextEditor.Tests
 		{
 			Assert.IsTrue (SyntaxModeService.ValidateAllSyntaxModes ());
 		}
-		static void TestOutput (string input,
-		                         string expectedMarkup)
+		
+		static void TestOutput (string input, string expectedMarkup)
+		{
+			TestOutput (input, expectedMarkup, "text/x-csharp");
+		}
+		
+		public static string GetMarkup (string input, string syntaxMode)
 		{
 			Document doc = new Document ();
-			doc.SyntaxMode = SyntaxModeService.GetSyntaxMode ("text/x-csharp");
+			doc.SyntaxMode = SyntaxModeService.GetSyntaxMode (syntaxMode);
 			doc.Text = input;
-			string markup = doc.SyntaxMode.GetMarkup (doc, TextEditorOptions.DefaultOptions, SyntaxModeService.GetColorStyle (null, "TangoLight"), 0, doc.Length, false);
+			return doc.SyntaxMode.GetMarkup (doc, TextEditorOptions.DefaultOptions, SyntaxModeService.GetColorStyle (null, "TangoLight"), 0, doc.Length, false);
+		}
+
+		static void TestOutput (string input, string expectedMarkup, string syntaxMode)
+		{
+			string markup = GetMarkup (input, syntaxMode);
 			Assert.AreEqual (expectedMarkup, markup, "expected:" + expectedMarkup + Environment.NewLine + "But got:" + markup);
 		}
 		 
@@ -82,5 +92,20 @@ namespace Mono.TextEditor.Tests
 			TestOutput ("123.45678e-09d",
 		                "<span foreground=\"#75507B\">123.45678e-09d</span>");
 		}
+		
+		[Test]
+		public void TestCDATASection ()
+		{
+			string markup = GetMarkup ("<![CDATA[ test ]]>", "application/xml");
+			if (markup != "<span foreground=\"#A40000\" weight=\"bold\">&lt;![CDATA[</span><span foreground=\"#4E9A06\"> test</span><span foreground=\"#A40000\" weight=\"bold\"> ]]&gt;</span>" && 
+			    markup != "<span foreground=\"#A40000\" weight=\"bold\">&lt;![CDATA[</span><span foreground=\"#4E9A06\"> test </span><span foreground=\"#A40000\" weight=\"bold\">]]&gt;</span>") {
+				Assert.Fail ("CDATA markup invalid:" + markup);
+			}
+			
+			TestOutput ("<![CDATA[ test]]>",
+			            "<span foreground=\"#A40000\" weight=\"bold\">&lt;![CDATA[</span><span foreground=\"#4E9A06\"> test</span><span foreground=\"#A40000\" weight=\"bold\">]]&gt;</span>",
+			            "application/xml");
+		}
+		
 	}
 }
