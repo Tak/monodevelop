@@ -4,8 +4,9 @@
 #         Michael Hutchinson (mhutchinson@novell.com)
 
 DIR=$(cd "$(dirname "$0")"; pwd)
+FINAL_INSTALL_DIR="$DIR/../Frameworks/Mono.framework"
+MONO_FRAMEWORK_PATH="$FINAL_INSTALL_DIR/Versions/Current"
 
-MONO_FRAMEWORK_PATH=$DIR/../Frameworks/Mono.framework/Versions/Current
 export DYLD_FALLBACK_LIBRARY_PATH=$MONO_FRAMEWORK_PATH/lib:/lib:/usr/lib
 export MONO_GAC_PREFIX=$MONO_FRAMEWORK_PATH
 export MONO_PATH=$MONO_FRAMEWORK_PATH/lib/mono:$MONO_FRAMEWORK_PATH/lib/gtk-sharp-2.0:$MONO_FRAMEWORK_PATH/lib/mono/2.0:$MONO_FRAMEWORK_PATH/lib/mono/1.0
@@ -19,6 +20,14 @@ export GTK_DATA_PREFIX=$MONO_FRAMEWORK_PATH
 export GTK_EXE_PREFIX=$MONO_FRAMEWORK_PATH
 export GTK_PATH=$MONO_FRAMEWORK_PATH/lib/gtk-2.0:$MONO_FRAMEWORK_PATH/lib/gtk-2.0/2.10.0
 export GTK2_RC_FILES=$MONO_FRAMEWORK_PATH/etc/gtk-2.0/gtkrc
+
+echo "Rewriting config files..."
+find ${FINAL_INSTALL_DIR} -name '*.config.in' -execdir "${DIR}/replacePath.sh" {} \;
+find ${FINAL_INSTALL_DIR} -name '*.pc.in' -execdir "${DIR}/replacePath.sh" {} \;
+find ${FINAL_INSTALL_DIR} -name '*.loaders.in' -execdir "${DIR}/replacePath.sh" {} \;
+"${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/mono/config.in"
+"${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules.in"
+find ${MONO_FRAMEWORK_PATH}/bin -name '*.in' -execdir "${DIR}/replacePath.sh" {} \;
 
 #we need lots of file handles
 ulimit -n 1024
@@ -84,6 +93,7 @@ else
 	_MONO_OPTIONS=$MONO_OPTIONS
 fi
 
+echo "Launching ${APPNAME}..."
 if [ -z "$MD_DONT_REDIRECT_OUTPUT" ]; then
 	mkdir -p "`dirname \"$_MD_LOG_FILE\"`"
 	$MONO_EXEC $_MONO_OPTIONS "$EXE_PATH" $* 2>&1 1> "$_MD_LOG_FILE"

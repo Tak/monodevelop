@@ -20,6 +20,14 @@ export GTK_EXE_PREFIX=$MONO_FRAMEWORK_PATH
 export GTK_PATH=$MONO_FRAMEWORK_PATH/lib/gtk-2.0:$MONO_FRAMEWORK_PATH/lib/gtk-2.0/2.10.0
 export GTK2_RC_FILES=$MONO_FRAMEWORK_PATH/etc/gtk-2.0/gtkrc
 
+echo "Rewriting config files..."
+find ${FINAL_INSTALL_DIR} -name '*.config.in' -execdir "${DIR}/replacePath.sh" {} \;
+find ${FINAL_INSTALL_DIR} -name '*.pc.in' -execdir "${DIR}/replacePath.sh" {} \;
+find ${FINAL_INSTALL_DIR} -name '*.loaders.in' -execdir "${DIR}/replacePath.sh" {} \;
+"${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/mono/config.in"
+"${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules.in"
+find ${MONO_FRAMEWORK_PATH}/bin -name '*.in' -execdir "${DIR}/replacePath.sh" {} \;
+
 #we need lots of file handles
 ulimit -n 1024
 

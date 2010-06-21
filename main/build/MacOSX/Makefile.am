@@ -100,20 +100,21 @@ mono-bundle: MonoDevelop.app
 	cp pangorc $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango
 	cp monodevelop $(MACOS)/monodevelop
 	cp mdtool $(MACOS)/mdtool
+	cp replacePath.sh $(MACOS)/replacePath.sh
 	chmod +x $(MACOS)/monodevelop $(MACOS)/mdtool
 
 # Relocate .exe.config, .dll.config, pixbuf loaders, and .pc files
 	echo "Relocating config files"
-	find $(BUNDLED_FRAMEWORK_DIR) -name '*.config' -execdir sed -i'.orig' "s,/Library/Frameworks/Mono.framework,$(FINAL_INSTALL_DIR)/Contents/Frameworks/Mono.framework,g" {} \;
-	find $(BUNDLED_FRAMEWORK_DIR) -name '*.pc' -execdir sed -i'.orig' "s,/Library/Frameworks/Mono.framework,$(FINAL_INSTALL_DIR)/Contents/Frameworks/Mono.framework,g" {} \;
-	find $(BUNDLED_FRAMEWORK_DIR) -name '*.loaders' -execdir sed -i'.orig' "s,/Library/Frameworks/Mono.framework,$(FINAL_INSTALL_DIR)/Contents/Frameworks/Mono.framework,g" {} \;
-	sed -i'.orig' "s,/Library/Frameworks/Mono.framework,$(FINAL_INSTALL_DIR)/Contents/Frameworks/Mono.framework,g" $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/mono/config
-	sed -i'.orig' "s,/Library/Frameworks/Mono.framework,$(FINAL_INSTALL_DIR)/Contents/Frameworks/Mono.framework,g" $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango/pango.modules
+	find $(BUNDLED_FRAMEWORK_DIR) -name '*.config' -exec ./copyToInputFile.sh {} \;
+	find $(BUNDLED_FRAMEWORK_DIR) -name '*.pc' -exec ./copyToInputFile.sh {} \;
+	find $(BUNDLED_FRAMEWORK_DIR) -name '*.loaders' -exec ./copyToInputFile.sh {} \;
+	./copyToInputFile.sh $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/mono/config
+	./copyToInputFile.sh $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango/pango.modules
 	rm -f $(MAC_APP_LIB_DIR)/bin/MonoDevelop.exe.config
 
 # Relocate launcher scripts
 	echo "Relocating launcher scripts"
-	file $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/bin/* | grep 'shell script' | awk -F: '{ print $$1 }' | xargs sed -i'.orig' "s,/Library/Frameworks/Mono.framework,$(FINAL_INSTALL_DIR)/Contents/Frameworks/Mono.framework,g"
+	file $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/bin/* | grep 'shell script' | awk -F: '{ print $$1 }' | xargs -n 1 ./copyToInputFile.sh
 #
 #########################
 	
