@@ -647,18 +647,26 @@ namespace Mono.Debugging.Soft
 				}
 				
 				// Remove affected types from the loaded types list
-				List<string> affectedTypes = new List<string> (
-					from pair in types
-					where pair.Value.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase)
-					select pair.Key
-				);
+				List<string> affectedTypes = new List<string>();
+				foreach (var pair in types) {
+					try {
+						if (!pair.Value.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase))
+							continue;
+					} catch { 
+					}
+					affectedTypes.Add (pair.Key);
+				}
 				foreach (string typename in affectedTypes) {
 					types.Remove (typename);
 				}
 				
 				foreach (var pair in source_to_type) {
 					pair.Value.RemoveAll (delegate (TypeMirror mirror){
-						return mirror.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase);
+						try {
+							return mirror.Assembly.Location.Equals (aue.Assembly.Location, StringComparison.OrdinalIgnoreCase);
+						} catch {
+						}
+						return true;
 					});
 				}
 				OnDebuggerOutput (false, string.Format ("Unloaded assembly: {0}\n", aue.Assembly.Location));
