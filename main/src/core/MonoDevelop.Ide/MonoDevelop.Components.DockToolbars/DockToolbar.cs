@@ -373,6 +373,18 @@ namespace MonoDevelop.Components.DockToolbars
 			w.Shown += OnItemChange;
 			w.Hidden += OnItemChange;
 			w.SizeAllocated += OnItemSizeChange;
+			if (Core.PropertyService.IsMac) {
+				var tb = w as MonoDevelop.Components.Commands.CommandToolButton;
+				if (null != tb) tb.Clicked += HandleChildClicked;
+			}
+		}
+		
+		// Ugly hack to make sure the dock is the right size when the cursor refocuses on OSX
+		void HandleChildClicked (object sender, EventArgs e)
+		{
+			DockToolbarPanel panel = DockPanel;
+			panel.RemoveBar (this);
+			panel.AddDockToolbar (this, anchorOffset, DockRow);
 		}
 
 		protected override void OnRemoved (Widget w)
