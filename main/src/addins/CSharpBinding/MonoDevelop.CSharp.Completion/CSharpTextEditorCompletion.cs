@@ -2139,5 +2139,213 @@ namespace MonoDevelop.CSharp.Completion
 			return cp;
 		}
 		#endregion
+		
+		
+		#region IPathedDocument implementation
+		public event EventHandler<DocumentPathChangedEventArgs> PathChanged;
+
+		protected virtual void OnPathChanged (DocumentPathChangedEventArgs e)
+		{
+			EventHandler<DocumentPathChangedEventArgs> handler = this.PathChanged;
+			if (handler != null)
+				handler (this, e);
+		}
+		
+		public class DataProvider : DropDownBoxListWindow.IListDataProvider
+		{
+			object tag;
+			Ambience amb;
+			List<IMember> memberList = new List<IMember> ();
+			
+			Document Document {
+				get;
+				set;
+			}
+			
+			public DataProvider (Document doc, object tag, Ambience amb)
+			{
+				this.Document = doc;
+				this.tag = ((INode)tag).Parent;
+				this.amb = amb;
+				Reset ();
+			}
+			
+			#region IListDataProvider implementation
+			public void Reset ()
+			{
+				memberList.Clear ();
+				if (tag is ICompilationUnit) {
+					Stack<IType> types = new Stack<IType> (((ICompilationUnit)tag).Types);
+					while (types.Count > 0) {
+						IType type = types.Pop ();
+						memberList.Add (type);
+						foreach (IType innerType in type.InnerTypes)
+							types.Push (innerType);
+					}
+				} else  if (tag is IType) {
+					memberList.AddRange (((IType)tag).Members);
+				}
+				memberList.Sort ((x, y) => String.Compare (GetString (amb, x), GetString (amb, y), StringComparison.OrdinalIgnoreCase));
+			}
+			
+			string GetString (Ambience amb, IMember x)
+			{
+				if (tag is ICompilationUnit)
+					return amb.GetString (x, OutputFlags.IncludeGenerics | OutputFlags.IncludeParameters | OutputFlags.UseFullInnerTypeName);
+				return amb.GetString (x, OutputFlags.IncludeGenerics | OutputFlags.IncludeParameters);
+			}
+			
+			public string GetText (int n)
+			{
+				return GetString (amb, memberList[n]);
+			}
+
+			public Gdk.Pixbuf GetIcon (int n)
+			{
+				return ImageService.GetPixbuf (memberList[n].StockIcon, IconSize.Menu);
+			}
+
+			public object GetTag (int n)
+			{
+				return memberList[n];
+			}
+
+			public void ActivateItem (int n)
+			{
+				var member = memberList[n];
+				MonoDevelop.Ide.Gui.Content.IExtensibleTextEditor extEditor = Document.GetContent<MonoDevelop.Ide.Gui.Content.IExtensibleTextEditor> ();
+				if (extEditor != null)
+					extEditor.SetCaretTo (Math.Max (1, member.Location.Line), member.Location.Column);
+			}
+
+			public int IconCount {
+				get {
+					return memberList.Count;
+				}
+			}
+			#endregion
+		}
+		
+			
+		public class CompilationUnitDataProvider : DropDownBoxListWindow.IListDataProvider
+		{
+			Document Document {
+				get;
+				set;
+			}
+			
+			public CompilationUnitDataProvider (Document document)
+			{
+				this.Document = document;
+			}
+			
+			#region IListDataProvider implementation
+			public void Reset ()
+			{
+			}
+			
+			public string GetText (int n)
+			{
+				return Document.ParsedDocument.UserRegions.ElementAt (n).Name;
+			}
+			
+			internal static Gdk.Pixbuf Pixbuf {
+				get {
+					return ImageService.GetPixbuf (Gtk.Stock.Add, IconSize.Menu);
+				}
+			}
+			
+			public Gdk.Pixbuf GetIcon (int n)
+			{
+				return Pixbuf;
+			}
+			
+			public object GetTag (int n)
+			{
+				return Document.ParsedDocument.UserRegions.ElementAt (n);
+			}
+			
+			
+			public void ActivateItem (int n)
+			{
+				var reg = Document.ParsedDocument.UserRegions.ElementAt (n);
+				MonoDevelop.Ide.Gui.Content.IExtensibleTextEditor extEditor = Document.GetContent<MonoDevelop.Ide.Gui.Content.IExtensibleTextEditor> ();
+				if (extEditor != null)
+					extEditor.SetCaretTo (Math.Max (1, reg.Region.Start.Line), reg.Region.Start.Column);
+			}
+			
+			public int IconCount {
+				get {
+					if (Document.ParsedDocument == null)
+						return 0;
+					return Document.ParsedDocument.UserRegions.Count ();
+				}
+			}
+			
+			#endregion
+		}
+		
+		public Gtk.Widget CreatePathWidget (int index)
+		{
+			var tag = CurrentPath[index].Tag;
+			DropDownBoxListWindow window = new DropDownBoxListWindow (tag is ICompilationUnit ? (DropDownBoxListWindow.IListDataProvider)new CompilationUnitDataProvider (Document) : new DataProvider (Document, tag, GetAmbience ()));
+			window.SelectItem (CurrentPath[index].Tag);
+			return window;
+		}
+		
+		public PathEntry[] CurrentPath {
+			get;
+			private set;
+		}
+		
+		class CustomNode : MonoDevelop.Projects.Dom.AbstractNode
+		{
+			public CustomNode (INode parent)
+			{
+				this.Parent = parent;
+			}
+		}
+		
+		void UpdatePath (object sender, Mono.TextEditor.DocumentLocationEventArgs e)
+		{
+			if (Document.ParsedDocument == null || Document.ParsedDocument.CompilationUnit == null)
+				return;
+			
+			var loc = textEditorData.Caret.Location;
+			IType type = Document.ParsedDocument.CompilationUnit.GetTypeAt (loc.Line + 1, loc.Column + 1);
+			IMember member = type != null ? type.GetMemberAt (loc.Line + 1, loc.Column + 1) : null;
+			
+			List<PathEntry> result = new List<PathEntry> ();
+			var amb = GetAmbience ();
+			INode node = member ?? type ?? (INode)Document.ParsedDocument.CompilationUnit;
+			while (node != null) {
+				PathEntry entry;
+				if (node is ICompilationUnit) {
+					if (!Document.ParsedDocument.UserRegions.Any ())
+						break;
+					FoldingRegion reg = Document.ParsedDocument.UserRegions.Where (r => r.Region.Contains (loc.Line + 1, loc.Column + 1)).LastOrDefault ();
+					if (reg == null) {
+						entry = new PathEntry (DesktopService.GetPixbufForFile (this.Document.FileName, IconSize.Menu), 
+						                       System.IO.Path.GetFileName (this.Document.FileName));
+					} else {
+						entry = new PathEntry (CompilationUnitDataProvider.Pixbuf,
+						                       reg.Name);
+					}
+				} else {
+					entry = new PathEntry (ImageService.GetPixbuf (((IMember)node).StockIcon, IconSize.Menu), amb.GetString ((IMember)node, OutputFlags.IncludeGenerics | OutputFlags.IncludeParameters));
+				}
+				entry.Tag = node;
+				result.Insert (0, entry);
+				node = node.Parent;
+			}
+			if (type == null) {
+				result.Add (new PathEntry (GettextCatalog.GetString ("No selection")) { Tag = new CustomNode (Document.CompilationUnit) } );
+			} else if (member == null)
+				result.Add (new PathEntry (GettextCatalog.GetString ("No selection")) { Tag = new CustomNode (type) } );
+			var prev = CurrentPath;
+			CurrentPath = result.ToArray ();
+			OnPathChanged (new DocumentPathChangedEventArgs (prev));
+		}
+		#endregion
 	}
 }
