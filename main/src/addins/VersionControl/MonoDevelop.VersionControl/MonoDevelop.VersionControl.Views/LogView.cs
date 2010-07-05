@@ -7,7 +7,7 @@ using MonoDevelop.Ide;
 
 namespace MonoDevelop.VersionControl.Views
 {
-	internal class LogView : BaseView
+	internal class LogView : BaseView, IAttachableViewContent 
 	{
 		string filepath;
 		Widget widget;
@@ -20,15 +20,21 @@ namespace MonoDevelop.VersionControl.Views
 		ListStore changedpathstore;
 		Toolbar commandbar;
 		
-		public static bool Show (VersionControlItemList items, Revision since, bool test)
+		public static void Show (VersionControlItemList items, Revision since)
+		{
+			foreach (VersionControlItem item in items) {
+				var document = IdeApp.Workbench.OpenDocument (item.Path);
+				ComparisonView.AttachViewContents (document, item);
+				document.Window.SwitchView (4);
+			}
+		}
+		
+		public static bool CanShow (VersionControlItemList items, Revision since)
 		{
 			bool found = false;
 			foreach (VersionControlItem item in items) {
 				if (item.Repository.IsHistoryAvailable (item.Path)) {
-					if (test)
-						return true;
-					found = true;
-					new Worker (item.Repository, item.Path, item.IsDirectory, since).Start ();
+					return true;
 				}
 			}
 			return found;
@@ -62,6 +68,139 @@ namespace MonoDevelop.VersionControl.Views
 				LogView d = new LogView (filepath, isDirectory, history, vc);
 				IdeApp.Workbench.OpenDocument (d, true);
 			}
+		}
+		
+		ListStore logstore;
+		public void ShowHistory ()
+		{
+			foreach (Revision d in history) {
+				logstore.AppendValues(
+					d.ToString (),
+					d.Time.ToString (),
+					d.Author,
+					d.Message == String.Empty ? GettextCatalog.GetString ("(No message)") : d.Message);
+			}
+		}
+		VersionControlDocumentInfo info;
+		public LogView (VersionControlDocumentInfo info) : base ("Log")
+		{
+			this.info = info;
+			this.vc = info.Item.Repository;
+			this.filepath = info.Item.Path;
+			
+			info.Updated += delegate {
+				history = this.info.History;
+				vinfo   = this.info.VersionInfo;
+				ShowHistory ();
+			};
+			
+			// Widget setup
+			VBox box = new VBox (false, 6);
+			
+			widget = box;
+
+			// Create the toolbar
+			commandbar = new Toolbar ();
+			commandbar.ToolbarStyle = Gtk.ToolbarStyle.BothHoriz;
+			commandbar.IconSize = Gtk.IconSize.Menu;
+			box.PackStart (commandbar, false, false, 0);
+				
+			if (vinfo != null) {
+				Gtk.ToolButton button = new Gtk.ToolButton (new Gtk.Image ("vc-diff", Gtk.IconSize.Menu), GettextCatalog.GetString ("View Changes"));
+				button.IsImportant = true;
+				button.Clicked += new EventHandler (DiffButtonClicked);
+				commandbar.Insert (button, -1);
+				
+				button = new Gtk.ToolButton (new Gtk.Image (Gtk.Stock.Open, Gtk.IconSize.Menu), GettextCatalog.GetString ("View File"));
+				button.IsImportant = true;
+				button.Clicked += new EventHandler (ViewTextButtonClicked);
+				commandbar.Insert (button, -1);
+			}
+			
+			revertButton = new Gtk.ToolButton (new Gtk.Image ("vc-revert-command", Gtk.IconSize.Menu), GettextCatalog.GetString ("Revert changes from this revision"));
+			revertButton.IsImportant = true;
+			revertButton.Sensitive = false;
+			revertButton.Clicked += new EventHandler (RevertRevisionClicked);
+			commandbar.Insert (revertButton, -1);
+			
+			revertToButton = new Gtk.ToolButton (new Gtk.Image ("vc-revert-command", Gtk.IconSize.Menu), GettextCatalog.GetString ("Revert to this revision"));
+			revertToButton.IsImportant = true;
+			revertToButton.Sensitive = false;
+			revertToButton.Clicked += new EventHandler (RevertToRevisionClicked);
+			commandbar.Insert (revertToButton, -1);
+
+			
+			// A paned with two trees
+			
+			Gtk.VPaned paned = new Gtk.VPaned ();
+			box.PackStart (paned, true, true, 0);
+			
+			// Create the log list
+			
+			loglist = new TreeView ();
+			ScrolledWindow loglistscroll = new ScrolledWindow ();
+			loglistscroll.ShadowType = Gtk.ShadowType.In;
+			loglistscroll.Add (loglist);
+			loglistscroll.HscrollbarPolicy = PolicyType.Automatic;
+			loglistscroll.VscrollbarPolicy = PolicyType.Automatic;
+			paned.Add1 (loglistscroll);
+			((Paned.PanedChild)paned [loglistscroll]).Resize = true;
+			
+			TreeView changedPaths = new TreeView ();
+			ScrolledWindow changedPathsScroll = new ScrolledWindow ();
+			changedPathsScroll.ShadowType = Gtk.ShadowType.In;
+			changedPathsScroll.HscrollbarPolicy = PolicyType.Automatic;
+			changedPathsScroll.VscrollbarPolicy = PolicyType.Automatic;
+			changedPathsScroll.Add (changedPaths);
+			paned.Add2 (changedPathsScroll);
+			((Paned.PanedChild)paned [changedPathsScroll]).Resize = false;
+
+			widget.ShowAll ();
+			
+			// Revision list setup
+			
+			CellRendererText textRenderer = new CellRendererText ();
+			textRenderer.Yalign = 0;
+			
+			TreeViewColumn colRevNum = new TreeViewColumn (GettextCatalog.GetString ("Revision"), textRenderer, "text", 0);
+			TreeViewColumn colRevDate = new TreeViewColumn (GettextCatalog.GetString ("Date"), textRenderer, "text", 1);
+			TreeViewColumn colRevAuthor = new TreeViewColumn (GettextCatalog.GetString ("Author"), textRenderer, "text", 2);
+			TreeViewColumn colRevMessage = new TreeViewColumn (GettextCatalog.GetString ("Message"), textRenderer, "text", 3);
+			
+			loglist.AppendColumn (colRevNum);
+			loglist.AppendColumn (colRevDate);
+			loglist.AppendColumn (colRevAuthor);
+			loglist.AppendColumn (colRevMessage);
+			
+			logstore = new ListStore (typeof (string), typeof (string), typeof (string), typeof (string));
+			loglist.Model = logstore;
+
+			// Changed paths list setup
+			
+			changedpathstore = new ListStore (typeof(Gdk.Pixbuf), typeof (string), typeof(Gdk.Pixbuf), typeof (string));
+			changedPaths.Model = changedpathstore;
+			
+			TreeViewColumn colOperation = new TreeViewColumn ();
+			CellRendererText crt = new CellRendererText ();
+			var crp = new CellRendererPixbuf ();
+			colOperation.Title = GettextCatalog.GetString ("Operation");
+			colOperation.PackStart (crp, false);
+			colOperation.PackStart (crt, true);
+			colOperation.AddAttribute (crp, "pixbuf", 0);
+			colOperation.AddAttribute (crt, "text", 1);
+			changedPaths.AppendColumn (colOperation);
+			
+			TreeViewColumn colChangedPath = new TreeViewColumn ();
+			crp = new CellRendererPixbuf ();
+			crt = new CellRendererText ();
+			colChangedPath.Title = GettextCatalog.GetString ("File Path");
+			colChangedPath.PackStart (crp, false);
+			colChangedPath.PackStart (crt, true);
+			colChangedPath.AddAttribute (crp, "pixbuf", 2);
+			colChangedPath.AddAttribute (crt, "text", 3);
+			changedPaths.AppendColumn (colChangedPath);
+			
+			loglist.Selection.Changed += new EventHandler (TreeSelectionChanged);
 		}
 		
 		public LogView (string filepath, bool isDirectory, Revision [] history, Repository vc) 
@@ -386,6 +525,23 @@ namespace MonoDevelop.VersionControl.Views
 			}
 		}
 		
+		#region IAttachableViewContent implementation
+		public void Selected ()
+		{
+		}
+
+		public void Deselected ()
+		{
+		}
+
+		public void BeforeSave ()
+		{
+		}
+
+		public void BaseContentChanged ()
+		{
+		}
+		#endregion
 	}
 
 	internal class HistoricalFileView

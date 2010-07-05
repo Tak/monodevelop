@@ -1,3 +1,59 @@
+2010-06-30  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* gtk-gui/gui.stetic:
+	* MonoDevelop.VersionControl.csproj:
+	* MonoDevelop.VersionControl.Views/LogView.cs:
+	* MonoDevelop.VersionControl.Views/PatchView.cs:
+	* MonoDevelop.VersionControl.Views/BlameView.cs:
+	* MonoDevelop.VersionControl.Views/PatchWidget.cs:
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonView.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs:
+	* gtk-gui/MonoDevelop.VersionControl.Views.PatchWidget.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidgetContainer.cs:
+	* gtk-gui/MonoDevelop.VersionControl.Views.ComparisonWidgetContainer.cs:
+	  Worked on version control gui.
+
+2010-06-30  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs: Worked on
+	  blame widget.
+
+2010-06-30  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs: Worked on
+	  blame widget.
+
+2010-06-30  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/LogView.cs:
+	* MonoDevelop.VersionControl.Views/BlameView.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonView.cs:
+	* MonoDevelop.VersionControl/VersionControlNodeExtension.cs:
+	  Worked on version control GUI.
+
+2010-06-29  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* gtk-gui/gui.stetic:
+	* VersionControl.addin.xml:
+	* MonoDevelop.VersionControl.csproj:
+	* MonoDevelop.VersionControl/Repository.cs:
+	* MonoDevelop.VersionControl.Views/LogView.cs:
+	* MonoDevelop.VersionControl/AnnotateCommand.cs:
+	* MonoDevelop.VersionControl.Views/BlameView.cs:
+	* MonoDevelop.VersionControl/UnknownRepository.cs:
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs:
+	* MonoDevelop.VersionControl.Views/AnnotateView.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonView.cs:
+	* MonoDevelop.VersionControl/VersionControlService.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs:
+	* MonoDevelop.VersionControl/VersionControlNodeExtension.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidgetContainer.cs:
+	* gtk-gui/MonoDevelop.VersionControl.Views.ComparisonWidgetContainer.cs:
+	  Worked on version control gui.
+
 2010-06-09  Michael Hutchinson  <mhutchinson@novell.com>
 
 	* MonoDevelop.VersionControl/Task.cs: Don't bring the VCS

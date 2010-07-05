@@ -223,38 +223,49 @@ namespace MonoDevelop.CSharp.Parser
 				newField.AddChild (variable, AbstractNode.Roles.Initializer);
 				typeStack.Peek ().AddChild (newField, TypeDeclaration.Roles.Member);
 			}
-			
-			public override object Visit (EnumInitializer initializer)
-			{
-				return initializer.Expr != null ? initializer.Expr.Accept (this) : null;
-			}
 			#endregion
 			
 			#region Type members
 			public override void Visit (FixedField f)
 			{
-				var location = LocationsBag.GetLocations (f);
+				var location = LocationsBag.GetMemberLocation (f);
 				
-				FieldDeclaration newField;
+				FieldDeclaration newField = new FieldDeclaration ();
 				
-				DomLocation semicolonLocation = Convert (location[0]);
-				if (!visitedFields.TryGetValue (semicolonLocation, out newField)) {
-					newField = new FieldDeclaration ();
-					
-					newField.AddChild (new CSharpTokenNode (Convert (location[1]), "fixed".Length), FieldDeclaration.Roles.Keyword);
-					newField.AddChild ((INode)f.TypeName.Accept (this), FieldDeclaration.Roles.ReturnType);
-					newField.AddChild (new CSharpTokenNode (semicolonLocation, 1), FieldDeclaration.Roles.Semicolon);
-					
-					typeStack.Peek ().AddChild (newField, TypeDeclaration.Roles.Member);
-					
-					visitedFields[semicolonLocation] = newField;
-				} else {
-//					newField.InsertChildBefore (newField.Semicolon, new CSharpTokenNode (Convert (location.LocationList [newField.Variables.Count () - 1]), 1), FieldDeclaration.Roles.Comma);
-				}
+				AddModifiers (newField, location);
+				newField.AddChild (new CSharpTokenNode (Convert (location[1]), "fixed".Length), FieldDeclaration.Roles.Keyword);
+				newField.AddChild ((INode)f.TypeName.Accept (this), FieldDeclaration.Roles.ReturnType);
 				
 				VariableInitializer variable = new VariableInitializer ();
-				variable.AddChild (new Identifier (f.MemberName.Name, Convert (f.MemberName.Location)), AbstractNode.Roles.Identifier);
-				newField.InsertChildBefore (newField.Semicolon, variable, AbstractNode.Roles.Initializer);
+				variable.AddChild (new Identifier (f.MemberName.Name, Convert (f.MemberName.Location)), FieldDeclaration.Roles.Identifier);
+				
+				if (f.Initializer != null) {
+					variable.AddChild (new CSharpTokenNode (Convert (location[0]), 1), FieldDeclaration.Roles.Assign);
+					variable.AddChild ((INode)f.Initializer.Accept (this), FieldDeclaration.Roles.Initializer);
+				}
+				newField.AddChild (variable, FieldDeclaration.Roles.Initializer);
+				Console.WriteLine (f.MemberName.Name);
+				if (f.Declarators != null) {
+					foreach (var decl in f.Declarators) {
+						var declLoc = LocationsBag.GetLocations (decl);
+						Console.WriteLine (Convert (declLoc[declLoc.Length - 1]));
+						Console.WriteLine (decl.Name.Value);
+						newField.AddChild (new CSharpTokenNode (Convert (declLoc[declLoc.Length - 1]), 1), FieldDeclaration.Roles.Comma);
+						
+						variable = new VariableInitializer ();
+						variable.AddChild (new Identifier (decl.Name.Value, Convert (decl.Name.Location)), FieldDeclaration.Roles.Identifier);
+						if (decl.Initializer != null) {
+							variable.AddChild (new CSharpTokenNode (Convert (declLoc[0]), 1), FieldDeclaration.Roles.Assign);
+							variable.AddChild ((INode)decl.Initializer.Accept (this), FieldDeclaration.Roles.Initializer);
+						}
+						newField.AddChild (variable, FieldDeclaration.Roles.Initializer);
+					}
+				}
+				newField.AddChild (new CSharpTokenNode (Convert (location[location.Count - 1]), 1), FieldDeclaration.Roles.Semicolon);
+
+				typeStack.Peek ().AddChild (newField, TypeDeclaration.Roles.Member);
+
+				
 			}
 			
 			Dictionary<DomLocation, FieldDeclaration> visitedFields = new Dictionary<DomLocation, FieldDeclaration> ();
@@ -262,25 +273,80 @@ namespace MonoDevelop.CSharp.Parser
 			{
 				var location = LocationsBag.GetMemberLocation (f);
 				
-				FieldDeclaration newField;
+				FieldDeclaration newField = new FieldDeclaration ();
 				
-				DomLocation semicolonLocation = Convert (location[0]);
-				if (!visitedFields.TryGetValue (semicolonLocation, out newField)) {
-					newField = new FieldDeclaration ();
-					newField.AddChild ((INode)f.TypeName.Accept (this), FieldDeclaration.Roles.ReturnType);
-					newField.AddChild (new CSharpTokenNode (semicolonLocation, 1), FieldDeclaration.Roles.Semicolon);
-					
-					typeStack.Peek ().AddChild (newField, TypeDeclaration.Roles.Member);
-					
-					visitedFields[semicolonLocation] = newField;
-				} else {
-//					newField.InsertChildBefore (newField.Semicolon, new CSharpTokenNode (Convert (location.LocationList [newField.Variables.Count () - 1]), 1), FieldDeclaration.Roles.Comma);
-				}
+				AddModifiers (newField, location);
+				newField.AddChild ((INode)f.TypeName.Accept (this), FieldDeclaration.Roles.ReturnType);
 				
 				VariableInitializer variable = new VariableInitializer ();
-				variable.AddChild (new Identifier (f.MemberName.Name, Convert (f.MemberName.Location)), AbstractNode.Roles.Identifier);
-				newField.InsertChildBefore (newField.Semicolon, variable, AbstractNode.Roles.Initializer);
+				variable.AddChild (new Identifier (f.MemberName.Name, Convert (f.MemberName.Location)), FieldDeclaration.Roles.Identifier);
+				
+				if (f.Initializer != null) {
+					variable.AddChild (new CSharpTokenNode (Convert (location[0]), 1), FieldDeclaration.Roles.Assign);
+					variable.AddChild ((INode)f.Initializer.Accept (this), FieldDeclaration.Roles.Initializer);
+				}
+				newField.AddChild (variable, FieldDeclaration.Roles.Initializer);
+				if (f.Declarators != null) {
+					foreach (var decl in f.Declarators) {
+						var declLoc = LocationsBag.GetLocations (decl);
+						newField.AddChild (new CSharpTokenNode (Convert (declLoc[declLoc.Length - 1]), 1), FieldDeclaration.Roles.Comma);
+						
+						variable = new VariableInitializer ();
+						variable.AddChild (new Identifier (decl.Name.Value, Convert (decl.Name.Location)), FieldDeclaration.Roles.Identifier);
+						if (decl.Initializer != null) {
+							variable.AddChild (new CSharpTokenNode (Convert (declLoc[0]), 1), FieldDeclaration.Roles.Assign);
+							variable.AddChild ((INode)decl.Initializer.Accept (this), FieldDeclaration.Roles.Initializer);
+						}
+						newField.AddChild (variable, FieldDeclaration.Roles.Initializer);
+					}
+				}
+				newField.AddChild (new CSharpTokenNode (Convert (location[location.Count - 1]), 1), FieldDeclaration.Roles.Semicolon);
+
+				typeStack.Peek ().AddChild (newField, TypeDeclaration.Roles.Member);
 			}
+			
+			public override void Visit (Const f)
+			{
+				var location = LocationsBag.GetMemberLocation (f);
+				
+				FieldDeclaration newField = new FieldDeclaration ();
+				
+				AddModifiers (newField, location);
+				newField.AddChild (new CSharpTokenNode (Convert (location[1]), "fixed".Length), FieldDeclaration.Roles.Keyword);
+				newField.AddChild ((INode)f.TypeName.Accept (this), FieldDeclaration.Roles.ReturnType);
+				
+				VariableInitializer variable = new VariableInitializer ();
+				variable.AddChild (new Identifier (f.MemberName.Name, Convert (f.MemberName.Location)), FieldDeclaration.Roles.Identifier);
+				
+				if (f.Initializer != null) {
+					variable.AddChild (new CSharpTokenNode (Convert (location[0]), 1), FieldDeclaration.Roles.Assign);
+					variable.AddChild ((INode)f.Initializer.Accept (this), FieldDeclaration.Roles.Initializer);
+				}
+				newField.AddChild (variable, FieldDeclaration.Roles.Initializer);
+				Console.WriteLine (f.MemberName.Name);
+				if (f.Declarators != null) {
+					foreach (var decl in f.Declarators) {
+						var declLoc = LocationsBag.GetLocations (decl);
+						Console.WriteLine (Convert (declLoc[declLoc.Length - 1]));
+						Console.WriteLine (decl.Name.Value);
+						newField.AddChild (new CSharpTokenNode (Convert (declLoc[declLoc.Length - 1]), 1), FieldDeclaration.Roles.Comma);
+						
+						variable = new VariableInitializer ();
+						variable.AddChild (new Identifier (decl.Name.Value, Convert (decl.Name.Location)), FieldDeclaration.Roles.Identifier);
+						if (decl.Initializer != null) {
+							variable.AddChild (new CSharpTokenNode (Convert (declLoc[0]), 1), FieldDeclaration.Roles.Assign);
+							variable.AddChild ((INode)decl.Initializer.Accept (this), FieldDeclaration.Roles.Initializer);
+						}
+						newField.AddChild (variable, FieldDeclaration.Roles.Initializer);
+					}
+				}
+				newField.AddChild (new CSharpTokenNode (Convert (location[location.Count - 1]), 1), FieldDeclaration.Roles.Semicolon);
+
+				typeStack.Peek ().AddChild (newField, TypeDeclaration.Roles.Member);
+
+				
+			}
+			
 			
 			public override void Visit (Operator o)
 			{
@@ -433,7 +499,7 @@ namespace MonoDevelop.CSharp.Parser
 			
 			void AddModifiers (AbstractNode parent, LocationsBag.MemberLocations location)
 			{
-				if (location.Modifiers == null)
+				if (location == null || location.Modifiers == null)
 					return;
 				foreach (var modifier in location.Modifiers) {
 					parent.AddChild (new CSharpModifierToken (Convert (modifier.Item2), modifierTable[modifier.Item1]), AbstractNode.Roles.Modifier);
@@ -1705,6 +1771,12 @@ namespace MonoDevelop.CSharp.Parser
 				
 				return result;
 			}
+			
+			public override object Visit (ConstInitializer constInitializer)
+			{
+				return new Identifier (constInitializer.Name, Convert (constInitializer.Location));
+			}
+			
 			#endregion
 			
 			#region LINQ expressions
@@ -1876,7 +1948,6 @@ namespace MonoDevelop.CSharp.Parser
 
 		public MonoDevelop.CSharp.Dom.CompilationUnit Parse (TextEditorData data)
 		{
-			
 			CompilerCompilationUnit top;
 			using (Stream stream = data.OpenStream ()) {
 				top = CompilerCallableEntryPoint.ParseFile (new string[] { "-v", "-unsafe"}, stream, data.Document.FileName, Console.Out);

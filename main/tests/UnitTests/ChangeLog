@@ -1,3 +1,18 @@
+2010-06-30  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharpBinding/TestWorkbenchWindow.cs: Added
+	  missing using.
+
+2010-06-30  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharpBinding/TestWorkbenchWindow.cs: Track API
+	  changes.
+
+2010-06-29  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharpBinding/TestSpacingVisitor.cs: Added tests
+	  for fixed fields/constants.
+
 2010-06-23  Mike Krüger  <mkrueger@novell.com>
 
 	* MonoDevelop.CSharpBinding/TestSpacingVisitor.cs: Activated

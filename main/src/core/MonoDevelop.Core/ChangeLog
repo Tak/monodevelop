@@ -1,3 +1,19 @@
+2010-06-29  Lars Magnusson <lavima@gmail.com>
+	* MonoDevelop.Projects.Formats.MSBuild/MSBuildProjectHandler.cs:
+	  Added functionality for excluding imports when loading 
+	  projects.
+	* MonoDevelop.Projects.Extensions/DotNetProjectSubtypeNode.cs:
+	  Added attribute exclude which takes a colon separated list 
+	  of targets to exclude. Added functionality to exclude the 
+	  targets in the initializer.
+
+2010-06-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Projects/ProjectFileCollection.cs: Use FilePath
+	  when comparing files, since it will is case insensitive on
+	  windows. Sould fix bug #567155 - Linked source files not
+	  saved before building.
+
 2010-06-28  Lluis Sanchez Gual  <lluis@novell.com>
 
 	* frameworks/framework_NET_4_0.xml: Add missing assembly.
