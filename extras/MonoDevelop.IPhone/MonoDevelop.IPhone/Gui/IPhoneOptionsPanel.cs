@@ -72,29 +72,36 @@ namespace MonoDevelop.IPhone.Gui
 
 		void HandleTargetDevicesComboChanged (object sender, EventArgs e)
 		{
+			bool preSdk4 = false; //FIXME: read this from the sdk option panel
 			switch (SupportedDevices) {
 			case TargetDevice.IPhoneAndIPad:
 				iPadNibPicker.Sensitive = true;
 				IPhoneIconSensitive = true;
+				IPhoneIconHighSensitive = !preSdk4;
 				IPadIconSensitive = true;
 				IPadSpotlightIconSensitive = true;
 				SettingsIconSensitive = true;
+				SettingsIconHighSensitive = !preSdk4;
 				iPadOrientationsCombo.Sensitive = true;
 				break;
 			case TargetDevice.IPhone:
 				iPadNibPicker.Sensitive = false;
 				IPhoneIconSensitive = true;
+				IPhoneIconHighSensitive = !preSdk4;
 				IPadIconSensitive = false;
 				IPadSpotlightIconSensitive = false;
 				SettingsIconSensitive = true;
+				SettingsIconHighSensitive = !preSdk4;
 				iPadOrientationsCombo.Sensitive = false;
 				break;
 			case TargetDevice.IPad:
 				iPadNibPicker.Sensitive = false;
 				IPhoneIconSensitive = false;
+				IPhoneIconHighSensitive = false;
 				IPadIconSensitive = true;
 				IPadSpotlightIconSensitive = true;
 				SettingsIconSensitive = true;
+				SettingsIconHighSensitive = false;
 				iPadOrientationsCombo.Sensitive = false;
 				break;
 			}
@@ -103,6 +110,12 @@ namespace MonoDevelop.IPhone.Gui
 		bool IPhoneIconSensitive {
 			set {
 				iphoneIconLabel.Sensitive = iphoneIconSizeLabel.Sensitive = iphoneIconPicker.Sensitive = value;
+			}
+		}
+		
+		bool IPhoneIconHighSensitive {
+			set {
+				iphoneIconHighLabel.Sensitive = iphoneIconHighSizeLabel.Sensitive = iphoneIconHighPicker.Sensitive = value;
 			}
 		}
 		
@@ -122,6 +135,12 @@ namespace MonoDevelop.IPhone.Gui
 		bool SettingsIconSensitive {
 			set {
 				settingsIconLabel.Sensitive = settingsIconSizeLabel.Sensitive = settingsIconPicker.Sensitive = value;
+			}
+		}
+		
+		bool SettingsIconHighSensitive {
+			set {
+				settingsIconHighLabel.Sensitive = settingsIconHighSizeLabel.Sensitive = settingsIconHighPicker.Sensitive = value;
 			}
 		}
 		
@@ -179,7 +198,15 @@ namespace MonoDevelop.IPhone.Gui
 			
 			SupportedDevices = proj.SupportedDevices;
 			
-			ProjectFileEntry [] pickers = { iphoneIconPicker, ipadIconPicker, settingsIconPicker, ipadSpotlightIconPicker };
+			ProjectFileEntry [] pickers = {
+				iphoneIconPicker,
+				iphoneIconHighPicker,
+				ipadIconPicker,
+				settingsIconPicker,
+				settingsIconHighPicker,
+				ipadSpotlightIconPicker,
+			};
+			
 			foreach (var p in pickers) {
 				p.Project = proj;
 				p.DefaultFilter = "*.png";
@@ -188,8 +215,10 @@ namespace MonoDevelop.IPhone.Gui
 			}
 			
 			iphoneIconPicker.SelectedFile = proj.BundleIcon.ToString () ?? "";
+			iphoneIconHighPicker.SelectedFile = proj.BundleIconHigh.ToString () ?? "";
 			ipadIconPicker.SelectedFile = proj.BundleIconIPad.ToString () ?? "";
 			settingsIconPicker.SelectedFile = proj.BundleIconSpotlight.ToString () ?? "";
+			settingsIconHighPicker.SelectedFile = proj.BundleIconSpotlightHigh.ToString () ?? "";
 			ipadSpotlightIconPicker.SelectedFile = proj.BundleIconIPadSpotlight.ToString () ?? "";
 			
 			badPlist = false;
@@ -268,8 +297,10 @@ namespace MonoDevelop.IPhone.Gui
 			proj.MainNibFileIPad = NullIfEmpty (iPadNibPicker.SelectedFile);
 			
 			proj.BundleIcon = NullIfEmpty (iphoneIconPicker.SelectedFile);
+			proj.BundleIconHigh = NullIfEmpty (iphoneIconHighPicker.SelectedFile);
 			proj.BundleIconIPad = NullIfEmpty (ipadIconPicker.SelectedFile);
 			proj.BundleIconSpotlight = NullIfEmpty (settingsIconPicker.SelectedFile);
+			proj.BundleIconSpotlightHigh = NullIfEmpty (settingsIconHighPicker.SelectedFile);
 			proj.BundleIconIPadSpotlight = NullIfEmpty (ipadSpotlightIconPicker.SelectedFile);
 			
 			proj.SupportedDevices = SupportedDevices;
@@ -292,7 +323,7 @@ namespace MonoDevelop.IPhone.Gui
 				
 				var iPadOrientations = SaveOrientationsCombo (iPadOrientationsCombo);
 				if (proj.SupportedDevices == TargetDevice.IPhoneAndIPad && iPadOrientations != null)
-					dict [OrientationUtil.KEY_IPAD] = orientations;
+					dict [OrientationUtil.KEY_IPAD] = iPadOrientations;
 				else
 					dict.Remove (OrientationUtil.KEY_IPAD);
 				

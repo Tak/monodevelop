@@ -1,3 +1,43 @@
+2010-06-24  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextMarker.cs:
+	* Mono.TextEditor/TextViewMargin.cs: Fixed 'Bug 616949 -
+	  Message bubbles prevents the background color of selected
+	  text to change'.
+
+2010-06-24  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/DefaultEditActions.cs: Fixed 'Bug 616921 -
+	  "Move the line or highlighted selection up" command deletes
+	  selection'.
+
+2010-06-24  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxModeService.cs: Check if
+	  line is valid.
+
+2010-06-23  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/Document.cs: Fixed 'Bug 616128 - Text editor
+	  hiccoughs every 2 seconds (approx.)'.
+
+2010-06-23  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/Document.cs: Update line after unregistering
+	  text marker.
+
+2010-06-21  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/Document.cs: Fixed 'Bug 615624 - Pressing
+	  DOWN after RETURN moves cursor to beginning of blank lines
+	  instead of to the indent'.
+
+2010-06-21  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextLinkEditMode.cs:
+	* Mono.TextEditor/InsertionCursorEditMode.cs: Text link edit
+	  mode can now show mode help windows as well.
+
 2010-06-18  Mike Krüger  <mkrueger@novell.com>
 
 	* Mono.TextEditor/TextEditorData.cs:

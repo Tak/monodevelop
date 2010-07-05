@@ -1,3 +1,48 @@
+2010-06-23  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Gui/IPhoneOptionsPanel.cs: Use ipad key should use ipad
+	  orientation value, not iphone value.
+
+2010-06-23  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Orientation.cs: Fix UIInterfaceOrientation parsing bug that
+	  flipped Portrait and PortraitUpsideDown values.
+
+2010-06-23  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* templates/IPadApplicationXib.xft.xml:
+	* templates/IPhoneApplicationXib.xft.xml: Fix Bug 616532 -
+	  Property in .xib.designer.cs file to back IBOutlet is not
+	  being generated.
+
+2010-06-22  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Gui/IPhoneOptionsPanel.cs: Fix the hires icon pickers.
+
+2010-06-22  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* IPhoneProject.cs: Fix stack overflow.
+
+2010-06-22  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* IPhoneProject.cs:
+	* gtk-gui/gui.stetic:
+	* IPhoneBuildExtension.cs:
+	* Gui/IPhoneOptionsPanel.cs:
+	* MonoDevelop.IPhone.addin.xml:
+	* gtk-gui/MonoDevelop.IPhone.Gui.IPhoneOptionsWidget.cs: Added
+	  options for hi-res icons.
+
+2010-06-21  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* IPhoneBuildExtension.cs: Include UIDeviceFamily key in 3.2
+	  builds.
+
+	* IPhoneFramework.cs: Filter out simulator targets.
+
+	* Gui/IPhoneBuildOptionsPanel.cs: Only show min OS version
+	  values that are valid for current SDK version.
+
 2010-06-18  Michael Hutchinson  <mhutchinson@novell.com>
 
 	* IPhoneSdkVersion.cs: Add some conveniences.

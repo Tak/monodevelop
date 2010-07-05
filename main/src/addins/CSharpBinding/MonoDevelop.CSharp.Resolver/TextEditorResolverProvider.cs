@@ -42,8 +42,9 @@ namespace MonoDevelop.CSharp.Resolver
 		
 		public MonoDevelop.Projects.Dom.ResolveResult GetLanguageItem (ProjectDom dom, Mono.TextEditor.TextEditorData data, int offset)
 		{
+			if (offset < 0)
+				return null;
 			string fileName = data.Document.FileName;
-			
 			IParser parser = ProjectDomService.GetParser (fileName, data.Document.MimeType);
 			if (parser == null)
 				return null;
@@ -62,6 +63,28 @@ namespace MonoDevelop.CSharp.Resolver
 			while (wordEnd < txt.Length && (Char.IsLetterOrDigit (txt[wordEnd]) || txt[wordEnd] == '_'))
 				wordEnd++;
 			
+			while (wordEnd < txt.Length - 1 && Char.IsWhiteSpace (txt[wordEnd]))
+				wordEnd++;
+			
+			if (wordEnd < txt.Length && txt[wordEnd] == '<') {
+				bool wasMethodCall = false;
+				int saveEnd = wordEnd;
+				int matchingBracket = data.Document.GetMatchingBracketOffset (wordEnd);
+				if (matchingBracket > 0)
+					wordEnd = matchingBracket;
+				while (wordEnd < txt.Length - 1 && Char.IsWhiteSpace (txt[wordEnd]))
+					wordEnd++;
+				if (txt[wordEnd] == '(') {
+					matchingBracket = data.Document.GetMatchingBracketOffset (wordEnd);
+					if (matchingBracket > 0) {
+						wordEnd = matchingBracket;
+						wasMethodCall = true;
+					}
+				}
+				if (!wasMethodCall)
+					wordEnd = saveEnd;
+			}
+
 			ExpressionResult expressionResult = expressionFinder.FindExpression (txt, wordEnd);
 			if (expressionResult == null)
 				return null;

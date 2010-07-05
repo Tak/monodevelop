@@ -1,3 +1,48 @@
+2010-06-28  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	  Submitted patch from Tom Spink <tspink@gmail.com>: Update to
+	  generic code completion
+
+2010-06-24  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Refactoring/CSharpCodeGenerator.cs: fixed
+	  bug in abstract member overriding.
+
+2010-06-24  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Resolver/TextEditorResolverProvider.cs:
+	  Added bounds check.
+
+2010-06-23  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Highlighting/HighlightUsagesExtension.cs:
+	  Only update changed lines.
+
+2010-06-23  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Resolver/TextEditorResolverProvider.cs:
+	  Fixed 'Bug 615988 - Go to declaration not available on
+	  generic methods'.
+
+2010-06-23  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Refactoring/FindMemberAstVisitor.cs:
+	  Fixed 'Bug 615983 - Refactoring does not include object
+	  initializers'.
+
+2010-06-23  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Parser/CSharpParser.cs:
+	* MonoDevelop.CSharp.Formatting/DomIndentationVisitor.cs:
+	* MonoDevelop.CSharp.Dom/TypeMembers/DestructorDeclaration.cs:
+	  Worked on C# parser.
+
+2010-06-22  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Parser/CSharpParser.cs: Updated parser to
+	  Marek's new LocationsBag/latest mcs changes.
+
 2010-06-21  Mike Krüger  <mkrueger@novell.com>
 
 	* MonoDevelop.CSharp.Formatting/CSharpFormattingPolicy.xml:
