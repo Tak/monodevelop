@@ -8,7 +8,6 @@ VOLUME_NAME=MonoDevelop
 DMG_APP=MonoDevelop.app
 DMG_FILE=$VOLUME_NAME.dmg
 MOUNT_POINT=/tmp/$VOLUME_NAME.mounted
-ICONS=$DMG_APP/Contents/Resources/monodevelop.icns
 
 if test ! -e $DMG_APP ; then
 	echo "Missing MonoDevelop.app"
@@ -30,7 +29,6 @@ hdiutil attach $DMG_FILE -readwrite -noautoopen -mountpoint $MOUNT_POINT -quiet 
 
 echo "Populating image..."
 
-cp $ICONS .
 mv $DMG_APP $MOUNT_POINT
 
 # This won't result in any deletions 
