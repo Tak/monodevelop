@@ -153,9 +153,13 @@ namespace MonoDevelop.DesignerSupport
 		{
 		}
 		
-		public override T GetContent<T> ()
+		public override object GetContent (Type contentType)
 		{
-			return base.GetContent<T> () ?? content.GetContent<T> ();
+			object ob = base.GetContent (contentType);
+			if (ob != null)
+				return ob;
+			else
+				return content.GetContent (contentType);
 		}
 	}
 }
