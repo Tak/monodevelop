@@ -1,3 +1,33 @@
+2010-07-07  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Formatting/CSharpIndentEngineStack.cs:
+	  added bounds check
+
+2010-07-07  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Formatting/CSharpIndentEngineStack.cs:
+	  added bounds check
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Formatting/CSharpIndentEngineStack.cs:
+	  Indenting should now reflect the mono style.
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Formatting/CSharpIndentEngineStack.cs:
+	  Indenting should now reflect the mono style.
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	  Worked on region box.
+
+2010-07-05  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	  Region combo is now separated from the rest of the path.
+
 2010-07-05  Mike Krüger  <mkrueger@novell.com>
 
 	* MonoDevelop.CSharp.Resolver/ResolveVisitor.cs: Fixed 'Bug

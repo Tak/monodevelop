@@ -1,3 +1,25 @@
+2010-07-07  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* MonoDevelop.VersionControl.csproj:
+	* MonoDevelop.VersionControl.Views/DropDownBox.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Added
+	  drop down box for the version control views (TODO:
+	  Selector).
+
+2010-07-07  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Fixed
+	  error in calculation.
+
+2010-07-07  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs:
+	  Improved the visualization of the change-diff - it's now
+	  easier to see what has changed when only a part of the line
+	  changed.
+
 2010-07-06  Mike Krüger  <mkrueger@novell.com>
 
 	* MonoDevelop.VersionControl.Views/ComparisonView.cs:
