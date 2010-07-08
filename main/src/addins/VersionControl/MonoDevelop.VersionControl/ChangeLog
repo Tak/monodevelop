@@ -1,3 +1,18 @@
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs: Added
+	  bounds check.
+
+2010-07-05  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs: set correct
+	  bounds.
+
+2010-07-05  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs: Added range
+	  check.
+
 2010-07-01  Mike Krüger  <mkrueger@novell.com>
 
 	* MonoDevelop.VersionControl.Views/BlameView.cs:
