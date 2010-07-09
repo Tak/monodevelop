@@ -76,7 +76,7 @@ namespace MonoDevelop.Ide
 		}
 		
 		public bool LoadPrevSolutionOnStartup {
-			get { return PropertyService.Get ("SharpDevelop.LoadPrevProjectOnStartup", false); }
+			get { return PropertyService.Get ("SharpDevelop.LoadPrevProjectOnStartup", true); }
 			set { PropertyService.Set ("SharpDevelop.LoadPrevProjectOnStartup", value); }
 		}
 		

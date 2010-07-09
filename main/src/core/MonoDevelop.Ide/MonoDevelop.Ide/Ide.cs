@@ -259,7 +259,7 @@ namespace MonoDevelop.Ide
 				initializedEvent (null, EventArgs.Empty);
 			
 			// load previous combine
-			if ((bool)PropertyService.Get("SharpDevelop.LoadPrevProjectOnStartup", false)) {
+			if ((bool)PropertyService.Get("SharpDevelop.LoadPrevProjectOnStartup", true)) {
 				RecentOpen recentOpen = Workbench.RecentOpen;
 
 				if (recentOpen.RecentProjectsCount > 0) { 
