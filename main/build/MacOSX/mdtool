@@ -26,6 +26,7 @@ find ${FINAL_INSTALL_DIR} -name '*.pc.in' -execdir "${DIR}/replacePath.sh" {} \;
 find ${FINAL_INSTALL_DIR} -name '*.loaders.in' -execdir "${DIR}/replacePath.sh" {} \;
 "${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/mono/config.in"
 "${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules.in"
+"${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc"
 find ${MONO_FRAMEWORK_PATH}/bin -name '*.in' -execdir "${DIR}/replacePath.sh" {} \;
 
 #we need lots of file handles

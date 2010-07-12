@@ -111,6 +111,7 @@ mono-bundle: MonoDevelop.app
 	find $(BUNDLED_FRAMEWORK_DIR) -name '*.loaders' -exec ./copyToInputFile.sh {} \;
 	./copyToInputFile.sh $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/mono/config
 	./copyToInputFile.sh $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango/pango.modules
+	./copyToInputFile.sh $(BUNDLED_FRAMEWORK_DIR)/Versions/Current/etc/pango/pangorc
 	rm -f $(MAC_APP_LIB_DIR)/bin/MonoDevelop.exe.config
 
 # Relocate launcher scripts
