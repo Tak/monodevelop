@@ -302,7 +302,8 @@ namespace MonoDevelop.Ide
 		 	//FIXME: can we handle multiple slns?
 			bool foundSln = false;
 			foreach (var file in files) {
-				if (Services.ProjectService.IsWorkspaceItemFile (file.FileName)) {
+				if (Services.ProjectService.IsWorkspaceItemFile (file.FileName) ||
+					Services.ProjectService.IsSolutionItemFile (file.FileName)) {
 					// Don't reload the currently open solution
 					foundSln = foundSln || (null != Workspace.Items.FirstOrDefault (x =>
 					    (x.FileName.FullPath.ToString ().Equals(file.FileName, StringComparison.OrdinalIgnoreCase))));
