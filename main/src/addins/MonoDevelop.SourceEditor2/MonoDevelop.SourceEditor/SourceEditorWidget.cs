@@ -369,7 +369,8 @@ namespace MonoDevelop.SourceEditor
 		
 		public void Dispose ()
 		{
-			// nothing
+			if (null != parseInformationUpdaterWorkerThread)
+				parseInformationUpdaterWorkerThread.Stop ();
 		}
 		
 		#region Error underlining
