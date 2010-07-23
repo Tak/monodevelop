@@ -103,18 +103,18 @@ namespace MonoDevelop.Ide
 			
 			var startupInfo = new StartupInfo (remainingArgs);
 			
-			// If a combine was specified, force --newwindow.
-			
-			if(!options.NewWindow && startupInfo.HasFiles) {
-				Counters.Initialization.Trace ("Pre-Initializing Runtime to load files in existing window");
-				Runtime.Initialize (true);
-				foreach (var file in startupInfo.RequestedFileList) {
-					if (MonoDevelop.Projects.Services.ProjectService.IsWorkspaceItemFile (file.FileName)) {
-						options.NewWindow = true;
-						break;
-					}
-				}
-			}
+//			// If a combine was specified, force --newwindow.
+//			
+//			if(!options.NewWindow && startupInfo.HasFiles) {
+//				Counters.Initialization.Trace ("Pre-Initializing Runtime to load files in existing window");
+//				Runtime.Initialize (true);
+//				foreach (var file in startupInfo.RequestedFileList) {
+//					if (MonoDevelop.Projects.Services.ProjectService.IsWorkspaceItemFile (file.FileName)) {
+//						options.NewWindow = true;
+//						break;
+//					}
+//				}
+//			}
 			
 			DefaultTheme = Gtk.Settings.Default.ThemeName;
 			if (!string.IsNullOrEmpty (IdeApp.Preferences.UserInterfaceTheme))
