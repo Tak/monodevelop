@@ -411,6 +411,8 @@ namespace MonoDevelop.SourceEditor
 			public void Run (bool runInThread)
 			{
 				try {
+					if (null == widget || null == widget.Document || null == widget.parsedDocument)
+						return;
 					if (this.widget.options.ShowFoldMargin && widget.parsedDocument != null) {
 						List<FoldSegment> foldSegments = new List<FoldSegment> ();
 						bool updateSymbols = widget.parsedDocument.Defines.Count != widget.symbols.Count;
