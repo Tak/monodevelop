@@ -55,7 +55,7 @@ namespace MonoDevelop.Ide.Gui
 		/// Matches a filename string with optional line and column 
 		/// (/foo/bar/blah.cs;22;31)
 		/// </summary>
-		public static readonly Regex FileExpression = new Regex (@"^(?<filename>[^;]+)(;(?<line>\d+))?(;(?<column>\d+))?$", RegexOptions.Compiled);
+		public static readonly Regex FileExpression = new Regex (@"^(?<filename>[^;]+)(;(?<line>-?\d+))?(;(?<column>-?\d+))?$", RegexOptions.Compiled);
 		
 		public StartupInfo (IEnumerable<string> args)
 		{
@@ -72,12 +72,14 @@ namespace MonoDevelop.Ide.Gui
 					string filename = fileMatch.Groups["filename"].Value;
 					if (File.Exists (filename)) {
 						int line = 1, column = 1;
-						a = a.Replace (filename, Path.GetFullPath (filename));
+                        filename = Path.GetFullPath(filename);
 						if (fileMatch.Groups["line"].Success)
 							int.TryParse (fileMatch.Groups["line"].Value, out line);
 						if (fileMatch.Groups["column"].Success)
 							int.TryParse (fileMatch.Groups["column"].Value, out column);
-						var file = new FileOpenInformation (a, line, column, true);
+                        line = Math.Max (1, line);
+                        column = Math.Max (1, column);
+						var file = new FileOpenInformation (filename, line, column, true);
 						requestedFileList.Add (file);
 					}
 				} else if (a[0] == '-' || a[0] == '/') {
