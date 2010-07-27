@@ -1,3 +1,9 @@
+2010-07-27  Levi Bard  <levi@unity3d.com>
+
+	* MonoDevelop.Ide/IdeStartup.cs:
+	* MonoDevelop.Ide.Gui/StartupInfo.cs:
+	  Make opening files at startup more robust.
+
 2010-07-23  Levi Bard  <levi@unity3d.com>
 
 	* MonoDevelop.Ide/IdeStartup.cs:
