@@ -56,7 +56,7 @@ namespace MonoDevelop.Ide
 		ArrayList errorsList = new ArrayList ();
 		bool initialized;
 		internal static string DefaultTheme;
-		static readonly int ipcBasePort = 40000;
+		static readonly int ipcBasePort = 41000;
 		
 		public int Run (string[] args)
 		{
@@ -151,7 +151,7 @@ namespace MonoDevelop.Ide
 				listen_socket = new Socket (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
 				ep = new IPEndPoint (IPAddress.Loopback, ipcBasePort + HashSDBMBounded (Environment.UserName));
 			} else {
-				socket_filename = "/tmp/md-" + Environment.GetEnvironmentVariable ("USER") + "-socket";
+				socket_filename = "/tmp/md-unity-" + Environment.GetEnvironmentVariable ("USER") + "-socket";
 				listen_socket = new Socket (AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
 				ep = new UnixEndPoint (socket_filename);
 			}

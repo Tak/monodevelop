@@ -53,8 +53,7 @@ namespace MonoDevelop.Startup
 
 			// On Windows log all output to a log file
 
-			string configPath = Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData);
-			configPath = Path.Combine (configPath, "MonoDevelop");
+            string configPath = PropertyService.ConfigPath;
 			if (!Directory.Exists (configPath))
 				Directory.CreateDirectory (configPath);
 
