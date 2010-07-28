@@ -72,13 +72,13 @@ namespace MonoDevelop.Ide.Gui
 					string filename = fileMatch.Groups["filename"].Value;
 					if (File.Exists (filename)) {
 						int line = 1, column = 1;
-                        filename = Path.GetFullPath(filename);
+						filename = Path.GetFullPath (filename);
 						if (fileMatch.Groups["line"].Success)
 							int.TryParse (fileMatch.Groups["line"].Value, out line);
 						if (fileMatch.Groups["column"].Success)
 							int.TryParse (fileMatch.Groups["column"].Value, out column);
-                        line = Math.Max (1, line);
-                        column = Math.Max (1, column);
+						line = Math.Max (1, line);
+						column = Math.Max (1, column);
 						var file = new FileOpenInformation (filename, line, column, true);
 						requestedFileList.Add (file);
 					}
