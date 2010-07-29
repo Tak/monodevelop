@@ -1,3 +1,85 @@
+2010-07-29  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Git/GitRepository.cs: Trim empty
+	  lines from commit messages.
+
+2010-07-29  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Git/GitRepository.cs: Improve
+	  handling of git moves and deletes.
+
+2010-07-29  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Git/GitRepository.cs: Stash local
+	  changes before doing a pull or branch switch.
+
+2010-07-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Git.addin.xml: Don't show the
+	  Switch to Branch command if there are no branches.
+
+	* Makefile.am:
+	* MonoDevelop.VersionControl.Git.csproj: Updated.
+
+	* MonoDevelop.VersionControl.Git/Commands.cs:
+	* MonoDevelop.VersionControl.Git/GitService.cs: Moved Push
+	  command to the new GitService class.
+
+	* MonoDevelop.VersionControl.Git/CommitDialogExtensionWidget.cs:
+	  Added extension which allows pushing changes after
+	  committing.
+
+2010-07-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* Makefile.am:
+	* MonoDevelop.VersionControl.Git.csproj:
+	* MonoDevelop.VersionControl.Git.addin.xml:
+	* MonoDevelop.VersionControl.Git/GitNodeBuilderExtension.cs:
+	  Show the current branch next to the solution name.
+
+2010-07-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Git/GitRepository.cs: Notify file
+	  changes after pulling.
+
+2010-07-28  Dale Ragan  <dale.ragan@sinesignal.com>
+
+	* MonoDevelop.VersionControl.Git.addin.xml: Fixed 
+	  typo and issue with add-in not loading due to bad 
+      extension for adding the Switch to Branch label.
+
+	* MonoDevelop.VersionControl.Git/Commands.cs: Fixed 
+	  a small typo.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Git/GitRepository.cs: Remove
+	  debug output.
+
+	* MonoDevelop.VersionControl.Git/GitVersionControl.cs: Added
+	  missing null check.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* Makefile.am:
+	* gtk-gui/gui.stetic:
+	* gtk-gui/generated.cs:
+	* MonoDevelop.VersionControl.Git.csproj:
+	* MonoDevelop.VersionControl.Git.addin.xml:
+	* MonoDevelop.VersionControl.Git/Commands.cs:
+	* MonoDevelop.VersionControl.Git/PushDialog.cs:
+	* MonoDevelop.VersionControl.Git/GitRepository.cs:
+	* gtk-gui/MonoDevelop.VersionControl.Git.PushDialog.cs:
+	  Implement push command.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Git.csproj:
+	* MonoDevelop.VersionControl.Git.addin.xml:
+	* MonoDevelop.VersionControl.Git/GitRepository.cs:
+	* MonoDevelop.VersionControl.Git/GitVersionControl.cs: Add
+	  basic support for git.
+
 2010-06-30  Michael Hutchinson  <mhutchinson@novell.com>
 
 	* MonoDevelop.VersionControl.Git.csproj: Make MD refs private.

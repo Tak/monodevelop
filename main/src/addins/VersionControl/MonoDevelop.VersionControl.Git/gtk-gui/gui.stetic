@@ -5,14 +5,13 @@
     <target-gtk-version>2.12</target-gtk-version>
   </configuration>
   <import>
-    <widget-library name="../../../../build/bin/MonoDevelop.Ide.dll" />
-    <widget-library name="../../../../build/bin/Mono.TextEditor.dll" />
-    <widget-library name="../../../../build/AddIns/MonoDevelop.DesignerSupport/MonoDevelop.DesignerSupport.dll" internal="true" />
+    <widget-library name="../../../../../build/bin/MonoDevelop.Ide.dll" />
+    <widget-library name="../../../../../build/AddIns/VersionControl/MonoDevelop.VersionControl.dll" />
+    <widget-library name="../../../../../build/AddIns/VersionControl/MonoDevelop.VersionControl.Git.dll" internal="true" />
   </import>
-  <widget class="Gtk.Dialog" id="MonoDevelop.DesignerSupport.Toolbox.ComponentSelectorDialog" design-size="642 433">
+  <widget class="Gtk.Dialog" id="MonoDevelop.VersionControl.Git.PushDialog" design-size="730 540">
     <property name="MemberName" />
-    <property name="GeneratePublic">False</property>
-    <property name="Title" translatable="yes">Toolbox Item Selector</property>
+    <property name="Title" translatable="yes">Push to Repository</property>
     <property name="WindowPosition">CenterOnParent</property>
     <property name="Buttons">2</property>
     <property name="HelpButton">False</property>
@@ -32,22 +31,21 @@
                 <child>
                   <widget class="Gtk.Label" id="label1">
                     <property name="MemberName" />
-                    <property name="Xalign">0</property>
-                    <property name="LabelProp" translatable="yes">Type of component:</property>
+                    <property name="LabelProp" translatable="yes">Push to:</property>
                   </widget>
                   <packing>
                     <property name="Position">0</property>
-                    <property name="AutoSize">False</property>
+                    <property name="AutoSize">True</property>
                     <property name="Expand">False</property>
                     <property name="Fill">False</property>
                   </packing>
                 </child>
                 <child>
-                  <widget class="Gtk.ComboBox" id="comboType">
+                  <widget class="Gtk.ComboBox" id="remoteCombo">
                     <property name="MemberName" />
                     <property name="IsTextCombo">True</property>
                     <property name="Items" translatable="yes" />
-                    <signal name="Changed" handler="OnComboTypeChanged" />
+                    <signal name="Changed" handler="OnRemoteComboChanged" />
                   </widget>
                   <packing>
                     <property name="Position">1</property>
@@ -55,8 +53,9 @@
                   </packing>
                 </child>
                 <child>
-                  <widget class="Gtk.VSeparator" id="vseparator1">
+                  <widget class="Gtk.Label" id="label2">
                     <property name="MemberName" />
+                    <property name="LabelProp" translatable="yes">Branch:</property>
                   </widget>
                   <packing>
                     <property name="Position">2</property>
@@ -66,68 +65,40 @@
                   </packing>
                 </child>
                 <child>
-                  <widget class="Gtk.Button" id="button24">
+                  <widget class="Gtk.ComboBox" id="branchCombo">
                     <property name="MemberName" />
-                    <property name="CanFocus">True</property>
-                    <property name="Type">TextAndIcon</property>
-                    <property name="Icon">stock:gtk-add Menu</property>
-                    <property name="Label" translatable="yes">Add Assembly...</property>
-                    <property name="UseUnderline">True</property>
-                    <signal name="Clicked" handler="OnButton24Clicked" />
+                    <property name="IsTextCombo">True</property>
+                    <property name="Items" translatable="yes" />
+                    <signal name="Changed" handler="OnBranchComboChanged" />
                   </widget>
                   <packing>
                     <property name="Position">3</property>
-                    <property name="AutoSize">True</property>
-                    <property name="Expand">False</property>
-                    <property name="Fill">False</property>
+                    <property name="AutoSize">False</property>
                   </packing>
                 </child>
               </widget>
               <packing>
                 <property name="Position">0</property>
-                <property name="AutoSize">True</property>
+                <property name="AutoSize">False</property>
                 <property name="Expand">False</property>
                 <property name="Fill">False</property>
               </packing>
             </child>
             <child>
-              <widget class="Gtk.ScrolledWindow" id="scrolledwindow1">
+              <widget class="MonoDevelop.VersionControl.Views.ChangeSetView" id="changeList">
                 <property name="MemberName" />
                 <property name="CanFocus">True</property>
                 <property name="ShadowType">In</property>
-                <child>
-                  <widget class="Gtk.TreeView" id="listView">
-                    <property name="MemberName" />
-                    <property name="CanFocus">True</property>
-                  </widget>
-                </child>
               </widget>
               <packing>
                 <property name="Position">1</property>
-                <property name="AutoSize">True</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="Gtk.CheckButton" id="checkGroupByCat">
-                <property name="MemberName" />
-                <property name="CanFocus">True</property>
-                <property name="Label" translatable="yes">Group by component category</property>
-                <property name="DrawIndicator">True</property>
-                <property name="HasLabel">True</property>
-                <property name="UseUnderline">True</property>
-                <signal name="Clicked" handler="OnCheckbutton1Clicked" />
-              </widget>
-              <packing>
-                <property name="Position">2</property>
-                <property name="AutoSize">True</property>
-                <property name="Expand">False</property>
-                <property name="Fill">False</property>
+                <property name="AutoSize">False</property>
               </packing>
             </child>
           </widget>
           <packing>
             <property name="Position">0</property>
-            <property name="AutoSize">True</property>
+            <property name="AutoSize">False</property>
           </packing>
         </child>
       </widget>
@@ -160,12 +131,10 @@
             <property name="MemberName" />
             <property name="CanDefault">True</property>
             <property name="CanFocus">True</property>
-            <property name="UseStock">True</property>
-            <property name="Type">StockItem</property>
-            <property name="StockId">gtk-ok</property>
-            <property name="ResponseId">-1</property>
-            <signal name="Clicked" handler="OnButtonOkClicked" />
-            <property name="label">gtk-ok</property>
+            <property name="Type">TextOnly</property>
+            <property name="Label" translatable="yes">Push Changes</property>
+            <property name="UseUnderline">True</property>
+            <property name="ResponseId">-5</property>
           </widget>
           <packing>
             <property name="Position">1</property>
