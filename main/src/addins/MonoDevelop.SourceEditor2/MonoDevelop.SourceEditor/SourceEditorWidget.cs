@@ -503,12 +503,16 @@ namespace MonoDevelop.SourceEditor
 				return;
 			
 			Gtk.Application.Invoke (delegate {
-				if (MonoDevelop.Core.PropertyService.Get ("EnableSemanticHighlighting", false)) 
-					TextEditor.TextViewMargin.PurgeLayoutCache ();
-				ParsedDocument = args.ParsedDocument;
-				bool canShowBrowser = ParsedDocument != null && ParsedDocument.CompilationUnit != null;
-				if (canShowBrowser)
-					this.CanShowClassBrowser = canShowBrowser; 
+				try {
+					if (MonoDevelop.Core.PropertyService.Get ("EnableSemanticHighlighting", false)) 
+						TextEditor.TextViewMargin.PurgeLayoutCache ();
+					ParsedDocument = args.ParsedDocument;
+					bool canShowBrowser = ParsedDocument != null && ParsedDocument.CompilationUnit != null;
+					if (canShowBrowser)
+						this.CanShowClassBrowser = canShowBrowser; 
+				} catch (Exception ex) {
+					LoggingService.LogError ("Error updating parse information", ex);
+				}
 			});
 		}
 		
