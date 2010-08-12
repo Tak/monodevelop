@@ -151,9 +151,9 @@ namespace MonoDevelop.SourceEditor
 				if (MessageBubbleTextMarker.RemoveLine (e.Line)) {
 					MessageBubbleTextMarker marker = currentErrorMarkers.FirstOrDefault (m => m.LineSegment == e.Line);
 					if (marker != null) {
-						int oldHeight = marker.lastHeight;
+						double oldHeight = marker.lastHeight;
 						widget.TextEditor.TextViewMargin.RemoveCachedLine (e.Line); // ensure that the line cache is renewed
-						int newHeight = marker.GetLineHeight (widget.TextEditor);
+						double newHeight = marker.GetLineHeight (widget.TextEditor);
 						if (oldHeight != newHeight)
 							widget.Document.CommitLineToEndUpdate (widget.TextEditor.Document.OffsetToLineNumber (e.Line.Offset));
 					}
@@ -366,8 +366,22 @@ namespace MonoDevelop.SourceEditor
 						LoggingService.LogWarning ("Can't get file attributes", e);
 					}
 				}
-
-				TextFile.WriteFile (fileName, Document.Text, encoding, hadBom);
+				try {
+					TextFile.WriteFile (fileName, Document.Text, encoding, hadBom);
+				} catch (InvalidEncodingException) {
+					var result = MessageService.AskQuestion (GettextCatalog.GetString ("Can't save file witch current codepage."), 
+						GettextCatalog.GetString ("Some unicode characters in this file could not be saved with the current encoding.\nDo you want to resave this file as Unicode ?\nYou can choose another encoding in the 'save as' dialog."),
+						1,
+						AlertButton.Cancel,
+						new AlertButton (GettextCatalog.GetString ("Save as Unicode")));
+					if (result != AlertButton.Cancel) {
+						this.hadBom = true;
+						this.encoding = "UTF-8";
+						TextFile.WriteFile (fileName, Document.Text, this.encoding, this.hadBom);
+					} else {
+						return;
+					}
+				}
 				lastSaveTime = File.GetLastWriteTime (fileName);
 				try {
 					if (attributes != null)
@@ -732,10 +746,10 @@ namespace MonoDevelop.SourceEditor
 			PinnedWatchInfo wi = new PinnedWatchInfo ();
 			wi.Line = line;
 			if (w.OffsetX < 0) {
-				w.OffsetY = widget.TextEditor.LineToVisualY (w.Line - 1);
+				w.OffsetY = (int)widget.TextEditor.LineToY (w.Line - 1);
 				int lw, lh;
 				widget.TextEditor.TextViewMargin.GetLayout (line).Layout.GetPixelSize (out lw, out lh);
-				w.OffsetX = widget.TextEditor.TextViewMargin.XOffset + lw + 4;
+				w.OffsetX = (int)widget.TextEditor.TextViewMargin.XOffset + lw + 4;
 			}
 			wi.Widget = new PinnedWatchWidget (widget.TextEditorContainer, w);
 			
@@ -1279,19 +1293,17 @@ namespace MonoDevelop.SourceEditor
 			var p = DocumentToScreenLocation (loc);
 			result.TriggerXCoord = p.X;
 			result.TriggerYCoord = p.Y;
-			result.TriggerTextHeight = TextEditor.LineHeight;
+			result.TriggerTextHeight = (int)TextEditor.LineHeight;
 			return result;
 		}
 		
 		public Gdk.Point DocumentToScreenLocation (DocumentLocation location)
 		{
-			var p = widget.TextEditor.DocumentToVisualLocation (location);
+			var p = widget.TextEditor.LocationToPoint (location);
 			int tx, ty;
 			widget.Vbox.ParentWindow.GetOrigin (out tx, out ty);
-			tx += widget.TextEditorContainer.Allocation.X +
-				p.X + TextEditor.TextViewMargin.XOffset - (int)TextEditor.HAdjustment.Value;
-			ty += widget.TextEditorContainer.Allocation.Y +
-				p.Y - (int)TextEditor.VAdjustment.Value + TextEditor.LineHeight;
+			tx += widget.TextEditorContainer.Allocation.X + p.X;
+			ty += widget.TextEditorContainer.Allocation.Y + p.Y + (int)TextEditor.LineHeight;
 			return new Gdk.Point (tx, ty);
 		}
 		

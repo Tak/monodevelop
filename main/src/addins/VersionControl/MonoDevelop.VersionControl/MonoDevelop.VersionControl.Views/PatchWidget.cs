@@ -28,7 +28,6 @@ using System.IO;
 using System.Linq;
 using Mono.TextEditor;
 using MonoDevelop.Ide.Gui;
-using MonoDevelop.Components.Diff;
 using MonoDevelop.Ide.Gui.Dialogs;
 using Gtk;
 using MonoDevelop.Core;
@@ -40,13 +39,8 @@ namespace MonoDevelop.VersionControl.Views
 	internal partial class PatchWidget : Gtk.Bin
 	{
 		Mono.TextEditor.TextEditor diffEditor;
-		ComparisonWidget widget;
-		public ComparisonWidget ComparisonWidget {
-			get {
-				return this.widget;
-			}
-		}
-		public PatchWidget (ComparisonView comparisonView, VersionControlDocumentInfo info)
+		
+		public PatchWidget (DiffView comparisonView, VersionControlDocumentInfo info)
 		{
 			this.Build ();
 			diffEditor = new Mono.TextEditor.TextEditor ();
@@ -61,13 +55,10 @@ namespace MonoDevelop.VersionControl.Views
 			diffEditor.Document.ReadOnly = true;
 			scrolledwindow1.Child = diffEditor;
 			diffEditor.ShowAll ();
-			using (var writer = new StringWriter ()) {
-				UnifiedDiff.WriteUnifiedDiff (comparisonView.Diff, writer, 
-				                              System.IO.Path.GetFileName (info.Item.Path) + "    (repository)", 
-				                              System.IO.Path.GetFileName (info.Item.Path) + "    (working copy)",
-				                              3);
-				diffEditor.Document.Text = writer.ToString ();
-			}
+			
+			
+			diffEditor.Document.Text = Mono.TextEditor.Utils.Diff.GetDiffString (comparisonView.Diff, comparisonView.ComparisonWidget.DiffEditor.Document ,info.Document.Editor.Document, info.Item.Path, info.Item.Path);
+			
 			buttonSave.Clicked += delegate {
 				var dlg = new OpenFileDialog (GettextCatalog.GetString ("Save as..."), FileChooserAction.Save) {
 					TransientFor = IdeApp.Workbench.RootWindow

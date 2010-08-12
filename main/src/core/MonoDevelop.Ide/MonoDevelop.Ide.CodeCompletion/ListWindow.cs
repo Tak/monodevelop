@@ -33,6 +33,7 @@ using System.Xml;
 using System.Linq;
 using System.Text;
 using System.Collections.Generic;
+using MonoDevelop.Core.Text;
 
 namespace MonoDevelop.Ide.CodeCompletion
 {
@@ -405,18 +406,20 @@ namespace MonoDevelop.Ide.CodeCompletion
 		class WordComparer : IComparer <KeyValuePair<int, string>>
 		{
 			string filterWord;
+			StringMatcher matcher;
 
 			public WordComparer (string filterWord)
 			{
 				this.filterWord = filterWord ?? "";
+				matcher = CompletionMatcher.CreateCompletionMatcher (filterWord);
 			}
 			
 			public int Compare (KeyValuePair<int, string> xpair, KeyValuePair<int, string> ypair)
 			{
 				string x = xpair.Value;
 				string y = ypair.Value;
-				int[] xMatches = ListWidget.Match (filterWord, x) ?? new int[0];
-				int[] yMatches = ListWidget.Match (filterWord, y) ?? new int[0];
+				int[] xMatches = matcher.GetMatch (x) ?? new int[0];
+				int[] yMatches = matcher.GetMatch (y) ?? new int[0];
 				if (xMatches.Length < yMatches.Length) 
 					return 1;
 				if (xMatches.Length > yMatches.Length) 
@@ -454,40 +457,48 @@ namespace MonoDevelop.Ide.CodeCompletion
 		{
 			// default - word with highest match rating in the list.
 			hasMismatches = true;
-			int idx = -1;
+			if (partialWord == null)
+				return -1;
 			
-			List<KeyValuePair<int, string>> words = new List<KeyValuePair<int, string>> ();
+			int idx = -1;
+			var matcher = CompletionMatcher.CreateCompletionMatcher (partialWord);
+			
+			string bestWord = null;
+			int bestRank = int.MinValue;
+			int bestIndex = 0;
+			
 			if (!string.IsNullOrEmpty (partialWord)) {
 				for (int i = 0; i < list.filteredItems.Count; i++) {
 					int index = list.filteredItems[i];
 					string text = DataProvider.GetCompletionText (index);
-					if (!ListWidget.Matches (partialWord, text))
+					int rank;
+					if (!matcher.CalcMatchRank (text, out rank))
 						continue;
-					words.Add (new KeyValuePair <int,string> (i, text));
+					if (rank > bestRank) {
+						bestWord = text;
+						bestRank = rank;
+						bestIndex = i;
+					}
 				}
 			}
 			
-			ListWindow.WordComparer comparer = new WordComparer (partialWord);
-			if (words.Count > 0) {
-				words.Sort (comparer);
-				idx = words[0].Key;
+			if (bestWord != null) {
+				idx = bestIndex;
 				hasMismatches = false;
 				// exact match found.
-				if (words[0].Value.ToUpper () == (partialWord ?? "").ToUpper ()) 
+				if (string.Compare (bestWord, partialWord ?? "", true) == 0) 
 					return idx;
 			}
 			
 			if (string.IsNullOrEmpty (partialWord) || partialWord.Length <= 2) {
 				// Search for history matches.
-				for (int i = 0; i < wordHistory.Count; i++) {
-					string historyWord = wordHistory[i];
-					if (ListWidget.Matches (partialWord, historyWord)) {
-						for (int xIndex = 0; xIndex < list.filteredItems.Count; xIndex++) {
-							string currentWord = DataProvider.GetCompletionText (list.filteredItems[xIndex]);
-							if (currentWord == historyWord) {
-								idx = xIndex;
-								break;
-							}
+				string historyWord;
+				if (wordHistory.TryGetValue (partialWord, out historyWord)) {
+					for (int xIndex = 0; xIndex < list.filteredItems.Count; xIndex++) {
+						string currentWord = DataProvider.GetCompletionText (list.filteredItems[xIndex]);
+						if (currentWord == historyWord) {
+							idx = xIndex;
+							break;
 						}
 					}
 				}
@@ -495,22 +506,29 @@ namespace MonoDevelop.Ide.CodeCompletion
 			return idx;
 		}
 
-		static List<string> wordHistory = new List<string> ();
+		static Dictionary<string,string> wordHistory = new Dictionary<string,string> ();
+		static List<string> partalWordHistory = new List<string> ();
 		const int maxHistoryLength = 500;
-		protected void AddWordToHistory (string word)
+		protected void AddWordToHistory (string partialWord, string word)
 		{
-			if (!wordHistory.Contains (word)) {
-				wordHistory.Add (word);
-				while (wordHistory.Count > maxHistoryLength)
-					wordHistory.RemoveAt (0);
+			if (!wordHistory.ContainsKey (partialWord)) {
+				wordHistory.Add (partialWord, word);
+				partalWordHistory.Add (partialWord);
+				while (partalWordHistory.Count > maxHistoryLength) {
+					string first = partalWordHistory [0];
+					partalWordHistory.RemoveAt (0);
+					wordHistory.Remove (first);
+				}
 			} else {
-				wordHistory.Remove (word);
-				wordHistory.Add (word);
+				partalWordHistory.Remove (partialWord);
+				partalWordHistory.Add (partialWord);
+				wordHistory [partialWord] = word;
 			}
 		}
 		public static void ClearHistory ()
 		{
 			wordHistory.Clear ();
+			partalWordHistory.Clear ();
 		}
 
 		void SelectEntry (int n)

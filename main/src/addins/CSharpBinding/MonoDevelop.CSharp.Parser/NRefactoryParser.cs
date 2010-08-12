@@ -209,9 +209,9 @@ namespace MonoDevelop.CSharp.Parser
 				parser.Errors.Error += delegate(int line, int col, string message) { result.Add (new Error (ErrorType.Error, line, col, message)); };
 				parser.Lexer.SpecialCommentTags = ProjectDomService.SpecialCommentTags.GetNames ();
 				parser.Lexer.EvaluateConditionalCompilation = true;
-				if (dom != null && dom.Project != null) {
-					DotNetProjectConfiguration conf = dom.Project.DefaultConfiguration as DotNetProjectConfiguration;
-					CSharpCompilerParameters par = conf != null ? conf.CompilationParameters as CSharpCompilerParameters : null;
+				if (dom != null && dom.Project != null && MonoDevelop.Ide.IdeApp.Workspace != null) {
+					DotNetProjectConfiguration configuration = dom.Project.GetConfiguration (MonoDevelop.Ide.IdeApp.Workspace.ActiveConfiguration) as DotNetProjectConfiguration;
+					CSharpCompilerParameters par = configuration != null ? configuration.CompilationParameters as CSharpCompilerParameters : null;
 					if (par != null)
 						parser.Lexer.SetConditionalCompilationSymbols (par.DefineSymbols);
 				}

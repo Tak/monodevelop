@@ -4,6 +4,7 @@ using Gtk;
 using MonoDevelop.Core;
 using MonoDevelop.Ide.Gui;
 using MonoDevelop.Ide;
+using System.Text;
 
 namespace MonoDevelop.VersionControl.Views
 {
@@ -25,7 +26,7 @@ namespace MonoDevelop.VersionControl.Views
 			foreach (VersionControlItem item in items) {
 				if (!item.IsDirectory) {
 					var document = IdeApp.Workbench.OpenDocument (item.Path);
-					ComparisonView.AttachViewContents (document, item);
+					DiffView.AttachViewContents (document, item);
 					document.Window.SwitchView (4);
 				} else if (item.Repository.IsHistoryAvailable (item.Path)) {
 					new Worker (item.Repository, item.Path, item.IsDirectory, since).Start ();
@@ -169,9 +170,13 @@ namespace MonoDevelop.VersionControl.Views
 			textRenderer.Yalign = 0;
 			
 			TreeViewColumn colRevNum = new TreeViewColumn (GettextCatalog.GetString ("Revision"), textRenderer, "text", 0);
+			colRevNum.Resizable = true;
 			TreeViewColumn colRevDate = new TreeViewColumn (GettextCatalog.GetString ("Date"), textRenderer, "text", 1);
+			colRevDate.Resizable = true;
 			TreeViewColumn colRevAuthor = new TreeViewColumn (GettextCatalog.GetString ("Author"), textRenderer, "text", 2);
+			colRevAuthor.Resizable = true;
 			TreeViewColumn colRevMessage = new TreeViewColumn (GettextCatalog.GetString ("Message"), textRenderer, "text", 3);
+			colRevMessage.Resizable = true;
 			
 			loglist.AppendColumn (colRevNum);
 			loglist.AppendColumn (colRevDate);
@@ -298,24 +303,40 @@ namespace MonoDevelop.VersionControl.Views
 			textRenderer.Yalign = 0;
 			
 			TreeViewColumn colRevNum = new TreeViewColumn (GettextCatalog.GetString ("Revision"), textRenderer, "text", 0);
+			colRevNum.Resizable = true;
 			TreeViewColumn colRevDate = new TreeViewColumn (GettextCatalog.GetString ("Date"), textRenderer, "text", 1);
+			colRevDate.Resizable = true;
+			TreeViewColumn colFiles = new TreeViewColumn (GettextCatalog.GetString ("Files"), textRenderer, "text", 4);
+			colFiles.Resizable = true;
+			colFiles.Sizing = TreeViewColumnSizing.Fixed;
+			colFiles.FixedWidth = 100;
 			TreeViewColumn colRevAuthor = new TreeViewColumn (GettextCatalog.GetString ("Author"), textRenderer, "text", 2);
+			colRevAuthor.Resizable = true;
 			TreeViewColumn colRevMessage = new TreeViewColumn (GettextCatalog.GetString ("Message"), textRenderer, "text", 3);
+			colRevMessage.Resizable = true;
 			
 			loglist.AppendColumn (colRevNum);
 			loglist.AppendColumn (colRevDate);
 			loglist.AppendColumn (colRevAuthor);
+			loglist.AppendColumn (colFiles);
 			loglist.AppendColumn (colRevMessage);
 			
-			ListStore logstore = new ListStore (typeof (string), typeof (string), typeof (string), typeof (string));
+			ListStore logstore = new ListStore (typeof (string), typeof (string), typeof (string), typeof (string), typeof(string));
 			loglist.Model = logstore;
 			 
 			foreach (Revision d in history) {
+				StringBuilder sb = new StringBuilder ();
+				foreach (RevisionPath rp in d.ChangedFiles) {
+					if (sb.Length != 0) sb.Append (", ");
+					sb.Append (Path.GetFileName (rp.Path));
+				}
 				logstore.AppendValues(
 					d.ToString (),
 					d.Time.ToString (),
 					d.Author,
-					d.Message == String.Empty ? GettextCatalog.GetString ("(No message)") : d.Message);
+					d.Message == String.Empty ? GettextCatalog.GetString ("(No message)") : d.Message,
+					sb.ToString ()
+					);
 			}
 
 			// Changed paths list setup
@@ -409,7 +430,10 @@ namespace MonoDevelop.VersionControl.Views
 			Revision d = GetSelectedRev ();
 			if (d == null)
 				return;
-			new DiffWorker (Path.GetFileName (filepath), vc, vinfo.RepositoryPath, d).Start ();
+			
+			
+			DiffView comparisonView = new DiffView (info, d.GetPrevious (), d);
+			IdeApp.Workbench.OpenDocument (comparisonView, true);
 		}
 		
 		void DirDiffButtonClicked (object src, EventArgs args) {
@@ -458,7 +482,7 @@ namespace MonoDevelop.VersionControl.Views
 		}
 
 		
-		internal class DiffWorker : Task {
+/*		internal class DiffWorker : Task {
 			Repository vc;
 			string name;
 			Revision revision;
@@ -491,9 +515,9 @@ namespace MonoDevelop.VersionControl.Views
 		
 			protected override void Finished () {
 				if (text1 == null || text2 == null) return;
-				DiffView.Show (name + " (revision " + revision.ToString () + ")", text1, text2);
+				DiffView.Show (name + " (revision " + revision.ToString () + ")", DesktopService.GetMimeTypeForUri (revPath), text1, text2);
 			}
-		}
+		}*/
 		
 		/// Background worker to create a revision-specific diff for a directory
 		internal class DirectoryDiffWorker: Task

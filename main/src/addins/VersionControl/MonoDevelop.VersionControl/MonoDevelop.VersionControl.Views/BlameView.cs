@@ -40,11 +40,21 @@ namespace MonoDevelop.VersionControl.Views
 			}
 		}
 		
+		public static bool Show (VersionControlItemList items, bool test)
+		{
+			if (!test) {
+				Show (items);
+				return true;
+			}
+			else
+				return items.Count > 0 && CanShow (items[0].Repository, items[0].Path);
+		}
+		
 		public static void Show (VersionControlItemList items)
 		{
 			foreach (VersionControlItem item in items) {
 				var document = IdeApp.Workbench.OpenDocument (item.Path);
-				ComparisonView.AttachViewContents (document, item);
+				DiffView.AttachViewContents (document, item);
 				document.Window.SwitchView (3);
 			}
 		}

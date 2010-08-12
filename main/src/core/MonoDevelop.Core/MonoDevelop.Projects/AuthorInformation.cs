@@ -31,13 +31,13 @@ using System;
 using MonoDevelop.Core;
 using MonoDevelop.Core.Serialization;
 
-namespace MonoDevelop.Ide.Gui
+namespace MonoDevelop.Projects
 {
 	[DataItem]
 	public sealed class AuthorInformation
 	{
 		
-		internal AuthorInformation (string name, string email, string copyright)
+		public AuthorInformation (string name, string email, string copyright)
 		{
 			this.Name = name;
 			this.Email = email;

@@ -26,21 +26,13 @@
 
 using System;
 using System.Text;
-using System.Collections;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Threading;
 using Gdk;
 using Gtk;
+using MonoDevelop.Core;
+using MonoDevelop.Core.Text;
 using MonoDevelop.Projects;
 using MonoDevelop.Projects.Dom;
-using MonoDevelop.Projects.Dom.Parser;
-using MonoDevelop.Components;
-using MonoDevelop.Core;
-using MonoDevelop.Core.Instrumentation;
-using MonoDevelop.Ide.Gui;
 using MonoDevelop.Projects.Dom.Output;
-using MonoDevelop.Ide.CodeCompletion;
 
 namespace MonoDevelop.Ide.NavigateToDialog
 {
@@ -76,19 +68,18 @@ namespace MonoDevelop.Ide.NavigateToDialog
 		
 		protected static string HighlightMatch (string text, string toMatch)
 		{
-			var lane = !string.IsNullOrEmpty (toMatch) ? NavigateToDialog.MatchString (text, toMatch) : null;
+			var lane = StringMatcher.GetMatcher (toMatch, false).GetMatch (text);
 			if (lane != null) {
 				StringBuilder result = new StringBuilder ();
 				int lastPos = 0;
-				for (int n=0; n <= lane.Index; n++) {
-					int pos = lane.Positions [n];
-					int len = lane.Lengths [n];
+				for (int n=0; n < lane.Length; n++) {
+					int pos = lane[n];
 					if (pos - lastPos > 0)
 						result.Append (GLib.Markup.EscapeText (text.Substring (lastPos, pos - lastPos)));
 					result.Append ("<span foreground=\"blue\">");
-					result.Append (GLib.Markup.EscapeText (text.Substring (pos, len)));
+					result.Append (GLib.Markup.EscapeText (text[pos].ToString ()));
 					result.Append ("</span>");
-					lastPos = pos + len;
+					lastPos = pos + 1;
 				}
 				if (lastPos < text.Length)
 					result.Append (GLib.Markup.EscapeText (text.Substring (lastPos, text.Length - lastPos)));

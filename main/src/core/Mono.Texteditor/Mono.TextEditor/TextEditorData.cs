@@ -173,45 +173,59 @@ namespace Mono.TextEditor
 			Replace (offset, count, null);
 		}
 		
-		public int Replace (int offset, int count, string value)
+		public void Remove (ISegment removeSegment)
 		{
+			Remove (removeSegment.Offset, removeSegment.Length);
+		}
+		
+		public string FormatString (DocumentLocation loc, string str)
+		{
+			if (string.IsNullOrEmpty (str))
+				return "";
 			StringBuilder sb = new StringBuilder ();
-			if (value != null) {
-				bool convertTabs = Options.TabsToSpaces;
-				DocumentLocation loc = Document.OffsetToLocation (offset);
-				for (int i = 0; i < value.Length; i++) {
-					char ch = value[i];
-					switch (ch) {
-					case '\u00A0': // convert non breaking spaces to standard spaces.
-						sb.Append (' ');
-						break;
-					case '\t':
-						if (convertTabs) {
-							int tabWidth = TextViewMargin.GetNextTabstop (this, loc.Column) - loc.Column;
-							sb.Append (new string (' ', tabWidth));
-							loc.Column += tabWidth;
-						} else 
-							goto default;
-						break;
-					case '\r':
-						if (i + 1 < value.Length && value[i + 1] == '\n')
-							i++;
-						goto case '\n';
-					case '\n':
-						sb.Append (EolMarker);
-						loc.Line++;
-						loc.Column = 0;
-						break;
-					default:
-						sb.Append (ch);
-						loc.Column++;
-						break;
-					}
+			bool convertTabs = Options.TabsToSpaces;
+			for (int i = 0; i < str.Length; i++) {
+				char ch = str[i];
+				switch (ch) {
+				case '\u00A0': // convert non breaking spaces to standard spaces.
+					sb.Append (' ');
+					break;
+				case '\t':
+					if (convertTabs) {
+						int tabWidth = TextViewMargin.GetNextTabstop (this, loc.Column) - loc.Column;
+						sb.Append (new string (' ', tabWidth));
+						loc.Column += tabWidth;
+					} else 
+						goto default;
+					break;
+				case '\r':
+					if (i + 1 < str.Length && str[i + 1] == '\n')
+						i++;
+					goto case '\n';
+				case '\n':
+					sb.Append (EolMarker);
+					loc.Line++;
+					loc.Column = 0;
+					break;
+				default:
+					sb.Append (ch);
+					loc.Column++;
+					break;
 				}
 			}
-			
-			((IBuffer)document).Replace (offset, count, sb.ToString ());
-			return sb.Length;
+			return sb.ToString ();
+		}
+		
+		public string FormatString (int offset, string str)
+		{
+			return FormatString (Document.OffsetToLocation (offset), str);
+		}
+		
+		public int Replace (int offset, int count, string value)
+		{
+			string formattedString = FormatString (offset, value);
+			((IBuffer)document).Replace (offset, count, formattedString);
+			return formattedString.Length;
 		}
 			
 		public void InsertAtCaret (string text)
@@ -947,9 +961,68 @@ namespace Mono.TextEditor
 		
 		public string GetLineText (int line)
 		{
-			return Document.GetTextAt (Document.GetLine (line));
+			return Document.GetLineText (line);
 		}
 		
+		public string GetLineText (int line, bool includeDelimiter)
+		{
+			return Document.GetLineText (line, includeDelimiter);
+		}
+		
+		public IEnumerable<LineSegment> Lines {
+			get {
+				return Document.Lines;
+			}
+		}
+		
+		public int LineCount {
+			get {
+				return Document.LineCount;
+			}
+		}
+		
+		public int LocationToOffset (int line, int column)
+		{
+			return Document.LocationToOffset (line, column);
+		}
+		
+		public int LocationToOffset (DocumentLocation location)
+		{
+			return Document.LocationToOffset (location);
+		}
+		
+		public DocumentLocation OffsetToLocation (int offset)
+		{
+			return Document.OffsetToLocation (offset);
+		}
+
+		public string GetLineIndent (int lineNumber)
+		{
+			return Document.GetLineIndent (lineNumber);
+		}
+		
+		public string GetLineIndent (LineSegment segment)
+		{
+			return Document.GetLineIndent (segment);
+		}
+		
+		public LineSegment GetLine (int lineNumber)
+		{
+			return Document.GetLine (lineNumber);
+		}
+		
+		public LineSegment GetLineByOffset (int offset)
+		{
+			return Document.GetLineByOffset (offset);
+		}
+		
+		public int OffsetToLineNumber (int offset)
+		{
+			return Document.OffsetToLineNumber (offset);
+		}
+		#endregion
+		
+		#region Parent functions
 		public bool HasFocus {
 			get {
 				return Parent != null ? Parent.HasFocus : false;

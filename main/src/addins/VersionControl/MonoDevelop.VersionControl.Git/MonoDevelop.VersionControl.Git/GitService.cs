@@ -39,7 +39,7 @@ namespace MonoDevelop.VersionControl.Git
 				string remote = dlg.SelectedRemote;
 				string branch = dlg.SelectedRemoteBranch;
 				dlg.Destroy ();
-				IProgressMonitor monitor = IdeApp.Workbench.ProgressMonitors.GetOutputProgressMonitor ("Version Control", "md-version-control", false, true);
+				IProgressMonitor monitor = VersionControlService.GetProgressMonitor (GettextCatalog.GetString ("Pushing changes..."));
 				System.Threading.ThreadPool.QueueUserWorkItem (delegate {
 					try {
 						repo.Push (monitor, remote, branch);
@@ -51,6 +51,13 @@ namespace MonoDevelop.VersionControl.Git
 				});
 			} else
 				dlg.Destroy ();
+		}
+	
+		public static void ShowConfigurationDialog (GitRepository repo)
+		{
+			GitConfigurationDialog dlg = new GitConfigurationDialog (repo);
+			dlg.Run ();
+			dlg.Destroy ();
 		}
 	}
 }

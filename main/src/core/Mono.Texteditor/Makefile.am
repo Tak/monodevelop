@@ -22,6 +22,7 @@ FILES =  \
 	Mono.TextEditor.Highlighting/ChunkStyle.cs \
 	Mono.TextEditor.Highlighting/CloneableStack.cs \
 	Mono.TextEditor.Highlighting/DefaultStyle.cs \
+	Mono.TextEditor.Highlighting/HighlightingPartitioner.cs \
 	Mono.TextEditor.Highlighting/IXmlProvider.cs \
 	Mono.TextEditor.Highlighting/JaySyntaxMode.cs \
 	Mono.TextEditor.Highlighting/Keywords.cs \
@@ -52,6 +53,7 @@ FILES =  \
 	Mono.TextEditor.Theatrics/SingleActorStage.cs \
 	Mono.TextEditor.Theatrics/SmartScrolledWindow.cs \
 	Mono.TextEditor.Theatrics/Stage.cs \
+	Mono.TextEditor.Utils/Diff.cs \
 	Mono.TextEditor.Vi/ViActionMaps.cs \
 	Mono.TextEditor.Vi/ViActions.cs \
 	Mono.TextEditor.Vi/ViCommandBuilder.cs \
@@ -61,6 +63,7 @@ FILES =  \
 	Mono.TextEditor.Vi/ViMark.cs \
 	Mono.TextEditor.Vi/ViMode.cs \
 	Mono.TextEditor.Vi/ViWordFindStrategy.cs \
+	Mono.TextEditor/AbstractPartitioner.cs \
 	Mono.TextEditor/BookmarkActions.cs \
 	Mono.TextEditor/BookmarkMarker.cs \
 	Mono.TextEditor/BufferedTextReader.cs \
@@ -91,6 +94,7 @@ FILES =  \
 	Mono.TextEditor/IBracketMatcher.cs \
 	Mono.TextEditor/IBuffer.cs \
 	Mono.TextEditor/IconMargin.cs \
+	Mono.TextEditor/IDocumentPartitioner.cs \
 	Mono.TextEditor/InsertionCursorEditMode.cs \
 	Mono.TextEditor/ISearchEngine.cs \
 	Mono.TextEditor/ISegment.cs \
@@ -122,7 +126,8 @@ FILES =  \
 	Mono.TextEditor/TextEditorOptions.cs \
 	Mono.TextEditor/TextLinkEditMode.cs \
 	Mono.TextEditor/TextMarker.cs \
-	Mono.TextEditor/TextViewMargin.cs 
+	Mono.TextEditor/TextViewMargin.cs \
+	Mono.TextEditor/TypedSegment.cs 
 	Mono.TextEditor.Highlighting/Match.cs \
 	Mono.TextEditor.Highlighting/Style.cs \
 	Mono.TextEditor.Highlighting/SyntaxMode.cs \

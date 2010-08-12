@@ -27,12 +27,14 @@
 //#define DEBUG_GIT
 
 using System;
+using System.Linq;
 using System.IO;
 using MonoDevelop.Core;
 using MonoDevelop.Core.Execution;
 using System.Collections.Generic;
 using System.Text;
 using System.Globalization;
+using MonoDevelop.Ide;
 
 namespace MonoDevelop.VersionControl.Git
 {
@@ -86,7 +88,7 @@ namespace MonoDevelop.VersionControl.Git
 		public override Revision[] GetHistory (FilePath localFile, Revision since)
 		{
 			List<Revision> revs = new List<Revision> ();
-			StringReader sr = RunCommand ("log --name-status --date=iso " + localFile, true);
+			StringReader sr = RunCommand ("log --name-status --date=iso " + ToCmdPath (localFile), true);
 			string line;
 			string rev;
 			while ((rev = ReadWithPrefix (sr, "commit ")) != null) {
@@ -172,8 +174,20 @@ namespace MonoDevelop.VersionControl.Git
 #if DEBUG_GIT
 			Console.WriteLine ("> git " + cmd);
 #endif
+			var psi = new System.Diagnostics.ProcessStartInfo (GitVersionControl.GitExe, "--no-pager " + cmd) {
+				WorkingDirectory = path,
+				RedirectStandardOutput = true,
+				RedirectStandardError = true,
+				RedirectStandardInput = false,
+				UseShellExecute = false,
+			};
+			if (PropertyService.IsWindows) {
+				//msysgit needs this to read global config
+				psi.EnvironmentVariables ["HOME"] = Environment.GetEnvironmentVariable("USERPROFILE");
+			}
+
 			StringWriter outw = new StringWriter ();
-			ProcessWrapper proc = Runtime.ProcessService.StartProcess ("git", "--no-pager " + cmd, path, outw, outw, null);
+			ProcessWrapper proc = Runtime.ProcessService.StartProcess (psi, outw, outw, null);
 			proc.WaitForOutput ();
 			if (monitor != null)
 				monitor.Log.Write (outw.ToString ());
@@ -199,6 +213,19 @@ namespace MonoDevelop.VersionControl.Git
 			return GetDirectoryVersionInfo (localDirectory, null, getRemoteStatus, recursive);
 		}
 		
+		string ToCmdPath (FilePath filePath)
+		{
+			return "\"" + filePath.ToRelative (path) + "\"";
+		}
+		
+		string ToCmdPathList (IEnumerable<FilePath> paths)
+		{
+			StringBuilder sb = new StringBuilder ();
+			foreach (FilePath it in paths)
+				sb.Append (' ').Append (ToCmdPath (it));
+			return sb.ToString ();
+		}
+		
 		VersionInfo[] GetDirectoryVersionInfo (FilePath localDirectory, string fileName, bool getRemoteStatus, bool recursive)
 		{
 			StringReader sr = RunCommand ("log -1 --format=format:%H", true);
@@ -216,7 +243,7 @@ namespace MonoDevelop.VersionControl.Git
 			GitRevision rev = new GitRevision (this, strRev);
 			List<VersionInfo> versions = new List<VersionInfo> ();
 			FilePath p = fileName != null ? localDirectory.Combine (fileName) : localDirectory;
-			sr = RunCommand ("status -s " + p, true);
+			sr = RunCommand ("status -s " + ToCmdPath (p), true);
 			string line;
 			while ((line = sr.ReadLine ()) != null) {
 				char staged = line[0];
@@ -280,7 +307,6 @@ namespace MonoDevelop.VersionControl.Git
 			throw new System.NotImplementedException();
 		}
 		
-		
 		public override void Update (FilePath[] localPaths, bool recurse, IProgressMonitor monitor)
 		{
 			List<string> statusList = null;
@@ -296,7 +322,24 @@ namespace MonoDevelop.VersionControl.Git
 				RunCommand ("stash save " + GetStashName ("_tmp_"), true);
 				
 				// Apply changes
-				RunCommand ("rebase " + GetCurrentRemote () + " " + GetCurrentBranch (), true, monitor);
+				StringReader sr = RunCommand ("rebase " + GetCurrentRemote () + " " + GetCurrentBranch (), false, monitor);
+				string conflictFile = null;
+				do {
+					conflictFile = GetConflictFile (sr);
+					if (conflictFile != null) {
+						ConflictResult res = ResolveConflict (conflictFile);
+						if (res == ConflictResult.Abort) {
+							sr = RunCommand ("rebase --abort", false, monitor);
+							break;
+						}
+						else if (res == ConflictResult.Skip)
+							sr = RunCommand ("rebase --skip", false, monitor);
+						else {
+							RunCommand ("add " + ToCmdPath (conflictFile), false, monitor);
+							sr = RunCommand ("rebase --continue", false, monitor);
+						}
+					}
+				} while (conflictFile != null);
 				
 			} finally {
 				// Restore local changes
@@ -310,19 +353,58 @@ namespace MonoDevelop.VersionControl.Git
 				NotifyFileChanges (statusList);
 		}
 		
+		string GetConflictFile (StringReader reader)
+		{
+			foreach (string line in ToList (reader)) {
+				if (line.StartsWith ("CONFLICT ")) {
+					string s = "Merge conflict in ";
+					int i = line.IndexOf (s) + s.Length;
+					return path.Combine (line.Substring (i));
+				}
+			}
+			return null;
+		}
+		
+		ConflictResult ResolveConflict (string file)
+		{
+			ConflictResult res = ConflictResult.Abort;
+			DispatchService.GuiSyncDispatch (delegate {
+				ConflictResolutionDialog dlg = new ConflictResolutionDialog ();
+				dlg.Load (file);
+				Gtk.ResponseType dres = (Gtk.ResponseType) dlg.Run ();
+				dlg.Destroy ();
+				switch (dres) {
+				case Gtk.ResponseType.Cancel: res = ConflictResult.Abort; break;
+				case Gtk.ResponseType.Close: res = ConflictResult.Skip; break;
+				case Gtk.ResponseType.Ok: res = ConflictResult.Continue; dlg.Save (file); break;
+				}
+			});
+			return res;
+		}
+		
 		
 		public override void Commit (ChangeSet changeSet, IProgressMonitor monitor)
 		{
 			string file = Path.GetTempFileName ();
 			try {
 				File.WriteAllText (file, changeSet.GlobalComment);
-				StringBuilder sb = new StringBuilder ();
-				foreach (ChangeSetItem it in changeSet.Items)
-					sb.Append (" \"").Append (it.LocalPath).Append ('"');
-				RunCommand ("commit -F " + file + sb, true, monitor);
+				string paths = ToCmdPathList (changeSet.Items.Select (it => it.LocalPath));
+				RunCommand ("commit -F " + file + " " + paths, true, monitor);
 			} finally {
 				File.Delete (file);
 			}
+		}
+		
+		public void GetUserInfo (out string name, out string email)
+		{
+			name = ToList (RunCommand ("config --get user.name", false)).FirstOrDefault ();
+			email = ToList (RunCommand ("config --get user.email", false)).FirstOrDefault ();
+		}
+		
+		public void SetUserInfo (string name, string email)
+		{
+			RunCommand ("config user.name \"" + name + "\"", false);
+			RunCommand ("config user.email \"" + email + "\"", false);
 		}
 		
 		public override void Checkout (FilePath targetLocalPath, Revision rev, bool recurse, IProgressMonitor monitor)
@@ -333,16 +415,16 @@ namespace MonoDevelop.VersionControl.Git
 		
 		public override void Revert (FilePath[] localPaths, bool recurse, IProgressMonitor monitor)
 		{
-			StringBuilder sb = new StringBuilder ();
-			foreach (FilePath it in localPaths)
-				sb.Append (" \"").Append (it).Append ('"');
+			RunCommand ("reset --" + ToCmdPathList (localPaths), false, monitor);
 			
-			RunCommand ("reset --" + sb, false, monitor);
+			// Reset again. If a file is in conflict, the first reset will only
+			// reset the conflict state, but it won't unstage the file
+			RunCommand ("reset --" + ToCmdPathList (localPaths), false, monitor);
 			
 			// The checkout command may fail if a file is not tracked anymore after
 			// the reset, so the checkouts have to be run one by one.
 			foreach (FilePath p in localPaths)
-				RunCommand ("checkout -- \"" + p + "\"", false, monitor);
+				RunCommand ("checkout -- " + ToCmdPath (p), false, monitor);
 			
 			foreach (FilePath p in localPaths)
 				FileService.NotifyFileChanged (p);
@@ -362,10 +444,7 @@ namespace MonoDevelop.VersionControl.Git
 		
 		public override void Add (FilePath[] localPaths, bool recurse, IProgressMonitor monitor)
 		{
-			StringBuilder sb = new StringBuilder ();
-			foreach (FilePath it in localPaths)
-				sb.Append (" \"").Append (it).Append ('"');
-			RunCommand ("add " + sb, true, monitor);
+			RunCommand ("add " + ToCmdPathList (localPaths), true, monitor);
 		}
 		
 		public override string GetTextAtRevision (FilePath repositoryPath, Revision revision)
@@ -380,7 +459,7 @@ namespace MonoDevelop.VersionControl.Git
 				return new DiffInfo [0];
 			}
 			else {
-				StringReader sr = RunCommand ("diff \"" + baseLocalPath + "\"", true);
+				StringReader sr = RunCommand ("diff " + ToCmdPath (baseLocalPath), true);
 				return GetUnifiedDiffInfo (sr.ReadToEnd (), baseLocalPath, null);
 			}
 		}
@@ -416,7 +495,7 @@ namespace MonoDevelop.VersionControl.Git
 		
 		public string GetCurrentRemote ()
 		{
-			List<string> remotes = new List<string> (GetNamedRemotes ());
+			List<string> remotes = new List<string> (GetRemotes ().Select (r => r.Name));
 			if (remotes.Count == 0)
 				throw new InvalidOperationException ("There are no remote repositories defined");
 			
@@ -432,25 +511,118 @@ namespace MonoDevelop.VersionControl.Git
 			monitor.ReportSuccess ("Repository successfully pushed");
 		}
 		
-		public IEnumerable<string> GetNamedRemotes ()
+		public void CreateBranch (string name, string trackSource)
 		{
-			StringReader sr = RunCommand ("remote", true);
-			string line;
-			while ((line = sr.ReadLine ()) != null) {
-				yield return line;
-			}
+			if (string.IsNullOrEmpty (trackSource))
+				RunCommand ("branch " + name, true);
+			else
+				RunCommand ("branch --track " + name + " " + trackSource, true);
 		}
 		
-		public IEnumerable<string> GetBranches ()
+		public void SetBranchTrackSource (string name, string trackSource)
 		{
-			StringReader sr = RunCommand ("branch", true);
+			if (string.IsNullOrEmpty (trackSource))
+				RunCommand ("branch --no-track -f " + name, true);
+			else
+				RunCommand ("branch --track -f " + name + " " + trackSource, true);
+		}
+		
+		public void RemoveBranch (string name)
+		{
+			RunCommand ("branch -d " + name, true);
+		}
+		
+		public void RenameBranch (string name, string newName)
+		{
+			RunCommand ("branch -m " + name + " " + newName, true);
+		}
+		
+		public IEnumerable<RemoteSource> GetRemotes ()
+		{
+			StringReader sr = RunCommand ("remote -v", true);
+			string line;
+			List<RemoteSource> sources = new List<RemoteSource> ();
+			while ((line = sr.ReadLine ()) != null) {
+				int i = line.IndexOf ('\t');
+				if (i == -1)
+					continue;
+				string name = line.Substring (0, i);
+				RemoteSource remote = sources.FirstOrDefault (r => r.Name == name);
+				if (remote == null) {
+					remote = new RemoteSource ();
+					remote.Name = name;
+					sources.Add (remote);
+				}
+				int j = line.IndexOf (" (fetch)");
+				if (j != -1) {
+					remote.FetchUrl = line.Substring (i, line.Length - i - 8).Trim ();
+				} else {
+					j = line.IndexOf (" (push)");
+					remote.PushUrl = line.Substring (i, line.Length - i - 7).Trim ();
+				}
+			}
+			return sources;
+		}
+		
+		public void RenameRemote (string name, string newName)
+		{
+			RunCommand ("remote rename " + name + " " + newName, true);
+		}
+		
+		public void AddRemote (RemoteSource remote, bool importTags)
+		{
+			RunCommand ("remote add " + (importTags ? "--tags " : "--no-tags ") + remote.Name, true);
+			UpdateRemote (remote);
+		}
+		
+		public void UpdateRemote (RemoteSource remote)
+		{
+			if (string.IsNullOrEmpty (remote.FetchUrl))
+				throw new InvalidOperationException ("Fetch url can't be empty");
+			
+			RunCommand ("remote set-url " + remote.Name + " " + remote.FetchUrl, true);
+			
+			if (!string.IsNullOrEmpty (remote.PushUrl))
+				RunCommand ("remote set-url --push " + remote.Name + " " + remote.PushUrl, true);
+			else
+				RunCommand ("remote set-url --push --delete " + remote.Name + " " + remote.PushUrl, true);
+		}
+		
+		public void RemoveRemote (string name)
+		{
+			RunCommand ("remote rm " + name, true);
+		}
+		
+		public IEnumerable<Branch> GetBranches ()
+		{
+			StringReader sr = RunCommand ("branch -vv", true);
+			List<Branch> list = new List<Branch> ();
 			string line;
 			while ((line = sr.ReadLine ()) != null) {
-				if (line.StartsWith ("* "))
-					yield return line.Substring (2).Trim ();
-				else
-					yield return line.Trim ();
+				if (line.Length < 2)
+					continue;
+				line = line.Substring (2);
+				int i = line.IndexOf (' ');
+				if (i == -1)
+					continue;
+				
+				Branch b = new Branch ();
+				b.Name = line.Substring (0, i);
+				
+				i = line.IndexOf ('[', i);
+				if (i != -1) {
+					int j = line.IndexOf (']', ++i);
+					b.Tracking = line.Substring (i, j - i);
+				}
+				list.Add (b);
 			}
+			return list;
+		}
+		
+		public IEnumerable<string> GetTags ()
+		{
+			StringReader sr = RunCommand ("tag", true);
+			return ToList (sr);
 		}
 		
 		public IEnumerable<string> GetRemoteBranches (string remoteName)
@@ -460,7 +632,10 @@ namespace MonoDevelop.VersionControl.Git
 			while ((line = sr.ReadLine ()) != null) {
 				if (line.StartsWith ("  " + remoteName + "/") || line.StartsWith ("* " + remoteName + "/")) {
 					int i = line.IndexOf ('/');
-					yield return line.Substring (i+1);
+					int j = line.IndexOf (" -> ");
+					if (j == -1) j = line.Length;
+					i++;
+					yield return line.Substring (i, j - i);
 				}
 			}
 		}
@@ -574,13 +749,13 @@ namespace MonoDevelop.VersionControl.Git
 				base.MoveFile (localSrcPath, localDestPath, force, monitor);
 				return;
 			}
-			RunCommand ("mv \"" + localSrcPath + "\" \"" + localDestPath + "\"", true, monitor);
+			RunCommand ("mv " + ToCmdPath (localSrcPath) + " " + ToCmdPath (localDestPath), true, monitor);
 		}
 		
 		public override void MoveDirectory (FilePath localSrcPath, FilePath localDestPath, bool force, IProgressMonitor monitor)
 		{
 			try {
-				RunCommand ("mv \"" + localSrcPath + "\" \"" + localDestPath + "\"", true, monitor);
+				RunCommand ("mv " + ToCmdPath (localSrcPath) + " " + ToCmdPath (localDestPath), true, monitor);
 			} catch {
 				// If the move can't be done using git, do a regular move
 				base.MoveDirectory (localSrcPath, localDestPath, force, monitor);
@@ -595,7 +770,7 @@ namespace MonoDevelop.VersionControl.Git
 		public override Annotation[] GetAnnotations (FilePath repositoryPath)
 		{
 			List<Annotation> alist = new List<Annotation> ();
-			StringReader sr = RunCommand ("blame -p \"" + repositoryPath + "\"", true);
+			StringReader sr = RunCommand ("blame -p " + ToCmdPath (repositoryPath), true);
 			
 			string author = null;
 			string mail = null;
@@ -677,6 +852,19 @@ namespace MonoDevelop.VersionControl.Git
 		{
 			throw new System.NotImplementedException();
 		}
+	}
+	
+	public class Branch
+	{
+		public string Name { get; internal set; }
+		public string Tracking { get; internal set; }
+	}
+	
+	public class RemoteSource
+	{
+		public string Name { get; internal set; }
+		public string FetchUrl { get; internal set; }
+		public string PushUrl { get; internal set; }
 	}
 }
 

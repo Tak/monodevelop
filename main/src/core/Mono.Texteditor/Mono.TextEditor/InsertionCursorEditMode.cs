@@ -73,22 +73,23 @@ namespace Mono.TextEditor
 				return;
 			}
 			
-			editor.Insert (offset, str);
-			offset += str.Length;
+			offset += editor.Insert (offset, str);
 		}
 		
 		public void Insert (TextEditor editor, string text)
 		{
 			int offset = editor.Document.LocationToOffset (Location);
 			editor.Document.BeginAtomicUndo ();
-			InsertNewLine (editor, LineBefore, ref offset);
+			text = editor.GetTextEditorData ().FormatString (Location, text);
+			
 			LineSegment line = editor.Document.GetLineByOffset (offset);
-			string indent = editor.Document.GetLineIndent (line) ?? "";
-			editor.Replace (line.Offset, indent.Length, text);
-			offset = line.Offset + text.Length;
+			
+			int insertionOffset = line.Offset;
+			offset = insertionOffset;
+			InsertNewLine (editor, LineBefore, ref offset);
+			
+			offset += editor.Insert (offset, text);
 			InsertNewLine (editor, LineAfter, ref offset);
-			if (!string.IsNullOrEmpty (indent))
-				editor.Insert (offset, indent);
 			editor.Document.EndAtomicUndo ();
 		}
 	}
@@ -244,7 +245,7 @@ namespace Mono.TextEditor
 				this.mode = mode;
 			}
 			
-			void DrawArrow (Cairo.Context g, int x, int y)
+			void DrawArrow (Cairo.Context g, double x, double y)
 			{
 				TextEditor editor = mode.editor;
 				double phi = 1.618;
@@ -267,20 +268,20 @@ namespace Mono.TextEditor
 			public override void Draw (Gdk.Drawable drawable, Gdk.Rectangle area)
 			{
 				TextEditor editor = mode.editor;
-				int y = editor.LineToVisualY (mode.CurrentInsertionPoint.Line) - (int)editor.VAdjustment.Value; 
+				double y = editor.LineToY (mode.CurrentInsertionPoint.Line) - (int)editor.VAdjustment.Value; 
 				using (var g = Gdk.CairoHelper.Create (drawable)) {
 					g.LineWidth = System.Math.Min (1, editor.Options.Zoom);
 					LineSegment lineAbove = editor.Document.GetLine (mode.CurrentInsertionPoint.Line - 1);
 					LineSegment lineBelow = editor.Document.GetLine (mode.CurrentInsertionPoint.Line);
 					
-					int aboveStart = 0, aboveEnd = editor.TextViewMargin.XOffset;
-					int belowStart = 0, belowEnd = editor.TextViewMargin.XOffset;
-					int l = 0;
+					double aboveStart = 0, aboveEnd = editor.TextViewMargin.XOffset;
+					double belowStart = 0, belowEnd = editor.TextViewMargin.XOffset;
+					int l = 0, tmp;
 					if (lineAbove != null) {
 						var wrapper = editor.TextViewMargin.GetLayout (lineAbove);
-						wrapper.Layout.IndexToLineX (lineAbove.GetIndentation (editor.Document).Length, true, out l, out aboveStart);
-						aboveStart = (int)(aboveStart / Pango.Scale.PangoScale);
-						aboveEnd = (int)(wrapper.PangoWidth / Pango.Scale.PangoScale);
+						wrapper.Layout.IndexToLineX (lineAbove.GetIndentation (editor.Document).Length, true, out l, out tmp);
+						aboveStart = tmp / Pango.Scale.PangoScale;
+						aboveEnd = wrapper.PangoWidth / Pango.Scale.PangoScale;
 						
 						if (wrapper.IsUncached)
 							wrapper.Dispose ();
@@ -289,22 +290,22 @@ namespace Mono.TextEditor
 						var wrapper = editor.TextViewMargin.GetLayout (lineBelow);
 						int index = lineAbove.GetIndentation (editor.Document).Length;
 						if (index == 0) {
-							belowStart = 0;
+							tmp = 0;
 						} else if (index >= lineBelow.EditableLength) {
-							belowStart = wrapper.PangoWidth;
+							tmp = wrapper.PangoWidth;
 						} else {
-							wrapper.Layout.IndexToLineX (index, true, out l, out belowStart);
+							wrapper.Layout.IndexToLineX (index, true, out l, out tmp);
 						}
 						
-						belowStart = (int)(belowStart / Pango.Scale.PangoScale);
-						belowEnd = (int)(wrapper.PangoWidth / Pango.Scale.PangoScale);
+						belowStart = tmp / Pango.Scale.PangoScale;
+						belowEnd = wrapper.PangoWidth / Pango.Scale.PangoScale;
 						if (wrapper.IsUncached)
 							wrapper.Dispose ();
 					}
 					
-					int d = editor.LineHeight / 3;
-					int x1 = editor.TextViewMargin.XOffset - (int)editor.HAdjustment.Value;
-					int x2 = x1;
+					double d = editor.LineHeight / 3;
+					double x1 = editor.TextViewMargin.XOffset - editor.HAdjustment.Value;
+					double x2 = x1;
 					if (aboveStart < belowEnd) {
 						x1 += aboveStart;
 						x2 += belowEnd;
