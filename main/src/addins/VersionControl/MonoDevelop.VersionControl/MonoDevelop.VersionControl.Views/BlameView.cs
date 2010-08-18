@@ -36,6 +36,8 @@ namespace MonoDevelop.VersionControl.Views
 		
 		public override Gtk.Widget Control { 
 			get {
+				if (widget == null)
+					widget = new BlameWidget (info);
 				return widget;
 			}
 		}
@@ -70,22 +72,21 @@ namespace MonoDevelop.VersionControl.Views
 		public BlameView (VersionControlDocumentInfo info) : base ("Blame")
 		{
 			this.info = info;
-			widget = new BlameWidget (info);
+			
 		}
 		
 		#region IAttachableViewContent implementation
 		public void Selected ()
 		{
-			widget.Editor.Document.IgnoreFoldings = true;
+			info.Start ();
 			widget.Editor.Caret.Location = info.Document.Editor.Caret.Location;
-			widget.Editor.CenterToCaret ();
+			widget.Editor.VAdjustment.Value = info.Document.Editor.VAdjustment.Value;
 		}
 
 		public void Deselected ()
 		{
 			info.Document.Editor.Caret.Location = widget.Editor.Caret.Location;
-			info.Document.Editor.CenterToCaret ();
-			widget.Editor.Document.IgnoreFoldings = false;
+			info.Document.Editor.VAdjustment.Value = widget.Editor.VAdjustment.Value;
 		}
 
 		public void BeforeSave ()

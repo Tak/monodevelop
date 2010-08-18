@@ -1,6 +1,9 @@
 // HelperMethods.cs
+// 
+// Cut & paste from PangoCairoHelper.
 //
 // Author:
+//   Aaron Bockover <abockover@novell.com>
 //   Mike Krüger <mkrueger@novell.com>
 //
 // Copyright (c) 2008 Novell, Inc (http://www.novell.com)
@@ -103,6 +106,24 @@ namespace Mono.TextEditor
 			cr.MoveTo (x1, y1);
 			cr.LineTo (x2, y2);
 			cr.Stroke ();
+		}
+		
+		public static void Line (this Cairo.Context cr, double x1, double y1, double x2, double y2)
+		{
+			cr.MoveTo (x1, y1);
+			cr.LineTo (x2, y2);
+		}
+		
+		public static void SharpLineX (this Cairo.Context cr, double x1, double y1, double x2, double y2)
+		{
+			cr.MoveTo (x1 + 0.5, y1);
+			cr.LineTo (x2 + 0.5, y2);
+		}
+		
+		public static void SharpLineY (this Cairo.Context cr, double x1, double y1, double x2, double y2)
+		{
+			cr.MoveTo (x1, y1 + 0.5);
+			cr.LineTo (x2, y2 + 0.5);
 		}
 	}
 }

@@ -1,3 +1,4 @@
+
 //
 // EditorCompareWidgetBase.cs
 //
@@ -97,7 +98,7 @@ namespace MonoDevelop.VersionControl.Views
 	
 	public abstract class EditorCompareWidgetBase : Gtk.Bin
 	{
-		protected VersionControlDocumentInfo info;
+		internal protected VersionControlDocumentInfo info;
 
 		Adjustment vAdjustment;
 		Adjustment[] attachedVAdjustments;
@@ -113,8 +114,25 @@ namespace MonoDevelop.VersionControl.Views
 		protected TextEditor[] editors;
 		protected Widget[] headerWidgets;
 
-		protected List<Mono.TextEditor.Utils.Hunk> leftDiff, rightDiff;
 		
+		List<Hunk> leftDiff;
+		protected List<Hunk> LeftDiff {
+			get { return leftDiff; }
+			set {
+				leftDiff = value;
+				OnDiffChanged (EventArgs.Empty);
+			}
+		}
+		
+		List<Hunk> rightDiff;
+		protected List<Hunk> RightDiff {
+			get { return rightDiff; }
+			set {
+				rightDiff = value;
+				OnDiffChanged (EventArgs.Empty);
+			}
+		}
+
 		static readonly Cairo.Color lightRed = new Cairo.Color (255 / 255.0, 200 / 255.0, 200 / 255.0);
 		static readonly Cairo.Color darkRed = new Cairo.Color (178 / 255.0, 140 / 255.0, 140 / 255.0);
 		
@@ -161,31 +179,31 @@ namespace MonoDevelop.VersionControl.Views
 			}
 
 			if (editors.Length == 2) {
-				editors[0].ExposeEvent +=  delegate (object sender, ExposeEventArgs args) {
+				editors[0].Painted +=  delegate (object sender, PaintEventArgs args) {
 					var myEditor = (TextEditor)sender;
-					PaintEditorOverlay (myEditor, args, leftDiff, true);
+					PaintEditorOverlay (myEditor, args, LeftDiff, true);
 				};
 
-				editors[1].ExposeEvent +=  delegate (object sender, ExposeEventArgs args) {
+				editors[1].Painted +=  delegate (object sender, PaintEventArgs args) {
 					var myEditor = (TextEditor)sender;
-					PaintEditorOverlay (myEditor, args, leftDiff, false);
+					PaintEditorOverlay (myEditor, args, LeftDiff, false);
 				};
-				
+
 				rightDiffScrollBar = new DiffScrollbar (this, editors[1], true, true);
 				Add (rightDiffScrollBar);
 			} else {
-				editors[0].ExposeEvent +=  delegate (object sender, ExposeEventArgs args) {
+				editors[0].Painted +=  delegate (object sender, PaintEventArgs args) {
 					var myEditor = (TextEditor)sender;
-					PaintEditorOverlay (myEditor, args, leftDiff, true);
+					PaintEditorOverlay (myEditor, args, LeftDiff, true);
 				};
-				editors[1].ExposeEvent +=  delegate (object sender, ExposeEventArgs args) {
+				editors[1].Painted +=  delegate (object sender, PaintEventArgs args) {
 					var myEditor = (TextEditor)sender;
-					PaintEditorOverlay (myEditor, args, leftDiff, false);
-					PaintEditorOverlay (myEditor, args, rightDiff, false);
+					PaintEditorOverlay (myEditor, args, LeftDiff, false);
+					PaintEditorOverlay (myEditor, args, RightDiff, false);
 				};
-				editors[2].ExposeEvent +=  delegate (object sender, ExposeEventArgs args) {
+				editors[2].Painted +=  delegate (object sender, PaintEventArgs args) {
 					var myEditor = (TextEditor)sender;
-					PaintEditorOverlay (myEditor, args, rightDiff, true);
+					PaintEditorOverlay (myEditor, args, RightDiff, true);
 				};
 				rightDiffScrollBar = new DiffScrollbar (this, editors[2], false, false);
 				Add (rightDiffScrollBar);
@@ -209,6 +227,12 @@ namespace MonoDevelop.VersionControl.Views
 				middleAreas[1] = new MiddleArea (this, editors[2], MainEditor, false);
 				Add (middleAreas[1]);
 			}
+			this.MainEditor.EditorOptionsChanged += HandleMainEditorhandleEditorOptionsChanged;
+		}
+
+		void HandleMainEditorhandleEditorOptionsChanged (object sender, EventArgs e)
+		{
+			ClearDiffCache ();
 		}
 		
 		public void SetVersionControlInfo (VersionControlDocumentInfo info)
@@ -218,14 +242,14 @@ namespace MonoDevelop.VersionControl.Views
 		
 		protected abstract void CreateComponents ();
 		
-		public static void DrawDiffRectangle (TextEditor editor, Cairo.Context cr, int startOffset, int endOffset)
+		public static Cairo.Rectangle GetDiffRectangle (TextEditor editor, int startOffset, int endOffset)
 		{
 			var point = editor.LocationToPoint (editor.Document.OffsetToLocation (startOffset), true);
 			var point2 = editor.LocationToPoint (editor.Document.OffsetToLocation (endOffset), true);
-			cr.Rectangle (point.X - editor.TextViewMargin.XOffset, point.Y, point2.X - point.X, editor.LineHeight);
+			return new Cairo.Rectangle (point.X - editor.TextViewMargin.XOffset, point.Y, point2.X - point.X, editor.LineHeight);
 		}
 		
-		Dictionary<List<Mono.TextEditor.Utils.Hunk>, Dictionary<Hunk, Tuple<Cairo.Path, Cairo.Path>>> diffCache = new Dictionary<List<Mono.TextEditor.Utils.Hunk>, Dictionary<Hunk, Tuple<Cairo.Path, Cairo.Path>>> ();
+		Dictionary<List<Mono.TextEditor.Utils.Hunk>, Dictionary<Hunk, Tuple<List<Cairo.Rectangle>, List<Cairo.Rectangle>>>> diffCache = new Dictionary<List<Mono.TextEditor.Utils.Hunk>, Dictionary<Hunk, Tuple<List<Cairo.Rectangle>, List<Cairo.Rectangle>>>> ();
 		
 		protected void ClearDiffCache ()
 		{
@@ -255,8 +279,9 @@ namespace MonoDevelop.VersionControl.Views
 			return result;
 		}
 		
-		Cairo.Path CalculateChunkPath (Cairo.Context cr, TextEditor editor, List<Hunk> diff, List<ISegment> words, bool useRemove)
+		List<Cairo.Rectangle> CalculateChunkPath (TextEditor editor, List<Hunk> diff, List<ISegment> words, bool useRemove)
 		{
+			List<Cairo.Rectangle> result = new List<Cairo.Rectangle> ();
 			int startOffset = -1;
 			int endOffset = -1;
 			foreach (var hunk in diff) {
@@ -266,26 +291,24 @@ namespace MonoDevelop.VersionControl.Views
 					var word = words[start + i];
 					if (endOffset != word.Offset) {
 						if (startOffset >= 0)
-							DrawDiffRectangle (editor, cr, startOffset, endOffset);
+							result.Add (GetDiffRectangle (editor, startOffset, endOffset));
 						startOffset = word.Offset;
 					}
 					endOffset = word.EndOffset;
 				}
 			}
 			if (startOffset >= 0)
-				DrawDiffRectangle (editor, cr, startOffset, endOffset);
-			var result = cr.CopyPath ();
-			cr.NewPath ();
+				result.Add (GetDiffRectangle (editor, startOffset, endOffset));
 			return result;
 		}
 		
-		Tuple<Cairo.Path, Cairo.Path> GetDiffPaths (List<Mono.TextEditor.Utils.Hunk> diff, TextEditor editor, Cairo.Context cr, Hunk hunk)
+		Tuple<List<Cairo.Rectangle>, List<Cairo.Rectangle>> GetDiffPaths (List<Mono.TextEditor.Utils.Hunk> diff, TextEditor editor, Hunk hunk)
 		{
 			if (!diffCache.ContainsKey (diff))
-				diffCache[diff] = new Dictionary<Hunk, Tuple<Cairo.Path, Cairo.Path>> ();
+				diffCache[diff] = new Dictionary<Hunk, Tuple<List<Cairo.Rectangle>, List<Cairo.Rectangle>>> ();
 			var pathCache = diffCache[diff];
 			
-			Tuple<Cairo.Path, Cairo.Path> result;
+			Tuple<List<Cairo.Rectangle>, List<Cairo.Rectangle>> result;
 			if (pathCache.TryGetValue (hunk, out result))
 				return result;
 			
@@ -295,8 +318,8 @@ namespace MonoDevelop.VersionControl.Views
 			var wordDiff = new List<Hunk> (Diff.GetDiff (words.Select (w => editor.GetTextAt (w)).ToArray (),
 				cmpWords.Select (w => MainEditor.GetTextAt (w)).ToArray ()));
 			
-			result = Tuple.Create (CalculateChunkPath (cr, editor, wordDiff, words, true), 
-				CalculateChunkPath (cr, MainEditor, wordDiff, cmpWords, false));
+			result = Tuple.Create (CalculateChunkPath (editor, wordDiff, words, true), 
+				CalculateChunkPath (MainEditor, wordDiff, cmpWords, false));
 			
 			pathCache[hunk] = result;
 			return result;
@@ -425,13 +448,13 @@ namespace MonoDevelop.VersionControl.Views
 
 			bool hScrollBarVisible = hScrollBars[0].Visible;
 
-			int hheight = hScrollBarVisible ? hScrollBars[0].Requisition.Height : 1;
+			int hheight = hScrollBarVisible ? hScrollBars[0].Requisition.Height : 0;
 			int headerSize = 0;
 
 			if (headerWidgets != null)
 				headerSize = System.Math.Max (headerWidgets[0].SizeRequest ().Height, 16);
 
-			Rectangle childRectangle = new Rectangle (allocation.X + overviewWidth + 1, allocation.Y + headerSize + 1, allocation.Width - vwidth - overviewWidth * 2, allocation.Height - hheight - headerSize);
+			Rectangle childRectangle = new Rectangle (allocation.X + overviewWidth + 1, allocation.Y + headerSize + 1, allocation.Width - vwidth - overviewWidth * 2, allocation.Height - hheight - headerSize - 1);
 			
 			
 			leftDiffScrollBar.SizeAllocate (new Rectangle (allocation.Left, childRectangle.Y, overviewWidth - 1, childRectangle.Height));
@@ -452,7 +475,7 @@ namespace MonoDevelop.VersionControl.Views
 			}
 
 			for (int i = 0; i < middleAreas.Length; i++) {
-				middleAreas[i].SizeAllocate (new Rectangle (childRectangle.X + editorWidth * (i + 1) + middleAreaWidth * i, childRectangle.Top, middleAreaWidth + 1, Allocation.Height - hheight));
+				middleAreas[i].SizeAllocate (new Rectangle (childRectangle.X + editorWidth * (i + 1) + middleAreaWidth * i, childRectangle.Top, middleAreaWidth + 1, childRectangle.Height));
 			}
 		}
 
@@ -503,38 +526,40 @@ namespace MonoDevelop.VersionControl.Views
 			return result;
 		}
 		
-		void PaintEditorOverlay (TextEditor editor, ExposeEventArgs args, List<Mono.TextEditor.Utils.Hunk> diff, bool paintRemoveSide)
+		void PaintEditorOverlay (TextEditor editor, PaintEventArgs args, List<Mono.TextEditor.Utils.Hunk> diff, bool paintRemoveSide)
 		{
 			if (diff == null)
 				return;
-			using (var cr = Gdk.CairoHelper.Create (args.Event.Window)) {
-				foreach (var hunk in diff) {
-					double y1 = editor.LineToY (paintRemoveSide ? hunk.RemoveStart : hunk.InsertStart) - editor.VAdjustment.Value;
-					double y2 = editor.LineToY (paintRemoveSide ? hunk.RemoveStart + hunk.Removed : hunk.InsertStart + hunk.Inserted) - editor.VAdjustment.Value;
-					if (y1 == y2)
-						y2 = y1 + 1;
-					cr.Rectangle (0, y1, editor.Allocation.Width, y2 - y1);
-					cr.Color = GetColor (hunk, paintRemoveSide, false, 0.15);
-					cr.Fill ();
-					
-					var paths = GetDiffPaths (diff, editors[0], cr, hunk);
-					
-					cr.Save ();
-					cr.Translate (-editor.HAdjustment.Value + editor.TextViewMargin.XOffset, -editor.VAdjustment.Value);
-					cr.AppendPath (paintRemoveSide ? paths.Item1 : paths.Item2);
-					cr.Color = GetColor (hunk, paintRemoveSide, false, 0.3);
-					cr.Fill ();
-					cr.Restore ();
-					
-					cr.Color = GetColor (hunk, paintRemoveSide, true, 0.15);
-					cr.MoveTo (0, y1);
-					cr.LineTo (editor.Allocation.Width, y1);
-					cr.Stroke ();
-
-					cr.MoveTo (0, y2);
-					cr.LineTo (editor.Allocation.Width, y2);
-					cr.Stroke ();
+			var cr = args.Context;
+			foreach (var hunk in diff) {
+				double y1 = editor.LineToY (paintRemoveSide ? hunk.RemoveStart : hunk.InsertStart) - editor.VAdjustment.Value;
+				double y2 = editor.LineToY (paintRemoveSide ? hunk.RemoveStart + hunk.Removed : hunk.InsertStart + hunk.Inserted) - editor.VAdjustment.Value;
+				if (y1 == y2)
+					y2 = y1 + 1;
+				cr.Rectangle (0, y1, editor.Allocation.Width, y2 - y1);
+				cr.Color = GetColor (hunk, paintRemoveSide, false, 0.15);
+				cr.Fill ();
+				
+				var paths = GetDiffPaths (diff, editors[0], hunk);
+				
+				cr.Save ();
+				cr.Translate (-editor.HAdjustment.Value + editor.TextViewMargin.XOffset, -editor.VAdjustment.Value);
+				foreach (var rect in (paintRemoveSide ? paths.Item1 : paths.Item2)) {
+					cr.Rectangle (rect);
 				}
+				
+				cr.Color = GetColor (hunk, paintRemoveSide, false, 0.3);
+				cr.Fill ();
+				cr.Restore ();
+				
+				cr.Color = GetColor (hunk, paintRemoveSide, true, 0.15);
+				cr.MoveTo (0, y1);
+				cr.LineTo (editor.Allocation.Width, y1);
+				cr.Stroke ();
+
+				cr.MoveTo (0, y2);
+				cr.LineTo (editor.Allocation.Width, y2);
+				cr.Stroke ();
 			}
 		}
 
@@ -608,7 +633,7 @@ namespace MonoDevelop.VersionControl.Views
 
 			IEnumerable<Mono.TextEditor.Utils.Hunk> Diff {
 				get {
-					return useLeft ? widget.leftDiff : widget.rightDiff;
+					return useLeft ? widget.LeftDiff : widget.RightDiff;
 				}
 			}
 
@@ -619,6 +644,18 @@ namespace MonoDevelop.VersionControl.Views
 				this.fromEditor = fromEditor;
 				this.toEditor = toEditor;
 				this.useLeft = useLeft;
+				this.toEditor.EditorOptionsChanged += HandleToEditorhandleEditorOptionsChanged;
+			}
+			
+			protected override void OnDestroyed ()
+			{
+				this.toEditor.EditorOptionsChanged -= HandleToEditorhandleEditorOptionsChanged;
+				base.OnDestroyed ();
+			}
+			
+			void HandleToEditorhandleEditorOptionsChanged (object sender, EventArgs e)
+			{
+				QueueDraw ();
 			}
 
 			Mono.TextEditor.Utils.Hunk selectedHunk = Mono.TextEditor.Utils.Hunk.Empty;
@@ -645,6 +682,7 @@ namespace MonoDevelop.VersionControl.Views
 						if (evnt.X >= x && evnt.X < x + w && evnt.Y >= y && evnt.Y < y + h) {
 							selectedHunk = hunk;
 							TooltipText = GettextCatalog.GetString ("Revert this change");
+							QueueDrawArea ((int)x, (int)y, (int)w, (int)h);
 							break;
 						}
 					}
@@ -678,14 +716,13 @@ namespace MonoDevelop.VersionControl.Views
 			}
 
 			const int buttonSize = 16;
-			double lineWidth;
 
 			public bool GetButtonPosition (Mono.TextEditor.Utils.Hunk hunk, double y1, double y2, double z1, double z2, out double x, out double y, out double w, out double h)
 			{
 				if (hunk.Removed > 0) {
 					var b1 = z1;
 					var b2 = z2;
-					x = useLeft ? lineWidth : Allocation.Width - buttonSize;
+					x = useLeft ? 0 : Allocation.Width - buttonSize;
 					y = b1;
 					w = buttonSize;
 					h = b2 - b1;
@@ -694,9 +731,9 @@ namespace MonoDevelop.VersionControl.Views
 					var b1 = y1;
 					var b2 = y2;
 
-					x = useLeft ? Allocation.Width - buttonSize : lineWidth;
+					x = useLeft ? Allocation.Width - buttonSize : 0;
 					y = b1;
-					w = buttonSize - lineWidth;
+					w = buttonSize;
 					h = b2 - b1;
 					return  hunk.Removed > 0;
 				}
@@ -726,7 +763,8 @@ namespace MonoDevelop.VersionControl.Views
 			{
 				bool hideButton = widget.MainEditor.Document.ReadOnly;
 				using (Cairo.Context cr = Gdk.CairoHelper.Create (evnt.Window)) {
-					lineWidth = cr.LineWidth;
+					cr.Rectangle (evnt.Region.Clipbox.X, evnt.Region.Clipbox.Y, evnt.Region.Clipbox.Width, evnt.Region.Clipbox.Height);
+					cr.Clip ();
 					int delta = widget.MainEditor.Allocation.Y - Allocation.Y;
 					foreach (Mono.TextEditor.Utils.Hunk hunk in Diff) {
 						double z1 = delta + fromEditor.LineToY (hunk.RemoveStart) - fromEditor.VAdjustment.Value;
@@ -765,29 +803,30 @@ namespace MonoDevelop.VersionControl.Views
 							z2 = z1 + 1;
 
 						cr.MoveTo (x1, z1);
-						cr.CurveTo ((x2 - x1) / 2, z1,
-							(x2 - x1) / 2,  y1,
+						
+						cr.CurveTo (x1 + (x2 - x1) / 4, z1,
+							x1 + (x2 - x1) * 3 / 4, y1,
 							x2, y1);
 
 						cr.LineTo (x2, y2);
-						cr.CurveTo ((x2 - x1) / 2, y2,
-							(x2 - x1) / 2, z2,
+						cr.CurveTo (x1 + (x2 - x1) * 3 / 4, y2,
+							x1 + (x2 - x1) / 4, z2,
 							x1, z2);
 						cr.ClosePath ();
 						cr.Color = GetColor (hunk, this.useLeft, false, 1.0);
 						cr.Fill ();
 
 						cr.Color = GetColor (hunk, this.useLeft, true, 1.0);
-						cr.MoveTo (x2, y1);
-						cr.CurveTo ((x2 - x1) / 2, y1,
-							(x2 - x1) / 2,  z1,
-							x1, z1);
+						cr.MoveTo (x1, z1);
+						cr.CurveTo (x1 + (x2 - x1) / 4, z1,
+							x1 + (x2 - x1) * 3 / 4, y1,
+							x2, y1);
 						cr.Stroke ();
-
-						cr.MoveTo (x1, z2);
-						cr.CurveTo ((x2 - x1) / 2, z2,
-							(x2 - x1) / 2, y2,
-							x2, y2);
+						
+						cr.MoveTo (x2, y2);
+						cr.CurveTo (x1 + (x2 - x1) * 3 / 4, y2,
+							x1 + (x2 - x1) / 4, z2,
+							x1, z2);
 						cr.Stroke ();
 
 						if (!hideButton) {
@@ -799,10 +838,25 @@ namespace MonoDevelop.VersionControl.Views
 
 							cr.Rectangle (x, y, w, h);
 							if (isButtonSelected) {
-								cr.Color = new Cairo.Color (0.7, 0.7, 0.7, 0.3);
-								cr.FillPreserve ();
+								int mx, my;
+								GetPointer (out mx, out my);
+								Console.WriteLine (x  + " - " + y + "/" + mx + " - " + my);
+							//	mx -= (int)x;
+							//	my -= (int)y;
+								Cairo.RadialGradient gradient = new Cairo.RadialGradient (mx, my, h, 
+									mx, my, 2);
+								var color = (Mono.TextEditor.HslColor)Style.Mid (StateType.Normal);
+								color.L *= 1.05;
+								gradient.AddColorStop (0, color);
+								color.L *= 1.07;
+								gradient.AddColorStop (1, color);
+								cr.Pattern = gradient;
+							} else {
+								cr.Color = (Mono.TextEditor.HslColor)Style.Mid (StateType.Normal);
 							}
-							cr.Color = new Cairo.Color (0.7, 0.7, 0.7);
+							cr.FillPreserve ();
+							
+							cr.Color = (Mono.TextEditor.HslColor)Style.Dark (StateType.Normal);
 							cr.Stroke ();
 							cr.LineWidth = 1;
 							cr.Color = new Cairo.Color (0, 0, 0);
@@ -816,16 +870,16 @@ namespace MonoDevelop.VersionControl.Views
 						}
 					}
 				}
-				var result = base.OnExposeEvent (evnt);
+//				var result = base.OnExposeEvent (evnt);
+//
+//				Gdk.GC gc = Style.DarkGC (State);
+//				evnt.Window.DrawLine (gc, Allocation.X, Allocation.Top, Allocation.X, Allocation.Bottom);
+//				evnt.Window.DrawLine (gc, Allocation.Right, Allocation.Top, Allocation.Right, Allocation.Bottom);
+//
+//				evnt.Window.DrawLine (gc, Allocation.Left, Allocation.Y, Allocation.Right, Allocation.Y);
+//				evnt.Window.DrawLine (gc, Allocation.Left, Allocation.Bottom, Allocation.Right, Allocation.Bottom);
 
-				Gdk.GC gc = Style.DarkGC (State);
-				evnt.Window.DrawLine (gc, Allocation.X, Allocation.Top, Allocation.X, Allocation.Bottom);
-				evnt.Window.DrawLine (gc, Allocation.Right, Allocation.Top, Allocation.Right, Allocation.Bottom);
-
-				evnt.Window.DrawLine (gc, Allocation.Left, Allocation.Y, Allocation.Right, Allocation.Y);
-				evnt.Window.DrawLine (gc, Allocation.Left, Allocation.Bottom, Allocation.Right, Allocation.Bottom);
-
-				return result;
+				return true;
 			}
 		}
 
@@ -883,11 +937,11 @@ namespace MonoDevelop.VersionControl.Views
 
 			protected override bool OnExposeEvent (Gdk.EventExpose e)
 			{
-				if (widget.leftDiff == null)
+				if (widget.LeftDiff == null)
 					return true;
 				var adj = widget.vAdjustment;
 				
-				var diff = useLeftDiff ? widget.leftDiff : widget.rightDiff;
+				var diff = useLeftDiff ? widget.LeftDiff : widget.RightDiff;
 				
 				using (Cairo.Context cr = Gdk.CairoHelper.Create (e.Window)) {
 					cr.LineWidth = 1;
@@ -941,6 +995,15 @@ namespace MonoDevelop.VersionControl.Views
 				pos += System.Math.Max (h.Inserted, h.Removed);
 			}
 		}
+		
+		protected virtual void OnDiffChanged (EventArgs e)
+		{
+			EventHandler handler = this.DiffChanged;
+			if (handler != null)
+				handler (this, e);
+		}
+		
+		public event EventHandler DiffChanged;
 	}
 
 }

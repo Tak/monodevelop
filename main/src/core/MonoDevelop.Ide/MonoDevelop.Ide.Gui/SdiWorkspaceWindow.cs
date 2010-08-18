@@ -44,7 +44,7 @@ namespace MonoDevelop.Ide.Gui
 		
 		List<IAttachableViewContent> subViewContents = null;
 		Notebook subViewNotebook = null;
-		HBox subViewToolbar = null;
+		Tabstrip subViewToolbar = null;
 		PathBar pathBar = null;
 		HBox toolbarBox = null;
 		
@@ -299,11 +299,10 @@ namespace MonoDevelop.Ide.Gui
 		
 		public void OnContentChanged (object o, EventArgs e)
 		{
-			if (subViewContents != null) {
-				foreach (IAttachableViewContent subContent in subViewContents)
-				{
-					subContent.BaseContentChanged ();
-				}
+			if (subViewContents == null)
+				return;
+			foreach (IAttachableViewContent subContent in subViewContents) {
+				subContent.BaseContentChanged ();
 			}
 		}
 		
@@ -315,6 +314,7 @@ namespace MonoDevelop.Ide.Gui
 			OnClosing (args);
 			if (args.Cancel)
 				return false;
+			
 			if (fromMenu == true) {
 				workbench.RemoveTab (tabControl.PageNum(this));
 			} else {
@@ -322,34 +322,20 @@ namespace MonoDevelop.Ide.Gui
 			}
 			OnClosed (args);
 			
+			if (subViewContents != null) {
+				foreach (IAttachableViewContent sv in subViewContents) {
+					sv.Dispose ();
+				}
+			}
+			
 			content.ContentNameChanged -= new EventHandler(SetTitleEvent);
 			content.DirtyChanged       -= new EventHandler(SetTitleEvent);
 			content.BeforeSave         -= new EventHandler(BeforeSave);
 			content.ContentChanged     -= new EventHandler (OnContentChanged);
-			content.WorkbenchWindow = null;
-			
-			if (subViewContents != null) {
-				foreach (IAttachableViewContent sv in subViewContents) {
-					subViewNotebook.Remove (sv.Control);
-					sv.Dispose ();
-				}
-				this.subViewContents = null;
-				subViewNotebook.Remove (content.Control);
-			}
-			DetachFromPathedDocument ();
+			content.WorkbenchWindow     = null;
 			content.Dispose ();
-			box.Destroy ();
 			
-			this.subViewToolbar = null;
-			this.separatorItem = null;
-			
-			this.content = null;
-			this.subViewNotebook = null;
-			this.tabControl = null;
-			tabLabel.Destroy ();
-			this.tabLabel = null;
-			this.tabPage = null;
-			
+			DetachFromPathedDocument ();
 			Destroy ();
 			return true;
 		}
@@ -361,11 +347,11 @@ namespace MonoDevelop.Ide.Gui
 			if (subViewToolbar != null)
 				return;
 			
-			subViewToolbar = new HBox (false, 3);
+			subViewToolbar = new Tabstrip ();
 			subViewToolbar.Show ();
 			
 			CheckCreateToolbarBox ();
-			toolbarBox.PackStart (subViewToolbar, false, false, 0);
+			toolbarBox.PackStart (subViewToolbar, true, true, 0);
 		}
 		
 		void EnsureToolbarBoxSeparator ()
@@ -393,9 +379,9 @@ namespace MonoDevelop.Ide.Gui
 		{
 			if (toolbarBox != null)
 				return;
-			toolbarBox = new HBox (false, 6);
+			toolbarBox = new HBox (false, 0);
 			toolbarBox.Show ();
-			box.PackEnd (toolbarBox, false, false, 3);
+			box.PackEnd (toolbarBox, false, false, 0);
 		}
 		
 		void CheckCreateSubViewContents ()
@@ -415,13 +401,12 @@ namespace MonoDevelop.Ide.Gui
 			subViewNotebook.SwitchPage += subViewNotebookIndexChanged;
 			
 			//add existing ViewContent
-			AddButton (this.ViewContent.TabPageLabel, this.ViewContent.Control).Active = true;
+			AddButton (this.ViewContent.TabPageLabel, this.ViewContent);
 			
 			//pack them in a box
-			box.PackStart (subViewNotebook, true, true, 0);
+			box.PackStart (subViewNotebook, true, true, 1);
 			box.ShowAll ();
 		}
-		
 		#endregion
 		
 			
@@ -432,28 +417,33 @@ namespace MonoDevelop.Ide.Gui
 			
 			subViewContents.Add (subViewContent);
 			subViewContent.WorkbenchWindow = this;
-			AddButton (subViewContent.TabPageLabel, subViewContent.Control);
+			AddButton (subViewContent.TabPageLabel, subViewContent);
 			
 			OnContentChanged (null, null);
 		}
 		
 		bool updating = false;
-		protected ToggleButton AddButton (string label, Gtk.Widget page)
+		protected Tab AddButton (string label, IBaseViewContent viewContent)
 		{
 			CheckCreateSubViewToolbar ();
 			updating = true;
-			ToggleButton button = new ToggleButton ();
-			button.Relief = ReliefStyle.None;
-			button.Label = label;
-			button.CanFocus = false;
-			button.Clicked += new EventHandler (OnButtonToggled);
-			button.ShowAll ();
-			subViewToolbar.PackStart (button, false, false, 0);
-			subViewNotebook.AppendPage (page, new Gtk.Label ());
-			page.ShowAll ();
+			
+			Tab tab = new Tab (subViewToolbar, label);
+			tab.Tag = subViewToolbar.TabCount;
+			tab.Activated += (sender, e) => { subViewNotebook.CurrentPage = (int)((Tab)sender).Tag; QueueDraw (); };
+			subViewToolbar.AddTab (tab);
+			
+			Gtk.VBox widgetBox = new Gtk.VBox ();
+			widgetBox.Realized += delegate {
+				widgetBox.Add (viewContent.Control);
+			};
+			
+			subViewNotebook.AppendPage (widgetBox, new Gtk.Label ());
+			widgetBox.ShowAll ();
+			
 			EnsureToolbarBoxSeparator ();
 			updating = false;
-			return button;
+			return tab;
 		}
 		
 		#region Track and display document's "path"
@@ -510,24 +500,8 @@ namespace MonoDevelop.Ide.Gui
 		{
 			if (updating) return;
 			updating = true;
-			
-			subViewNotebook.CurrentPage = npage;
-			Gtk.Widget[] buttons = subViewToolbar.Children;
-			for (int n=0; n<buttons.Length; n++) {
-				if (buttons [n] is ToggleButton) {
-					ToggleButton b = (ToggleButton) buttons [n];
-					b.Active = (n == npage);
-				}
-			}
-
+			subViewToolbar.ActiveTab = npage;
 			updating = false;
-		}
-		
-		void OnButtonToggled (object s, EventArgs args)
-		{
-			int i = Array.IndexOf (subViewToolbar.Children, s);
-			if (i != -1)
-				ShowPage (i);
 		}
 		
 		int oldIndex = -1;

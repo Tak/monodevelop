@@ -410,8 +410,8 @@ namespace Mono.TextEditor
 			markerLayout.SetText (" ");
 			int w, h;
 			markerLayout.GetSize (out w, out h);
-			this.charWidth = (int)(w / Pango.Scale.PangoScale);
-			this.lineHeight = (int)(h / Pango.Scale.PangoScale);
+			this.charWidth = w / Pango.Scale.PangoScale;
+			this.lineHeight = System.Math.Ceiling (h / Pango.Scale.PangoScale);
 			
 			markerLayout.FontDescription.Weight = Pango.Weight.Normal;
 
@@ -607,12 +607,9 @@ namespace Mono.TextEditor
 		public static Gdk.Rectangle EmptyRectangle = new Gdk.Rectangle (0, 0, 0, 0);
 		public void DrawCaret (Gdk.Drawable win)
 		{
-			if (!this.textEditor.IsInDrag) {
-				if (!(this.caretX >= 0 && (!this.textEditor.IsSomethingSelected || this.textEditor.SelectionRange.Length == 0))) {
-					return;
-				}
-			}
-			if (Settings.Default.CursorBlink && !Caret.IsVisible)
+			if (!this.textEditor.IsInDrag && !(this.caretX >= 0 && (!this.textEditor.IsSomethingSelected || this.textEditor.SelectionRange.Length == 0))) 
+				return;
+			if (win == null || Settings.Default.CursorBlink && !Caret.IsVisible)
 				return;
 
 			switch (Caret.Mode) {
@@ -1063,9 +1060,11 @@ namespace Mono.TextEditor
 							
 							if (!chunkStyle.TransparentBackround && GetPixel (ColorStyle.Default.BackgroundColor) != GetPixel (chunkStyle.BackgroundColor)) {
 								wrapper.AddBackground (chunkStyle.CairoBackgroundColor, (int)si, (int)ei);
-							} else if (chunk.SpanStack != null) {
+							} else if (chunk.SpanStack != null && ColorStyle != null) {
 								foreach (var span in chunk.SpanStack) {
-									var spanStyle = textEditor.ColorStyle.GetChunkStyle (span.Color);
+									if (span == null)
+										continue;
+									var spanStyle = ColorStyle.GetChunkStyle (span.Color);
 									if (!spanStyle.TransparentBackround && GetPixel (ColorStyle.Default.BackgroundColor) != GetPixel (spanStyle.BackgroundColor)) {
 										wrapper.AddBackground (spanStyle.CairoBackgroundColor, (int)si, (int)ei);
 										break;
@@ -2001,15 +2000,13 @@ namespace Mono.TextEditor
 		protected internal override void Draw (Cairo.Context cr, Cairo.Rectangle area, int lineNr, double x, double y, double _lineHeight)
 		{
 			LineSegment line = lineNr < Document.LineCount ? Document.GetLine (lineNr) : null;
-			double xStart = System.Math.Max (area.X, XOffset);
-			xStart = System.Math.Max (0, xStart);
+//			double xStart = System.Math.Max (area.X, XOffset);
+//			xStart = System.Math.Max (0, xStart);
 			var lineArea = new Cairo.Rectangle (XOffset - 1, y, textEditor.Allocation.Width - XOffset, textEditor.LineHeight);
-			cr.Rectangle (XOffset - 1 , 0, textEditor.Allocation.Width - XOffset + 1, textEditor.Allocation.Height);
-			cr.Clip ();
 			int width, height;
 			double pangoPosition = (x - textEditor.HAdjustment.Value + TextStartPosition) * Pango.Scale.PangoScale;
 
-			defaultBgColor = ColorStyle.Default.CairoBackgroundColor;
+			defaultBgColor = Document.ReadOnly ? ColorStyle.ReadOnlyTextBg : ColorStyle.Default.CairoBackgroundColor;
 
 			// Draw the default back color for the whole line. Colors other than the default
 			// background will be drawn when rendering the text chunks.
@@ -2027,7 +2024,6 @@ namespace Mono.TextEditor
 				var marker = Document.GetExtendingTextMarker (lineNr);
 				if (marker != null)
 					marker.Draw (textEditor, cr, lineNr, lineArea);
-				cr.ResetClip ();
 				return;
 			}
 			
@@ -2148,7 +2144,6 @@ namespace Mono.TextEditor
 				extendingMarker.Draw (textEditor, cr, lineNr, lineArea);
 			
 			lastLineRenderWidth = pangoPosition / Pango.Scale.PangoScale;
-			cr.ResetClip ();
 		}
 
 		internal IBackgroundRenderer BackgroundRenderer {

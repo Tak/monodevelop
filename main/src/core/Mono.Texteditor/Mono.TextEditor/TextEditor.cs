@@ -246,9 +246,7 @@ namespace Mono.TextEditor
 //			this.Events = EventMask.AllEventsMask;
 			this.Events = EventMask.PointerMotionMask | EventMask.ButtonPressMask | EventMask.ButtonReleaseMask | EventMask.EnterNotifyMask | EventMask.LeaveNotifyMask | EventMask.VisibilityNotifyMask | EventMask.FocusChangeMask | EventMask.ScrollMask | EventMask.KeyPressMask | EventMask.KeyReleaseMask;
 			this.DoubleBuffered = true;
-			this.AppPaintable = false;
 			base.CanFocus = true;
-			this.RedrawOnAllocate = false;
 			WidgetFlags |= WidgetFlags.NoWindow;
 			iconMargin = new IconMargin (this);
 			gutterMargin = new GutterMargin (this);
@@ -1337,67 +1335,66 @@ namespace Mono.TextEditor
 			return this.textViewMargin.GetWidth (text);
 		}
 		
-		void RenderMargins (Gdk.Drawable win, Gdk.Rectangle area)
+		void RenderMargins (Cairo.Context cr, Cairo.Rectangle cairoRectangle)
 		{
 			this.TextViewMargin.rulerX = Options.RulerColumn * this.TextViewMargin.CharWidth - this.textEditorData.HAdjustment.Value;
-			int startLine = YToLine (area.Top + this.textEditorData.VAdjustment.Value);
+			int startLine = YToLine (cairoRectangle.Y + this.textEditorData.VAdjustment.Value);
 			double startY = LineToY (startLine);
-			var cairoRectangle = new Cairo.Rectangle (area.X, area.Y, area.Width, area.Height);
-			
-			using (Cairo.Context cr = Gdk.CairoHelper.Create (win)) {
-				cr.LineWidth = Options.Zoom;
-				double curX = 0;
-				double curY = startY - this.textEditorData.VAdjustment.Value;
-				bool setLongestLine = false;
-				bool renderFirstLine = true;
-				for (int visualLineNumber = startLine; ; visualLineNumber++) {
-					int logicalLineNumber = visualLineNumber;
-					LineSegment line      = Document.GetLine (logicalLineNumber);
-					double lineHeight     = GetLineHeight (line);
-					int lastFold = -1;
-					foreach (FoldSegment fs in Document.GetStartFoldings (line).Where (fs => fs.IsFolded)) {
-						lastFold = System.Math.Max (fs.EndOffset, lastFold);
-					}
-					if (lastFold > 0) 
-						visualLineNumber = Document.OffsetToLineNumber (lastFold);
-					foreach (Margin margin in this.margins) {
-						if (!margin.IsVisible)
-							continue;
-						try {
-							if (renderFirstLine)
-								margin.XOffset = curX;
-							margin.Draw (cr, cairoRectangle, logicalLineNumber, margin.XOffset, curY, lineHeight);
-							if (renderFirstLine)
-								curX += margin.Width;
-						} catch (Exception e) {
-							System.Console.WriteLine (e);
-						}
-					}
-					renderFirstLine = false;
-					// take the line real render width from the text view margin rendering (a line can consist of more than 
-					// one line and be longer (foldings!) ex. : someLine1[...]someLine2[...]someLine3)
-					double lineWidth = textViewMargin.lastLineRenderWidth + HAdjustment.Value;
-					if (longestLine == null || lineWidth > longestLineWidth) {
-						longestLine = line;
-						longestLineWidth = lineWidth;
-						setLongestLine = true;
-					}
-					curY += lineHeight;
-					if (curY > area.Bottom)
-						break;
+			double curX = 0;
+			double curY = startY - this.textEditorData.VAdjustment.Value;
+			bool setLongestLine = false;
+			bool renderFirstLine = true;
+			for (int visualLineNumber = startLine; ; visualLineNumber++) {
+				int logicalLineNumber = visualLineNumber;
+				LineSegment line      = Document.GetLine (logicalLineNumber);
+				double lineHeight     = GetLineHeight (line);
+				int lastFold = -1;
+				foreach (FoldSegment fs in Document.GetStartFoldings (line).Where (fs => fs.IsFolded)) {
+					lastFold = System.Math.Max (fs.EndOffset, lastFold);
 				}
-				
+				if (lastFold > 0) 
+					visualLineNumber = Document.OffsetToLineNumber (lastFold);
 				foreach (Margin margin in this.margins) {
 					if (!margin.IsVisible)
 						continue;
-					foreach (var drawer in margin.MarginDrawer)
-						drawer.Draw (win, area);
+					try {
+						if (renderFirstLine)
+							margin.XOffset = curX;
+						cr.Rectangle (margin.XOffset, 0, margin.Width >= 0 ? margin.Width : Allocation.Width - curX, Allocation.Height);
+						cr.Clip ();
+						margin.Draw (cr, cairoRectangle, logicalLineNumber, margin.XOffset, curY, lineHeight);
+						cr.ResetClip ();
+						if (renderFirstLine)
+							curX += margin.Width;
+					} catch (Exception e) {
+						System.Console.WriteLine (e);
+					}
 				}
-				
-				if (setLongestLine) 
-					SetHAdjustment ();
+				renderFirstLine = false;
+				// take the line real render width from the text view margin rendering (a line can consist of more than 
+				// one line and be longer (foldings!) ex. : someLine1[...]someLine2[...]someLine3)
+				double lineWidth = textViewMargin.lastLineRenderWidth + HAdjustment.Value;
+				if (longestLine == null || lineWidth > longestLineWidth) {
+					longestLine = line;
+					longestLineWidth = lineWidth;
+					setLongestLine = true;
+				}
+				curY += lineHeight;
+				if (curY > cairoRectangle.Y + cairoRectangle.Height)
+					break;
 			}
+			
+			foreach (Margin margin in this.margins) {
+				if (!margin.IsVisible)
+					continue;
+				foreach (var drawer in margin.MarginDrawer)
+					drawer.Draw (cr, cairoRectangle);
+			}
+			
+			if (setLongestLine) 
+				SetHAdjustment ();
 		}
+		
 		/*
 		protected override bool OnWidgetEvent (Event evnt)
 		{
@@ -1425,27 +1422,44 @@ namespace Mono.TextEditor
 				return true;
 			UpdateAdjustments ();
 			
-			RenderMargins (e.Window, e.Region.Clipbox);
+			var area = e.Region.Clipbox;
+			var cairoArea = new Cairo.Rectangle (area.X, area.Y, area.Width, area.Height);
+			
+			using (Cairo.Context cr = Gdk.CairoHelper.Create (e.Window)) {
+				cr.LineWidth = Options.Zoom;
+			
+				RenderMargins (cr, cairoArea);
 			
 #if DEBUG_EXPOSE
-			Console.WriteLine ("{0} expose {1},{2} {3}x{4}", (long)(DateTime.Now - started).TotalMilliseconds,
-			                   e.Area.X, e.Area.Y, e.Area.Width, e.Area.Height);
+				Console.WriteLine ("{0} expose {1},{2} {3}x{4}", (long)(DateTime.Now - started).TotalMilliseconds,
+					e.Area.X, e.Area.Y, e.Area.Width, e.Area.Height);
 #endif
-			if (requestResetCaretBlink && IsFocus) {
-				textViewMargin.ResetCaretBlink ();
-				requestResetCaretBlink = false;
+				if (requestResetCaretBlink && IsFocus) {
+					textViewMargin.ResetCaretBlink ();
+					requestResetCaretBlink = false;
+				}
+				
+				foreach (Animation animation in actors) {
+					animation.Drawer.Draw (cr);
+				}
+				
+				if (HasFocus && e.Area.Contains ((int)TextViewMargin.caretX, (int)TextViewMargin.caretY))
+					textViewMargin.DrawCaret (e.Window);
+				
+				OnPainted (new PaintEventArgs (cr, cairoArea));
 			}
 			
-			foreach (Animation animation in actors) {
-				animation.Drawer.Draw (e.Window);
-			}
-			
-			if (e.Area.Contains ((int)TextViewMargin.caretX, (int)TextViewMargin.caretY))
-				textViewMargin.DrawCaret (e.Window);
-			
-			var result = base.OnExposeEvent (e);
-			return result;
+			return true;
 		}
+		
+		protected virtual void OnPainted (PaintEventArgs e)
+		{
+			EventHandler<PaintEventArgs> handler = this.Painted;
+			if (handler != null)
+				handler (this, e);
+		}
+
+		public event EventHandler<PaintEventArgs> Painted;
 
 		#region TextEditorData delegation
 		public string EolMarker {
@@ -1824,30 +1838,29 @@ namespace Mono.TextEditor
 				this.editor = editor;
 			}
 			
-			public void Draw (Drawable drawable)
+			public void Draw (Cairo.Context cr)
 			{
 				double x = editor.TextViewMargin.caretX;
 				double y = editor.TextViewMargin.caretY;
 				if (editor.Caret.Mode != CaretMode.Block)
 					x -= editor.TextViewMargin.charWidth / 2;
-				using (Cairo.Context cr = Gdk.CairoHelper.Create (drawable)) {
-					cr.Rectangle (editor.TextViewMargin.XOffset, 0, editor.Allocation.Width - editor.TextViewMargin.XOffset, editor.Allocation.Height);
-					cr.Clip ();
+				cr.Rectangle (editor.TextViewMargin.XOffset, 0, editor.Allocation.Width - editor.TextViewMargin.XOffset, editor.Allocation.Height);
+				cr.Clip ();
 
-					double extend = Percent * 5;
-					double width = editor.TextViewMargin.charWidth + 2 * extend * editor.Options.Zoom / 2;
-					FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, 
-					                                                    x - extend * editor.Options.Zoom / 2, 
-					                                                    y - extend * editor.Options.Zoom, 
-					                                                    System.Math.Min (editor.TextViewMargin.charWidth / 2, width), 
-					                                                    width,
-					                                                    editor.LineHeight + 2 * extend * editor.Options.Zoom);
-					Cairo.Color color = Mono.TextEditor.Highlighting.Style.ToCairoColor (editor.ColorStyle.Caret.Color);
-					color.A = 0.8;
-					cr.LineWidth = editor.Options.Zoom;
-					cr.Color = color;
-					cr.Stroke ();
-				}
+				double extend = Percent * 5;
+				double width = editor.TextViewMargin.charWidth + 2 * extend * editor.Options.Zoom / 2;
+				FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, 
+				                                                    x - extend * editor.Options.Zoom / 2, 
+				                                                    y - extend * editor.Options.Zoom, 
+				                                                    System.Math.Min (editor.TextViewMargin.charWidth / 2, width), 
+				                                                    width,
+				                                                    editor.LineHeight + 2 * extend * editor.Options.Zoom);
+				Cairo.Color color = Mono.TextEditor.Highlighting.Style.ToCairoColor (editor.ColorStyle.Caret.Color);
+				color.A = 0.8;
+				cr.LineWidth = editor.Options.Zoom;
+				cr.Color = color;
+				cr.Stroke ();
+				cr.ResetClip ();
 			}
 		}
 		
@@ -1890,29 +1903,28 @@ namespace Mono.TextEditor
 				this.region = region;
 			}
 			
-			public void Draw (Drawable drawable)
+			public void Draw (Cairo.Context cr)
 			{
 				int x = region.X;
 				int y = region.Y;
 				int animationPosition = (int)(Percent * 100);
 				
-				using (Cairo.Context cr = Gdk.CairoHelper.Create (drawable)) {
-					cr.Rectangle (editor.TextViewMargin.XOffset, 0, editor.Allocation.Width - editor.TextViewMargin.XOffset, editor.Allocation.Height);
-					cr.Clip ();
+				cr.Rectangle (editor.TextViewMargin.XOffset, 0, editor.Allocation.Width - editor.TextViewMargin.XOffset, editor.Allocation.Height);
+				cr.Clip ();
 
-					int width = (int)(region.Width + 2 * animationPosition * editor.Options.Zoom / 2);
-					FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, 
-					                                                    (int)(x - animationPosition * editor.Options.Zoom / 2), 
-					                                                    (int)(y - animationPosition * editor.Options.Zoom), 
-					                                                    System.Math.Min (editor.TextViewMargin.charWidth / 2, width), 
-					                                                    width,
-					                                                    (int)(region.Height + 2 * animationPosition * editor.Options.Zoom));
-					Cairo.Color color = Mono.TextEditor.Highlighting.Style.ToCairoColor (editor.ColorStyle.Caret.Color);
-					color.A = 0.8;
-					cr.LineWidth = editor.Options.Zoom;
-					cr.Color = color;
-					cr.Stroke ();
-				}
+				int width = (int)(region.Width + 2 * animationPosition * editor.Options.Zoom / 2);
+				FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, 
+				                                                    (int)(x - animationPosition * editor.Options.Zoom / 2), 
+				                                                    (int)(y - animationPosition * editor.Options.Zoom), 
+				                                                    System.Math.Min (editor.TextViewMargin.charWidth / 2, width), 
+				                                                    width,
+				                                                    (int)(region.Height + 2 * animationPosition * editor.Options.Zoom));
+				Cairo.Color color = Mono.TextEditor.Highlighting.Style.ToCairoColor (editor.ColorStyle.Caret.Color);
+				color.A = 0.8;
+				cr.LineWidth = editor.Options.Zoom;
+				cr.Color = color;
+				cr.Stroke ();
+				cr.ResetClip ();
 			}
 		}
 		
@@ -2007,7 +2019,7 @@ namespace Mono.TextEditor
 				ExpandWidth = (uint)Editor.LineHeight;
 				ExpandHeight = (uint)Editor.LineHeight / 2;
 				BounceEasing = Easing.Sine;
-				Duration = 200;
+				Duration = 150;
 				base.Popup ();
 			}
 			
@@ -2042,20 +2054,26 @@ namespace Mono.TextEditor
 				} else {
 					l = x1 = 0;
 				}
+				
 				index = Result.Offset - line.Offset - 1 + Result.Length;
-				if (index <= 0) 
-					index = 1;
-				lineLayout.Layout.IndexToLineX (index, true, out l, out x2);
-				x1 /= (int)Pango.Scale.PangoScale;
-				x2 /= (int)Pango.Scale.PangoScale;
+				if (index >= 0) {
+					lineLayout.Layout.IndexToLineX (index, true, out l, out x2);
+				} else {
+					x2 = 0;
+					Console.WriteLine ("Invalid end index :" + index);
+				}
+				
 				double y = Editor.LineToY (lineNr) - Editor.VAdjustment.Value ;
-				int w = x2 - x1;
-				int spaceX = w / 3;
+				double w = (x2 - x1) / Pango.Scale.PangoScale;
+				double spaceX = System.Math.Ceiling (w / 3);
 				double spaceY = Editor.LineHeight;
 				if (layout != null)
 					layout.Dispose ();
-				layout = null;
-				return new Gdk.Rectangle ((int)(x1 + Editor.TextViewMargin.XOffset + Editor.TextViewMargin.TextStartPosition - Editor.HAdjustment.Value - spaceX), (int)(y - spaceY), (int)(w + spaceX * 2), (int)(Editor.LineHeight + spaceY * 2));
+				
+				return new Gdk.Rectangle ((int)(x1 / Pango.Scale.PangoScale + Editor.TextViewMargin.XOffset + Editor.TextViewMargin.TextStartPosition - Editor.HAdjustment.Value - spaceX), 
+					(int)(y - spaceY), 
+					(int)(w + spaceX * 2), 
+					(int)(Editor.LineHeight + spaceY * 2));
 			}
 			
 			protected override Gdk.Pixbuf RenderInitialPixbuf (Gdk.Window parentwindow, Gdk.Rectangle bounds)
@@ -2101,13 +2119,13 @@ namespace Mono.TextEditor
 							layout.GetPixelSize (out layoutWidth, out layoutHeight);
 						}
 						
-						FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, -layoutWidth / 2 - 2 + 2, -Editor.LineHeight / 2 + 2, Editor.LineHeight, layoutWidth + 4, Editor.LineHeight);
+						FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, -layoutWidth / 2 - 2 + 2, -Editor.LineHeight / 2 + 2, System.Math.Min (10, layoutWidth), layoutWidth + 4, Editor.LineHeight);
 						var color = TextViewMargin.DimColor (Editor.ColorStyle.SearchTextMainBg, 0.3);
 						color.A = 0.5 * opacity;
 						cr.Color = color;
 						cr.Fill (); 
 						
-						FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, -layoutWidth / 2 -2, -Editor.LineHeight / 2, Editor.LineHeight, layoutWidth + 4, Editor.LineHeight);
+						FoldingScreenbackgroundRenderer.DrawRoundRectangle (cr, true, true, -layoutWidth / 2 -2, -Editor.LineHeight / 2, System.Math.Min (10, layoutWidth), layoutWidth + 4, Editor.LineHeight);
 						using (Cairo.LinearGradient gradient = new Cairo.LinearGradient (0, -Editor.LineHeight / 2, 0, Editor.LineHeight / 2)) {
 							color = TextViewMargin.DimColor (Editor.ColorStyle.SearchTextMainBg, 1.1);
 							color.A = opacity;
@@ -2119,7 +2137,7 @@ namespace Mono.TextEditor
 							cr.Fill (); 
 						}
 						
-						cr.Translate (-layoutWidth / 2 + 1, -layoutHeight / 2);
+						cr.Translate (-layoutWidth / 2, -layoutHeight / 2);
 						cr.ShowLayout (layout);
 					}
 					
@@ -2621,4 +2639,26 @@ namespace Mono.TextEditor
 	{
 		TextEditorData GetTextEditorData ();
 	}
+	
+	[Serializable]
+	public sealed class PaintEventArgs : EventArgs
+	{
+		public Cairo.Context Context {
+			get;
+			set;
+		}
+		
+		public Cairo.Rectangle Area {
+			get;
+			set;
+		}
+		
+		public PaintEventArgs (Cairo.Context context, Cairo.Rectangle area)
+		{
+			this.Context = context;
+			this.Area = area;
+		}
+	}
 }
+
+

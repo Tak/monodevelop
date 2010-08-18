@@ -37,6 +37,8 @@ namespace MonoDevelop.VersionControl.Views
 {
 	public class VersionControlDocumentInfo
 	{
+		bool alreadyStarted = false;
+		
 		public Document Document {
 			get;
 			set;
@@ -65,6 +67,9 @@ namespace MonoDevelop.VersionControl.Views
 
 		public void Start ()
 		{
+			if (alreadyStarted)
+				return;
+			alreadyStarted = true;
 			ThreadPool.QueueUserWorkItem (delegate {
 				try {
 					History      = Item.Repository.GetHistory (Item.Path, null);
@@ -96,6 +101,18 @@ namespace MonoDevelop.VersionControl.Views
 
 		public override Gtk.Widget Control { 
 			get {
+				if (widget == null) {
+					widget = new DiffWidget (info);
+					
+					ComparisonWidget.OriginalEditor.Document.MimeType = ComparisonWidget.DiffEditor.Document.MimeType = info.Document.Editor.Document.MimeType;
+					ComparisonWidget.OriginalEditor.Options.FontName = ComparisonWidget.DiffEditor.Options.FontName = info.Document.Editor.Options.FontName;
+					ComparisonWidget.OriginalEditor.Options.ColorScheme = ComparisonWidget.DiffEditor.Options.ColorScheme = info.Document.Editor.Options.ColorScheme;
+					ComparisonWidget.OriginalEditor.Options.ShowFoldMargin = ComparisonWidget.DiffEditor.Options.ShowFoldMargin = false;
+					ComparisonWidget.OriginalEditor.Options.ShowIconMargin = ComparisonWidget.DiffEditor.Options.ShowIconMargin = false;
+					ComparisonWidget.DiffEditor.Document.Text = info.Item.Repository.GetBaseText (info.Item.Path);
+					ComparisonWidget.SetLocal (ComparisonWidget.OriginalEditor.GetTextEditorData ());
+					widget.ShowAll ();
+				}
 				return widget;
 			}
 		}
@@ -122,14 +139,12 @@ namespace MonoDevelop.VersionControl.Views
 			
 			DiffView comparisonView = new DiffView (info);
 			window.AttachViewContent (comparisonView);
-			window.AttachViewContent (new PatchView (comparisonView, info));
+//			window.AttachViewContent (new PatchView (comparisonView, info));
 			window.AttachViewContent (new BlameView (info));
 			window.AttachViewContent (new LogView (info));
 			
 			if (info.VersionInfo != null && info.VersionInfo.Status == VersionStatus.Conflicted)
 				window.AttachViewContent (new MergeView (info));
-			
-			info.Start ();
 		}
 
 		public static void Show (VersionControlItemList items)
@@ -151,27 +166,15 @@ namespace MonoDevelop.VersionControl.Views
 		}
 		
 		VersionControlDocumentInfo info;
-		public DiffView (VersionControlDocumentInfo info) : base ("Comparison")
+		public DiffView (VersionControlDocumentInfo info) : base ("Diff")
 		{
 			this.info = info;
-			widget = new DiffWidget ();
-			ComparisonWidget.SetVersionControlInfo (info);
-			
-			ComparisonWidget.OriginalEditor.Document.MimeType = ComparisonWidget.DiffEditor.Document.MimeType = info.Document.Editor.Document.MimeType;
-			ComparisonWidget.OriginalEditor.Options.FontName = ComparisonWidget.DiffEditor.Options.FontName = info.Document.Editor.Options.FontName;
-			ComparisonWidget.OriginalEditor.Options.ColorScheme = ComparisonWidget.DiffEditor.Options.ColorScheme = info.Document.Editor.Options.ColorScheme;
-			ComparisonWidget.OriginalEditor.Options.ShowFoldMargin = ComparisonWidget.DiffEditor.Options.ShowFoldMargin = false;
-			ComparisonWidget.OriginalEditor.Options.ShowIconMargin = ComparisonWidget.DiffEditor.Options.ShowIconMargin = false;
-			ComparisonWidget.DiffEditor.Document.Text = info.Item.Repository.GetBaseText (info.Item.Path);
-			ComparisonWidget.SetLocal (ComparisonWidget.OriginalEditor.GetTextEditorData ());
-			widget.ShowAll ();
 		}
 		
-		public DiffView (VersionControlDocumentInfo info, Revision baseRev, Revision toRev) : base ("Comparison")
+		public DiffView (VersionControlDocumentInfo info, Revision baseRev, Revision toRev) : base ("Diff")
 		{
 			this.info = info;
-			widget = new DiffWidget ();
-			ComparisonWidget.SetVersionControlInfo (info);
+			widget = new DiffWidget (info);
 			
 			ComparisonWidget.OriginalEditor.Document.MimeType = ComparisonWidget.DiffEditor.Document.MimeType = info.Document.Editor.Document.MimeType;
 			ComparisonWidget.OriginalEditor.Options.FontName = ComparisonWidget.DiffEditor.Options.FontName = info.Document.Editor.Options.FontName;
@@ -193,16 +196,17 @@ namespace MonoDevelop.VersionControl.Views
 		#region IAttachableViewContent implementation
 		public void Selected ()
 		{
+			info.Start ();
 			ComparisonWidget.OriginalEditor.Document.IgnoreFoldings = true;
 			ComparisonWidget.OriginalEditor.Caret.Location = info.Document.Editor.Caret.Location;
-			ComparisonWidget.OriginalEditor.CenterToCaret ();
+			ComparisonWidget.OriginalEditor.VAdjustment.Value = info.Document.Editor.VAdjustment.Value;
 			ComparisonWidget.OriginalEditor.GrabFocus ();
 		}
 		
 		public void Deselected ()
 		{
 			info.Document.Editor.Caret.Location = ComparisonWidget.OriginalEditor.Caret.Location;
-			info.Document.Editor.CenterToCaret ();
+			info.Document.Editor.VAdjustment.Value = ComparisonWidget.OriginalEditor.VAdjustment.Value;
 			ComparisonWidget.OriginalEditor.Document.IgnoreFoldings = false;
 		}
 
