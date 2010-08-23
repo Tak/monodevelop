@@ -53,7 +53,7 @@ namespace MonoDevelop.SourceEditor
 		SourceEditorView view;
 		Dictionary<int, ErrorMarker> errors;
 		
-		Gdk.Point menuPopupLocation;
+		Cairo.Point menuPopupLocation;
 		
 		public ITextEditorExtension Extension {
 			get;
@@ -170,11 +170,11 @@ namespace MonoDevelop.SourceEditor
 		void OnPopupMenu (object sender, Gtk.ButtonPressEventArgs args)
 		{
 			if (args.Event.Button == 3) {
-				int textEditorXOffset = (int)args.Event.X - this.TextViewMargin.XOffset;
+				int textEditorXOffset = (int)args.Event.X - (int)this.TextViewMargin.XOffset;
 				if (textEditorXOffset < 0)
 					return;
-				this.menuPopupLocation = new Gdk.Point ((int)args.Event.X, (int)args.Event.Y);
-				DocumentLocation loc= this.TextViewMargin.VisualToDocumentLocation (textEditorXOffset, (int)args.Event.Y);
+				this.menuPopupLocation = new Cairo.Point ((int)args.Event.X, (int)args.Event.Y);
+				DocumentLocation loc= PointToLocation (textEditorXOffset, (int)args.Event.Y);
 				if (!this.IsSomethingSelected || !this.SelectionRange.Contains (Document.LocationToOffset (loc)))
 					Caret.Location = loc;
 				
@@ -204,8 +204,8 @@ namespace MonoDevelop.SourceEditor
 			try {
 				// Handle keyboard menu popup
 				if (evnt.Key == Gdk.Key.Menu || (evnt.Key == Gdk.Key.F10 && (evnt.State & Gdk.ModifierType.ShiftMask) == Gdk.ModifierType.ShiftMask)) {
-					this.menuPopupLocation = this.TextViewMargin.LocationToDisplayCoordinates (this.Caret.Location);
-					this.menuPopupLocation.Y += this.TextViewMargin.LineHeight;
+					this.menuPopupLocation = LocationToPoint (this.Caret.Location);
+					this.menuPopupLocation.Y += (int)this.TextViewMargin.LineHeight;
 					this.ShowPopup ();
 					return true;
 				}

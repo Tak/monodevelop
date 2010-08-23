@@ -166,6 +166,13 @@ namespace MonoDevelop.Ide.Gui
 		}
 		
 		/// <summary>
+		/// When set to <c>true</c>, opened documents will automatically be reloaded when a change in the underlying
+		/// file is detected (unless the document has unsaved changes)
+		/// </summary>
+		/// </value>
+		public bool AutoReloadDocuments { get; set; }
+		
+		/// <summary>
 		/// Whether the root window or any undocked part of it has toplevel focus. 
 		/// </summary>
 		public bool HasToplevelFocus {
@@ -592,7 +599,7 @@ namespace MonoDevelop.Ide.Gui
 			documents.Add (doc);
 			
 			doc.OnDocumentAttached ();
-			
+			OnDocumentOpened (new DocumentEventArgs (doc));
 			return doc;
 		}
 		
@@ -948,6 +955,15 @@ namespace MonoDevelop.Ide.Gui
 			public FilePath File;
 			public DateTime Time;
 		}
+		
+		protected virtual void OnDocumentOpened (DocumentEventArgs e)
+		{
+			EventHandler<DocumentEventArgs> handler = this.DocumentOpened;
+			if (handler != null)
+				handler (this, e);
+		}
+
+		public event EventHandler<DocumentEventArgs> DocumentOpened;
 	}
 	
 
@@ -1057,5 +1073,6 @@ namespace MonoDevelop.Ide.Gui
 			ipos.SetCaretTo (Math.Max(1, fileInfo.Line), Math.Max(1, fileInfo.Column), fileInfo.HighlightCaretLine);
 			return false;
 		}
+		
 	}
 }

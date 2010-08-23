@@ -73,22 +73,23 @@ namespace Mono.TextEditor
 				return;
 			}
 			
-			editor.Insert (offset, str);
-			offset += str.Length;
+			offset += editor.Insert (offset, str);
 		}
 		
 		public void Insert (TextEditor editor, string text)
 		{
 			int offset = editor.Document.LocationToOffset (Location);
 			editor.Document.BeginAtomicUndo ();
-			InsertNewLine (editor, LineBefore, ref offset);
+			text = editor.GetTextEditorData ().FormatString (Location, text);
+			
 			LineSegment line = editor.Document.GetLineByOffset (offset);
-			string indent = editor.Document.GetLineIndent (line) ?? "";
-			editor.Replace (line.Offset, indent.Length, text);
-			offset = line.Offset + text.Length;
+			
+			int insertionOffset = line.Offset;
+			offset = insertionOffset;
+			InsertNewLine (editor, LineBefore, ref offset);
+			
+			offset += editor.Insert (offset, text);
 			InsertNewLine (editor, LineAfter, ref offset);
-			if (!string.IsNullOrEmpty (indent))
-				editor.Insert (offset, indent);
 			editor.Document.EndAtomicUndo ();
 		}
 	}
@@ -179,14 +180,14 @@ namespace Mono.TextEditor
 				if (CurIndex > 0)
 					CurIndex--;
 				DocumentLocation loc = insertionPoints[CurIndex].Location;
-				editor.CenterTo (loc.Line - 1, 0);
+				editor.CenterTo (loc.Line - 1, DocumentLocation.MinColumn);
 				editor.QueueDraw ();
 				break;
 			case Gdk.Key.Down:
 				if (CurIndex < insertionPoints.Count - 1)
 					CurIndex++;
 				loc = insertionPoints[CurIndex].Location;
-				editor.CenterTo (loc.Line + 1, 0);
+				editor.CenterTo (loc.Line + 1, DocumentLocation.MinColumn);
 				editor.QueueDraw ();
 				break;
 				
@@ -244,7 +245,7 @@ namespace Mono.TextEditor
 				this.mode = mode;
 			}
 			
-			void DrawArrow (Cairo.Context g, int x, int y)
+			void DrawArrow (Cairo.Context g, double x, double y)
 			{
 				TextEditor editor = mode.editor;
 				double phi = 1.618;
@@ -264,71 +265,68 @@ namespace Mono.TextEditor
 				g.Fill ();
 			}
 			
-			public override void Draw (Gdk.Drawable drawable, Gdk.Rectangle area)
+			public override void Draw (Cairo.Context cr, Cairo.Rectangle erea)
 			{
 				TextEditor editor = mode.editor;
-				int y = editor.LineToVisualY (mode.CurrentInsertionPoint.Line) - (int)editor.VAdjustment.Value; 
-				using (var g = Gdk.CairoHelper.Create (drawable)) {
-					g.LineWidth = System.Math.Min (1, editor.Options.Zoom);
-					LineSegment lineAbove = editor.Document.GetLine (mode.CurrentInsertionPoint.Line - 1);
-					LineSegment lineBelow = editor.Document.GetLine (mode.CurrentInsertionPoint.Line);
+				double y = editor.LineToY (mode.CurrentInsertionPoint.Line) - editor.VAdjustment.Value; 
+				LineSegment lineAbove = editor.Document.GetLine (mode.CurrentInsertionPoint.Line - 1);
+				LineSegment lineBelow = editor.Document.GetLine (mode.CurrentInsertionPoint.Line);
+				
+				double aboveStart = 0, aboveEnd = editor.TextViewMargin.XOffset;
+				double belowStart = 0, belowEnd = editor.TextViewMargin.XOffset;
+				int l = 0, tmp;
+				if (lineAbove != null) {
+					var wrapper = editor.TextViewMargin.GetLayout (lineAbove);
+					wrapper.Layout.IndexToLineX (lineAbove.GetIndentation (editor.Document).Length, true, out l, out tmp);
+					aboveStart = tmp / Pango.Scale.PangoScale;
+					aboveEnd = wrapper.PangoWidth / Pango.Scale.PangoScale;
 					
-					int aboveStart = 0, aboveEnd = editor.TextViewMargin.XOffset;
-					int belowStart = 0, belowEnd = editor.TextViewMargin.XOffset;
-					int l = 0;
-					if (lineAbove != null) {
-						var wrapper = editor.TextViewMargin.GetLayout (lineAbove);
-						wrapper.Layout.IndexToLineX (lineAbove.GetIndentation (editor.Document).Length, true, out l, out aboveStart);
-						aboveStart = (int)(aboveStart / Pango.Scale.PangoScale);
-						aboveEnd = (int)(wrapper.PangoWidth / Pango.Scale.PangoScale);
-						
-						if (wrapper.IsUncached)
-							wrapper.Dispose ();
-					}
-					if (lineBelow != null) {
-						var wrapper = editor.TextViewMargin.GetLayout (lineBelow);
-						int index = lineAbove.GetIndentation (editor.Document).Length;
-						if (index == 0) {
-							belowStart = 0;
-						} else if (index >= lineBelow.EditableLength) {
-							belowStart = wrapper.PangoWidth;
-						} else {
-							wrapper.Layout.IndexToLineX (index, true, out l, out belowStart);
-						}
-						
-						belowStart = (int)(belowStart / Pango.Scale.PangoScale);
-						belowEnd = (int)(wrapper.PangoWidth / Pango.Scale.PangoScale);
-						if (wrapper.IsUncached)
-							wrapper.Dispose ();
-					}
-					
-					int d = editor.LineHeight / 3;
-					int x1 = editor.TextViewMargin.XOffset - (int)editor.HAdjustment.Value;
-					int x2 = x1;
-					if (aboveStart < belowEnd) {
-						x1 += aboveStart;
-						x2 += belowEnd;
-					} else if (aboveStart > belowEnd) {
-						d *= -1;
-						x1 += belowEnd;
-						x2 += aboveStart;
-					} else {
-						x1 += System.Math.Min (aboveStart, belowStart);
-						x2 += System.Math.Max (aboveEnd, belowEnd);
-						if (x1 == x2)
-							x2 += 50;
-					}
-					
-					g.MoveTo (x1, y + d);
-					g.LineTo (x1, y);
-					g.LineTo (x2, y);
-					g.LineTo (x2, y - d);
-					
-					g.Color = new Cairo.Color (1.0, 0, 0);
-					g.Stroke ();
-					
-					DrawArrow (g, x1 - 4, y);
+					if (wrapper.IsUncached)
+						wrapper.Dispose ();
 				}
+				if (lineBelow != null) {
+					var wrapper = editor.TextViewMargin.GetLayout (lineBelow);
+					int index = lineAbove.GetIndentation (editor.Document).Length;
+					if (index == 0) {
+						tmp = 0;
+					} else if (index >= lineBelow.EditableLength) {
+						tmp = wrapper.PangoWidth;
+					} else {
+						wrapper.Layout.IndexToLineX (index, true, out l, out tmp);
+					}
+					
+					belowStart = tmp / Pango.Scale.PangoScale;
+					belowEnd = wrapper.PangoWidth / Pango.Scale.PangoScale;
+					if (wrapper.IsUncached)
+						wrapper.Dispose ();
+				}
+					
+				double d = editor.LineHeight / 3;
+				double x1 = editor.TextViewMargin.XOffset - editor.HAdjustment.Value;
+				double x2 = x1;
+				if (aboveStart < belowEnd) {
+					x1 += aboveStart;
+					x2 += belowEnd;
+				} else if (aboveStart > belowEnd) {
+					d *= -1;
+					x1 += belowEnd;
+					x2 += aboveStart;
+				} else {
+					x1 += System.Math.Min (aboveStart, belowStart);
+					x2 += System.Math.Max (aboveEnd, belowEnd);
+					if (x1 == x2)
+						x2 += 50;
+				}
+				
+				cr.MoveTo (x1, y + d);
+				cr.LineTo (x1, y);
+				cr.LineTo (x2, y);
+				cr.LineTo (x2, y - d);
+				
+				cr.Color = new Cairo.Color (1.0, 0, 0);
+				cr.Stroke ();
+				
+				DrawArrow (cr, x1 - 4, y);
 			}
 		}
 	}

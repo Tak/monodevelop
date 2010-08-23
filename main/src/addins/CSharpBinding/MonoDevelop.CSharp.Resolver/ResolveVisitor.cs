@@ -156,8 +156,27 @@ namespace MonoDevelop.CSharp.Resolver
 		{
 			if (collectionInitializerExpression.CreateExpressions.Count == 0)
 				return null;
-			DomReturnType type = (DomReturnType)ResolveType (collectionInitializerExpression.CreateExpressions[0]);
-			type.ArrayDimensions++;
+			DomReturnType type = null;
+			IType typeObject = null;
+			
+			for (int i = 0; i < collectionInitializerExpression.CreateExpressions.Count; i++) {
+				DomReturnType curType = (DomReturnType)ResolveType (collectionInitializerExpression.CreateExpressions[i]);
+				// if we found object or we have only one create expression we can stop
+				if (curType.DecoratedFullName == DomReturnType.Object.DecoratedFullName || collectionInitializerExpression.CreateExpressions.Count == 1) {
+					type = curType;
+					break;
+				}
+				IType curTypeObject = resolver.Dom.GetType (curType);
+				if (curTypeObject == null)
+					continue;
+				if (type == null || resolver.Dom.GetInheritanceTree (typeObject).Any (t => t.DecoratedFullName == curTypeObject.DecoratedFullName)) {
+					type = curType;
+					typeObject = curTypeObject;
+				}
+			}
+			
+			if (type != null)
+				type.ArrayDimensions++;
 			return CreateResult (type);
 		}
 		
@@ -207,6 +226,11 @@ namespace MonoDevelop.CSharp.Resolver
 			return Resolve (unaryOperatorExpression.Expression);
 		}
 		
+		public override object VisitDefaultValueExpression (DefaultValueExpression defaultValueExpression, object data)
+		{
+			return CreateResult (defaultValueExpression.TypeReference);
+		}
+		
 		public override object VisitIndexerExpression(IndexerExpression indexerExpression, object data)
 		{
 			if (indexerExpression.Indexes == null || indexerExpression.Indexes.Count == 0)
@@ -215,7 +239,6 @@ namespace MonoDevelop.CSharp.Resolver
 			
 			if (result.ResolvedType != null && result.ResolvedType.ArrayDimensions > 0) {
 				((DomReturnType)result.ResolvedType).ArrayDimensions--;
-				((DomReturnType)result.ResolvedType).Type = null; // underlying type has >always< changed
 				return CreateResult (result.ResolvedType);
 			}
 			
@@ -258,7 +281,7 @@ namespace MonoDevelop.CSharp.Resolver
 				foreach (Expression expr in initializer.CreateExpressions) {
 					var oldPos = resolver.ResolvePosition;
 					if (!expr.StartLocation.IsEmpty)
-						resolver.resolvePosition = new DomLocation (expr.StartLocation.Line + resolver.CallingMember.Location.Line - 1, expr.StartLocation.Column - 1);
+						resolver.resolvePosition = new DomLocation (expr.StartLocation.Line + resolver.CallingMember.Location.Line, expr.StartLocation.Column);
 					DomProperty newProperty = new DomProperty (GetAnonymousTypeFieldName (expr), MonoDevelop.Projects.Dom.Modifiers.Public, DomLocation.Empty, DomRegion.Empty, ResolveType (expr));
 					newProperty.DeclaringType = result;
 					result.Add (newProperty);

@@ -80,11 +80,12 @@ namespace MonoDevelop.DocFood
 			
 			int offset = textEditorData.Caret.Offset;
 			textEditorData.Document.EndAtomicUndo ();
-			textEditorData.Insert (offset, documentationEmpty);
-			textEditorData.Caret.Offset = offset + documentationEmpty.Length;
+			int insertedLength = textEditorData.Insert (offset, documentationEmpty);
+			// important to set the caret position here for the undo step
+			textEditorData.Caret.Offset = offset + insertedLength;
 			textEditorData.Document.BeginAtomicUndo ();
-			textEditorData.Replace (offset, documentationEmpty.Length, documentation);
-			textEditorData.Caret.Offset = offset + documentation.Length;
+			insertedLength = textEditorData.Replace (offset, insertedLength, documentation);
+			textEditorData.Caret.Offset = offset + insertedLength;
 			return false;
 		}
 		
@@ -96,7 +97,7 @@ namespace MonoDevelop.DocFood
 				return null;
 			IMember result = null;
 			foreach (IMember member in type.Members) {
-				if (member.Location > new DomLocation (textEditorData.Caret.Line + 1, textEditorData.Caret.Column + 1) && (result == null || member.Location < result.Location))
+				if (member.Location > new DomLocation (textEditorData.Caret.Line, textEditorData.Caret.Column) && (result == null || member.Location < result.Location))
 					result = member;
 			}
 			return result;

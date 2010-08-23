@@ -83,8 +83,16 @@ namespace MonoDevelop.Refactoring.Tests
 						insertBefore = NewLineInsertion.Eol;
 						insertAfter = NewLineInsertion.BlankLine;
 						break;
+					case 'T':
+						insertBefore = NewLineInsertion.None;
+						insertAfter = NewLineInsertion.BlankLine;
+						break;
 					case 'v':
 						insertBefore = NewLineInsertion.BlankLine;
+						insertAfter = NewLineInsertion.Eol;
+						break;
+					case 'V':
+						insertBefore = NewLineInsertion.None;
 						insertAfter = NewLineInsertion.Eol;
 						break;
 					default:
@@ -102,7 +110,6 @@ namespace MonoDevelop.Refactoring.Tests
 			var foundPoints = HelperMethods.GetInsertionPoints (data.Document, parseResult.CompilationUnit.Types[0]);
 			Assert.AreEqual (loc.Count, foundPoints.Count, "point count doesn't match");
 			for (int i = 0; i < loc.Count; i++) {
-				Console.WriteLine (loc[i] + "/" + foundPoints[i]);
 				Assert.AreEqual (loc[i].Location, foundPoints[i].Location, "point " + i + " doesn't match");
 				Assert.AreEqual (loc[i].LineAfter, foundPoints[i].LineAfter, "point " + i + " ShouldInsertNewLineAfter doesn't match");
 				Assert.AreEqual (loc[i].LineBefore, foundPoints[i].LineBefore, "point " + i + " ShouldInsertNewLineBefore doesn't match");
@@ -139,20 +146,16 @@ class Test
 		}
 		
 		
-		[Test()]
 		public void TestBasicInsertionPointWithoutEmpty ()
 		{
 			TestInsertionPoints (@"
 class Test {
-	@Dvoid TestMe ()
+	@Tvoid TestMe ()
 	{
 	}
-@v}
+@V}
 ");
 		}
-
-		
-		
 		
 		[Test()]
 		public void TestBasicInsertionPointOneLineCase ()
@@ -218,7 +221,7 @@ class Test {
 	@Dstatic void A ()
 	{
 	}
-	@Sstatic void B ()
+	@tstatic void B ()
 	{
 	}
 	
@@ -226,12 +229,12 @@ class Test {
 	{
 		System.Console.WriteLine ();
 	}
-	@Sint g;
-	@Sint i;
+	@tint g;
+	@tint i;
 	
 	@Dint j;
-	@Spublic delegate void Del(int a);
-@v}
+	@tpublic delegate void Del(int a);
+@s}
 ");
 		}
 

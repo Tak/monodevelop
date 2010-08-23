@@ -167,16 +167,8 @@ namespace MonoDevelop.CSharp.Refactoring
 				return;
 			
 			// search if the member name exists in the file (otherwise it doesn't make sense to search it)
-			FindReplace findReplace = new FindReplace ();
-			FilterOptions filterOptions = new FilterOptions {
-				CaseSensitive = true,
-				WholeWordsOnly = true
-			};
-			findReplace.CompilePattern (searchedMemberName, filterOptions);
-			IEnumerable<SearchResult> result = findReplace.Search (new FileProvider (null), text.Text, searchedMemberName, null, filterOptions);
-			if (result == null || !result.Any ()) {
+			if (!text.SearchForward (searchedMemberName, 0).Any ())
 				return;
-			}
 			
 			string parseText = text.Text;
 			ICSharpCode.NRefactory.IParser parser = ICSharpCode.NRefactory.ParserFactory.CreateParser (ICSharpCode.NRefactory.SupportedLanguage.CSharp, new StringReader (parseText));
@@ -255,7 +247,6 @@ namespace MonoDevelop.CSharp.Refactoring
 				CaseSensitive = true,
 				WholeWordsOnly = true
 			};
-			findReplace.CompilePattern (searchedMemberName, filterOptions);
 			IEnumerable<SearchResult> result = findReplace.Search (new FileProvider (null), text.Text, searchedMemberName, null, filterOptions);
 			if (result == null || !result.Any ()) {
 				return;
@@ -335,9 +326,10 @@ namespace MonoDevelop.CSharp.Refactoring
 		
 		MemberReference CreateReference (int line, int col, string name)
 		{
-			int pos = text.LocationToOffset (line - 1, col - 1);
-			int spos = text.LocationToOffset (line - 1, 0);
-			int epos = text.LocationToOffset (line, 0);
+			Console.WriteLine ("create ref: "+ line +"/"+ col + name);
+			int pos = text.LocationToOffset (line, col);
+			int spos = text.LocationToOffset (line, 1);
+			int epos = text.LocationToOffset (line + 1, 1);
 			if (epos == -1) epos = text.Length - 1;
 			
 			string txt;
@@ -402,7 +394,7 @@ namespace MonoDevelop.CSharp.Refactoring
 		
 		bool SearchText (string text, int startLine, int startColumn, out int line, out int column)
 		{
-			int position = this.text.LocationToOffset (startLine - 1, startColumn - 1);
+			int position = this.text.LocationToOffset (startLine, startColumn);
 			line = column = -1;
 			if (position < 0)
 				return false;
@@ -414,8 +406,8 @@ namespace MonoDevelop.CSharp.Refactoring
 				    (position + searchedMemberName.Length >= this.text.Length  || !IsIdentifierPart (this.text.GetCharAt (position + searchedMemberName.Length))) &&
 				    (this.text.GetTextAt (position, searchedMemberName.Length) == searchedMemberName)) { 
 					var location = this.text.OffsetToLocation (position);
-					line = location.Line + 1;
-					column = location.Column + 1;
+					line = location.Line;
+					column = location.Column;
 					return true;
 				}
 				position ++;
@@ -425,7 +417,7 @@ namespace MonoDevelop.CSharp.Refactoring
 		
 		bool IsSearchTextAt (int startLine, int startColumn)
 		{
-			int position = this.text.LocationToOffset (startLine - 1, startColumn - 1);
+			int position = this.text.LocationToOffset (startLine, startColumn);
 			
 			if ((position == 0 || !IsIdentifierPart (this.text.GetCharAt (position - 1))) && 
 			    (position + searchedMemberName.Length >= this.text.Length  || !IsIdentifierPart (this.text.GetCharAt (position + searchedMemberName.Length))) &&
@@ -480,7 +472,7 @@ namespace MonoDevelop.CSharp.Refactoring
 				if (((IType)this.searchedMember).Parts.Any (t => t.CompilationUnit.FileName == fileName) &&
 				    ((IType)this.searchedMember).FullName == CurrentTypeFullName && 
 				    ((IType)this.searchedMember).TypeParameters.Count == typeStack.Peek ().Templates.Count && 
-				    IsSearchTextAt (destructorDeclaration.StartLocation.Line, destructorDeclaration.StartLocation.Column + 1))
+				    IsSearchTextAt (destructorDeclaration.StartLocation.Line, destructorDeclaration.StartLocation.Column + 1)) // need to skip the '~'
 					AddUniqueReference (destructorDeclaration.StartLocation.Line, destructorDeclaration.StartLocation.Column + 1, this.searchedMemberName);
 			}
 			
@@ -727,8 +719,8 @@ namespace MonoDevelop.CSharp.Refactoring
 				}
 				IType cls = resolveResult != null ? resolver.Dom.GetType (resolveResult.ResolvedType) : null;
 				if (cls != null) {
-					int pos = text.LocationToOffset (fieldExp.StartLocation.Y - 1, fieldExp.StartLocation.X - 1);
-					int endpos = text.LocationToOffset (fieldExp.EndLocation.Y - 1, fieldExp.EndLocation.X - 1);
+					int pos = text.LocationToOffset (fieldExp.StartLocation.Y, fieldExp.StartLocation.X);
+					int endpos = text.LocationToOffset (fieldExp.EndLocation.Y, fieldExp.EndLocation.X);
 					string txt = text.GetTextBetween (pos, endpos);
 					if (txt == searchedMemberName) {
 						int line, column;

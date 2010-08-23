@@ -105,6 +105,10 @@ namespace MonoDevelop.Components
 		Pango.Layout layout;
 		Pango.AttrList boldAtts = new Pango.AttrList ();
 		
+		//HACK: a surrogate widget object to pass to style calls instead of "this" when using "button" hint.
+		// This avoids GTK-Criticals in themes which try to cast the widget object to a button.
+		Gtk.Button styleButton = new Gtk.Button ();
+		
 		int[] leftWidths, rightWidths;
 		int height;
 		
@@ -186,7 +190,7 @@ namespace MonoDevelop.Components
 			//FIXME: we can't use the style's actual internal padding because GTK# hasn't wrapped GtkBorder AFAICT
 			// (default-border, inner-border, default-outside-border, etc - see http://git.gnome.org/browse/gtk+/tree/gtk/gtkbutton.c)
 			const int boxpadding = 4;
-			Style.PaintBox (Style, evnt.Window, StateType.Normal, ShadowType.None, evnt.Area, this, "button", 
+			Style.PaintBox (Style, evnt.Window, StateType.Normal, ShadowType.None, evnt.Area, styleButton, "button", 
 			                - boxpadding, - padding, Allocation.Width + boxpadding * 2, Allocation.Height + boxpadding * 2);
 			
 			if (leftWidths == null || rightWidths == null)
@@ -204,7 +208,7 @@ namespace MonoDevelop.Components
 					Style.PaintBox (Style, GdkWindow,
 					                (pressed || menuVisible)? StateType.Active : StateType.Prelight,
 					                (pressed || menuVisible)? ShadowType.In : ShadowType.Out,
-					                evnt.Area, this, "button",
+					                evnt.Area, styleButton, "button",
 					                x - padding, ypos - padding, leftWidths[i] + padding + padding /*+ (last ? padding : spacing)*/,
 					                height + padding * 2);
 				}
@@ -315,7 +319,6 @@ namespace MonoDevelop.Components
 		{
 			if (Path[hoverIndex].Position == EntryPosition.Left) {
 				int idx = leftPath.TakeWhile (p => p != Path[hoverIndex]).Count ();
-				Console.WriteLine ("lidx={0}", idx);
 				
 				if (idx >= 0) {
 					w = leftWidths[idx];
@@ -489,6 +492,12 @@ namespace MonoDevelop.Components
 		{
 			base.Dispose ();
 			KillLayout ();
+		}
+		
+		public override void Destroy ()
+		{
+			base.Destroy ();
+			styleButton.Destroy ();
 		}
 	}
 }

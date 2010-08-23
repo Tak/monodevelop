@@ -1380,11 +1380,13 @@ namespace MonoDevelop.Ide
 			}
 			
 			// If copying a single file, bring any grouped children along
+			ProjectFile sourceParent = null;
 			if (filesToMove.Count == 1 && sourceProject != null) {
 				var pf = filesToMove[0];
 				if (pf != null && pf.HasChildren)
 					foreach (ProjectFile child in pf.DependentChildren)
 						filesToMove.Add (child);
+				sourceParent = pf;
 			}
 			
 			// Ensure that the destination folder is created, even if no files
@@ -1409,16 +1411,20 @@ namespace MonoDevelop.Ide
 					return;
 				}
 			}
-
+			
 			monitor.BeginTask (GettextCatalog.GetString ("Copying files..."), filesToMove.Count);
 			
+			ProjectFile targetParent = null;
 			foreach (ProjectFile file in filesToMove) {
 				bool fileIsLink = file.Project != null && file.IsLink;
 				
 				var sourceFile = fileIsLink
 					? file.Project.BaseDirectory.Combine (file.ProjectVirtualPath)
 					: file.FilePath;
-				var newFile = sourceIsFolder ? targetPath.Combine (sourceFile.ToRelative (sourcePath)) : targetPath;
+				
+				var newFile = sourceIsFolder
+					? targetPath.Combine (sourceFile.ToRelative (sourcePath)) 
+					: targetPath.ParentDirectory.Combine (sourceFile.ToRelative (sourcePath.ParentDirectory));
 				
 				if (!movingFolder && !fileIsLink) {
 					try {
@@ -1453,6 +1459,13 @@ namespace MonoDevelop.Ide
 					} else if (targetProject.Files.GetFile (newFile) == null) {
 						ProjectFile projectFile = (ProjectFile) file.Clone ();
 						projectFile.Name = newFile;
+						if (targetParent == null) {
+							if (file == sourceParent)
+								targetParent = file;
+						} else if (sourceParent != null) {
+							if (projectFile.DependsOn == sourceParent.Name)
+								projectFile.DependsOn = targetParent.Name;
+						}
 						targetProject.Files.Add (projectFile);
 					}
 				}
@@ -1615,14 +1628,14 @@ namespace MonoDevelop.Ide
 			
 			public int GetPositionFromLineColumn (int line, int column)
 			{
-				return data.Document.LocationToOffset (line - 1, column - 1);
+				return data.Document.LocationToOffset (line, column);
 			}
 			
 			public void GetLineColumnFromPosition (int position, out int line, out int column)
 			{
 				var loc = data.Document.OffsetToLocation (position);
-				line = loc.Line + 1;
-				column = loc.Column + 1;
+				line = loc.Line;
+				column = loc.Column;
 			}
 			
 			public int InsertText (int position, string text)

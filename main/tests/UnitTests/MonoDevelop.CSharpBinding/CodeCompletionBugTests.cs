@@ -100,7 +100,7 @@ namespace MonoDevelop.CSharpBinding.Tests
 			int line, column;
 			sev.GetLineColumnFromPosition (sev.CursorPosition, out line, out column);
 			ctx.TriggerLine = line;
-			ctx.TriggerLineOffset = column;
+			ctx.TriggerLineOffset = column - 1;
 			
 			if (isCtrlSpace)
 				return textEditorCompletion.CodeCompletionCommand (ctx) as CompletionDataList;
@@ -2672,5 +2672,70 @@ class Test : TestBase
 			Assert.IsNotNull (provider.Find ("Bar"), "class 'Bar' not found.");
 		}
 		
+		
+		/// <summary>
+		/// Bug 631875 - No Intellisense for arrays
+		/// </summary>
+		[Test()]
+		public void TestBug631875 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"class C
+{
+	static void Main ()
+	{
+		var objects = new[] { new { X = (object)null }};
+		$objects[0].$
+	}
+}
+");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("X"), "property 'X' not found.");
+		}
+		
+		/// <summary>
+		/// Bug 632228 - Wrong var inference
+		/// </summary>
+		[Test()]
+		public void TestBug632228 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"
+class C {
+	public void FooBar () {}
+	public static void Main ()
+	{
+		var thingToTest = new[] { new C (), 22, new object(), string.Empty, null };
+		$thingToTest[0].$
+	}
+}
+");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNull (provider.Find ("FooBar"), "method 'FooBar' found, but shouldn't.");
+		}
+
+		/// <summary>
+		/// Bug 632696 - No intellisense for constraints
+		/// </summary>
+		[Test()]
+		public void TestBug632696 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"
+class Program
+{
+	void Foo ()
+	{
+	}
+
+	static void Foo<T> () where T : Program
+	{
+		var s = new[] { default(T) };
+		$s[0].$
+	}
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("Foo"), "method 'Foo' not found.");
+		}
 	}
 }

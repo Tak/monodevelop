@@ -35,8 +35,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Text;
 using MonoDevelop.Core;
-using MonoDevelop.Ide;
-using MonoDevelop.Ide.Gui;
+using MonoDevelop.Projects;
 
 namespace MonoDevelop.Gettext
 {
@@ -722,19 +721,20 @@ namespace MonoDevelop.Gettext
 		// Creates new, empty header. Sets Charset to something meaningful ("UTF-8", currently).
 		void CreateNewHeaders (TranslationProject project)
 		{
+			if (project == null)
+				return;
 			RevisionDate = CreationDate = Catalog.GetDateTimeRfc822Format ();
 			
 			Language = Country = Project = Team = TeamEmail = "";
 			
 			Charset = "utf-8";
-			AuthorInformation userInfo = IdeApp.Workspace.GetAuthorInformation (project);       
+			AuthorInformation userInfo = project.AuthorInformation;
 			Translator = userInfo.Name;
 			TranslatorEmail = userInfo.Email;
 			
 			//dt.SourceCodeCharset = String.Empty;
 			UpdateHeaderDict ();
 		}
-		
 		
 		// Initializes the headers from string that is in msgid "" format (i.e. list of key:value\n entries).
 		public void ParseHeaderString (string headers)

@@ -311,6 +311,12 @@ namespace MonoDevelop.Ide.CodeCompletion
 		string NoSuggestionsMsg {
 			get { return MonoDevelop.Core.GettextCatalog.GetString ("No suggestions"); }
 		}
+
+		Gdk.Color HighlightColor {
+			get {
+				return (Gdk.Color)Mono.TextEditor.HslColor.GenerateHighlightColors (Style.Base (State), Style.Text (State), 3)[2];
+			}
+		}
 		
 		protected override bool OnExposeEvent (Gdk.EventExpose args)
 		{
@@ -337,18 +343,20 @@ namespace MonoDevelop.Ide.CodeCompletion
 				Gdk.GC gc = new Gdk.GC (window);
 				gc.RgbFgColor = new Gdk.Color (0xff, 0xbc, 0xc1);
 				window.DrawRectangle (gc, true, 0, yPos, width, height - yPos);
-				gc.Dispose ();
 				layout.SetText (win.DataProvider.ItemCount == 0? NoSuggestionsMsg : NoMatchesMsg);
 				int lWidth, lHeight;
 				layout.GetPixelSize (out lWidth, out lHeight);
-				window.DrawLayout (this.Style.TextGC (StateType.Normal), (width - lWidth) / 2, yPos + (height - lHeight - yPos) / 2, layout);
+				gc.RgbFgColor = new Gdk.Color (0, 0, 0);
+				window.DrawLayout (gc, (width - lWidth) / 2, yPos + (height - lHeight - yPos) / 2, layout);
+				gc.Dispose ();
 				return true;
 			}
 			
 			var textGCInsensitive = this.Style.TextGC (StateType.Insensitive);
 			var textGCNormal = this.Style.TextGC (StateType.Normal);
 			var fgGCNormal = this.Style.ForegroundGC (StateType.Normal);
-			
+			var matcher = CompletionMatcher.CreateCompletionMatcher (CompletionString);
+			var highlightColor = HighlightColor;
 			Iterate (true, ref yPos, delegate (Category category, int ypos) {
 				if (ypos >= height - margin)
 					return;
@@ -394,12 +402,12 @@ namespace MonoDevelop.Ide.CodeCompletion
 				string text = win.DataProvider.GetText (itemIndex);
 				
 				if ((!SelectionEnabled || item != selection) && !string.IsNullOrEmpty (text)) {
-					int[] matchIndices = Match (CompletionString, text);
+					int[] matchIndices = matcher.GetMatch (text);
 					if (matchIndices != null) {
 						Pango.AttrList attrList = layout.Attributes ?? new Pango.AttrList ();
 						for (int newSelection = 0; newSelection < matchIndices.Length; newSelection++) {
 							int idx = matchIndices[newSelection];
-							Pango.AttrForeground fg = new Pango.AttrForeground (0, 0, ushort.MaxValue);
+							Pango.AttrForeground fg = new Pango.AttrForeground (highlightColor.Red, highlightColor.Green, highlightColor.Blue);
 							fg.StartIndex = (uint)idx;
 							fg.EndIndex = (uint)(idx + 1);
 							attrList.Insert (fg);
@@ -516,70 +524,6 @@ namespace MonoDevelop.Ide.CodeCompletion
 		
 		internal List<int> filteredItems = new List<int> ();
 		
-		internal static int[] Match (string filterText, string text)
-		{
-			if (string.IsNullOrEmpty (filterText))
-				return new int[0];
-			if (string.IsNullOrEmpty (text))
-				return null;
-			List<int> matchIndices = new List<int> ();
-			bool wasMatch = false;
-			int itemIndex = 0;
-			
-			for (int newSelection = 0; newSelection < text.Length && itemIndex < filterText.Length; newSelection++) {
-				char ch1 = char.ToUpper (text[newSelection]);
-				char ch2 = char.ToUpper (filterText[itemIndex]);
-				bool ch1IsUpper = char.IsUpper (text[newSelection]);
-				bool ch2IsUpper = char.IsUpper (filterText[itemIndex]);
-				
-				if (ch1 == ch2 && !(!ch1IsUpper && ch2IsUpper)) {
-					itemIndex++;
-					matchIndices.Add (newSelection);
-					wasMatch = true;
-					continue;
-				} else {
-					for (; newSelection < text.Length; newSelection++) {
-						if (char.IsUpper (text[newSelection]) /*&& newSelection + 1 < text.Length && (!char.IsUpper (text[newSelection + 1]) || !char.IsLetter (text[newSelection + 1]))*/ && ch2 == text[newSelection]) {
-							matchIndices.Add (newSelection);
-							itemIndex++;
-							wasMatch = true;
-							break;
-						}
-					}
-					if (wasMatch)
-						continue;
-				}
-				
-				if ((char.IsPunctuation (ch2) || char.IsWhiteSpace (ch2))) {
-					wasMatch = false;
-					break;
-				}
-				
-				if (wasMatch) {
-					wasMatch = false;
-					bool match = false;
-					for (; newSelection < text.Length; newSelection++) {
-						if (ch2 == text[newSelection]) {
-							newSelection--;
-							match = true;
-							break;
-						}
-					}
-					if (match)
-						continue;
-				}
-				break;
-			}
-			
-			return itemIndex == filterText.Length ? matchIndices.ToArray () : null;
-		}
-		
-				
-		public static bool Matches (string filterText, string text)
-		{
-			return Match (filterText, text) != null;
-		}
-		
 		Category GetCategory (CompletionCategory completionCategory)
 		{
 			foreach (Category cat in categories) {
@@ -600,8 +544,9 @@ namespace MonoDevelop.Ide.CodeCompletion
 		{
 			filteredItems.Clear ();
 			categories.Clear ();
+			var matcher = CompletionMatcher.CreateCompletionMatcher (CompletionString);
 			for (int newSelection = 0; newSelection < win.DataProvider.ItemCount; newSelection++) {
-				if (string.IsNullOrEmpty (CompletionString) || Matches (CompletionString, win.DataProvider.GetText (newSelection))) {
+				if (string.IsNullOrEmpty (CompletionString) || matcher.IsMatch (win.DataProvider.GetText (newSelection))) {
 					CompletionCategory completionCategory = win.DataProvider.GetCompletionCategory (newSelection);
 					GetCategory (completionCategory).Items.Add (filteredItems.Count);
 					filteredItems.Add (newSelection);

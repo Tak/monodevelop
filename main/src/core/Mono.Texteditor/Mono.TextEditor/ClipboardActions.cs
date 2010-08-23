@@ -127,16 +127,14 @@ namespace Mono.TextEditor
 				List<Gdk.Color> colorList = new List<Gdk.Color> ();
 	
 				ISegment selection = new Segment (0, doc.Length);
-				LineSegment line    = doc.GetLineByOffset (selection.Offset);
-				LineSegment endLine = doc.GetLineByOffset (selection.EndOffset);
+				int startLineNumber = doc.OffsetToLineNumber (selection.Offset);
+				int endLineNumber   = doc.OffsetToLineNumber (selection.EndOffset);
 				
-				RedBlackTree<LineSegmentTree.TreeNode>.RedBlackTreeIterator iter = line.Iter;
 				bool isItalic = false;
 				bool isBold   = false;
 				int curColor  = -1;
-				do {
+				foreach (var line in doc.GetLinesBetween (startLineNumber, endLineNumber)) {
 					bool appendSpace = false;
-					line = iter.Current;
 					for (Chunk chunk = mode.GetChunks (doc, style, line, line.Offset, line.EditableLength); chunk != null; chunk = chunk.Next) {
 						int start = System.Math.Max (selection.Offset, chunk.Offset);
 						int end   = System.Math.Min (chunk.EndOffset, selection.EndOffset);
@@ -188,11 +186,9 @@ namespace Mono.TextEditor
 							}
 						}
 					}
-					if (line == endLine)
-						break;
 					rtfText.Append (@"\par");
 					rtfText.AppendLine ();
-				} while (iter.MoveNext ());
+				}
 				
 				// color table
 				StringBuilder colorTable = new StringBuilder ();
@@ -208,7 +204,6 @@ namespace Mono.TextEditor
 					colorTable.Append (";");
 				}
 				colorTable.Append ("}");
-				
 				
 				StringBuilder rtf = new StringBuilder();
 				rtf.Append (@"{\rtf1\ansi\deff0\adeflang1025");
@@ -264,7 +259,7 @@ namespace Mono.TextEditor
 						LineSegment line = data.Document.GetLineByOffset (segment.Offset);
 						var spanStack = line.StartSpan.Clone ();
 						SyntaxModeService.ScanSpans (data.Document, this.mode, this.mode, spanStack, line.Offset, segment.Offset);
-						this.copiedDocument.GetLine (0).StartSpan = spanStack;
+						this.copiedDocument.GetLine (DocumentLocation.MinLine).StartSpan = spanStack;
 						break;
 					case SelectionMode.Block:
 						isBlockMode = true;
@@ -290,7 +285,7 @@ namespace Mono.TextEditor
 						line    = data.Document.GetLine (selection.MinLine);
 						spanStack = line.StartSpan.Clone ();
 						SyntaxModeService.ScanSpans (data.Document, this.mode, this.mode, spanStack, line.Offset, line.Offset + startCol);
-						this.copiedDocument.GetLine (0).StartSpan = spanStack;
+						this.copiedDocument.GetLine (DocumentLocation.MinLine).StartSpan = spanStack;
 						break;
 					}
 				} else {
@@ -305,7 +300,7 @@ namespace Mono.TextEditor
 				if (data.IsSomethingSelected) {
 					selection = data.MainSelection;
 				} else {
-					selection = new Selection (new DocumentLocation (data.Caret.Line, 0), new DocumentLocation (data.Caret.Line, data.Document.GetLine (data.Caret.Line).Length));
+					selection = new Selection (new DocumentLocation (data.Caret.Line, DocumentLocation.MinColumn), new DocumentLocation (data.Caret.Line, data.Document.GetLine (data.Caret.Line).Length));
 				}
 				CopyData (data, selection);
 				
@@ -368,7 +363,7 @@ namespace Mono.TextEditor
 							curLine = data.Document.GetLine (lineNr + i);
 							if (lines[i].Length > 0) {
 								lineCol = curLine.GetLogicalColumn (data, visCol);
-								if (curLine.EditableLength < lineCol) {
+								if (curLine.EditableLength + 1 < lineCol) {
 									result += lineCol - curLine.EditableLength;
 									data.Insert (curLine.Offset + curLine.EditableLength, new string (' ', lineCol - curLine.EditableLength));
 								}
@@ -469,7 +464,7 @@ namespace Mono.TextEditor
 			if (!data.CanEditSelection)
 				return;
 			LineSegment line = data.Document.GetLine (data.Caret.Line);
-			if (data.Caret.Column > line.EditableLength) {
+			if (data.Caret.Column > line.EditableLength + 1) {
 				string text = data.GetVirtualSpaces (data.Caret.Line, data.Caret.Column);
 				int offset = data.Caret.Offset;
 				int textLength = data.Insert (offset, text);

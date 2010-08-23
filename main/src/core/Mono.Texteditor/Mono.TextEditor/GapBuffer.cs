@@ -58,6 +58,11 @@ namespace Mono.TextEditor
 			Replace (offset, count, null);
 		}
 		
+		public void Remove (ISegment segment)
+		{
+			Remove (segment.Offset, segment.Length);
+		}
+		
 		public string GetTextAt (ISegment segment)
 		{
 			return GetTextAt (segment.Offset, segment.Length);
@@ -152,6 +157,7 @@ namespace Mono.TextEditor
 			buffer    = newBuffer;
 		}
 		
+		#region Search
 		unsafe int SearchForwardInternal (string pattern, int startIndex)
 		{
 			if (startIndex > gapBegin)
@@ -560,5 +566,7 @@ namespace Mono.TextEditor
 		return -1;
 	}
 			 * */
+		#endregion
+		
 	}
 }

@@ -30,7 +30,6 @@ using Gtk;
 using Gdk;
 using System.Collections.Generic;
 using Mono.TextEditor;
-using MonoDevelop.Components.Diff;
 using MonoDevelop.Ide;
 using System.Threading;
 using MonoDevelop.Core;
@@ -116,12 +115,19 @@ namespace MonoDevelop.VersionControl.Views
 			AddChild (overview);
 			
 			this.DoubleBuffered = true;
-			editor.ExposeEvent += HandleEditorExposeEvent;
+			editor.Painted += HandleEditorExposeEvent;
 			editor.EditorOptionsChanged += delegate {
 				overview.OptionsChanged ();
 			};
 			editor.Caret.PositionChanged += ComparisonWidget.CaretPositionChanged;
 			editor.FocusInEvent += ComparisonWidget.EditorFocusIn;
+			editor.Document.Folded += delegate {
+				QueueDraw ();
+			};
+			editor.Document.FoldTreeUpdated += delegate {
+				QueueDraw ();
+			};
+			Show ();
 		}
 
 		void HandleAdjustmentChanged (object sender, EventArgs e)
@@ -183,15 +189,15 @@ namespace MonoDevelop.VersionControl.Views
 		protected override void OnSizeAllocated (Rectangle allocation)
 		{
 			base.OnSizeAllocated (allocation);
-			int vwidth = vScrollBar.Visible ? vScrollBar.Requisition.Width : 1;
-			int hheight = hScrollBar.Visible ? hScrollBar.Requisition.Height : 1; 
-			Rectangle childRectangle = new Rectangle (allocation.X + 1, allocation.Y + 1, allocation.Width - vwidth, allocation.Height - hheight);
+			int vwidth = vScrollBar.Visible ? vScrollBar.Requisition.Width : 0;
+			int hheight = hScrollBar.Visible ? hScrollBar.Requisition.Height : 0; 
+			Rectangle childRectangle = new Rectangle (allocation.X + 1, allocation.Y + 1, allocation.Width - vwidth - 1, allocation.Height - hheight - 1);
 			
 			if (vScrollBar.Visible) {
 				int right = childRectangle.Right;
 				int vChildTopHeight = -1;
 				int v = hScrollBar.Visible ? hScrollBar.Requisition.Height : 0;
-				vScrollBar.SizeAllocate (new Rectangle (right, childRectangle.Y + vChildTopHeight, vwidth, Allocation.Height - v - vChildTopHeight));
+				vScrollBar.SizeAllocate (new Rectangle (right, childRectangle.Y + vChildTopHeight, vwidth, Allocation.Height - v - vChildTopHeight - 1));
 				vScrollBar.Value = System.Math.Max (System.Math.Min (vAdjustment.Upper - vAdjustment.PageSize, vScrollBar.Value), vAdjustment.Lower);
 			}
 			int overviewWidth = overview.WidthRequest;
@@ -231,43 +237,37 @@ namespace MonoDevelop.VersionControl.Views
 			children.ForEach (child => child.Child.SizeRequest ());
 		}
 		
-		void HandleEditorExposeEvent (object o, ExposeEventArgs args)
+		void HandleEditorExposeEvent (object o, PaintEventArgs args)
 		{
-			using (Cairo.Context cr = Gdk.CairoHelper.Create (args.Event.Window)) {
-				cr.LineWidth = Math.Max (1.0, Editor.Options.Zoom);
+			var cr = args.Context;
+			int startLine = Editor.YToLine (Editor.VAdjustment.Value);
+			double startY = Editor.LineToY (startLine);
+			double curY = startY - Editor.VAdjustment.Value;
+			int line = startLine;
+			JumpOverFoldings (ref line);
+			while (curY < editor.Allocation.Bottom) {
+				Annotation ann = line < overview.annotations.Count ? overview.annotations[line] : null;
 				
-				int startLine = Editor.CalculateLineNumber ((int)Editor.VAdjustment.Value);
+				do {
+					double lineHeight = Editor.GetLineHeight (line);
+					curY += lineHeight;
+					line++;
+					JumpOverFoldings (ref  line);
+				} while (line + 1 < overview.annotations.Count && ann != null && overview.annotations[line] != null && overview.annotations[line].Revision == ann.Revision);
 				
-				int startY = Editor.LineToVisualY (startLine);
-				if (startY > 0) {
-					startLine--;
-					startY -= Editor.GetLineHeight (Editor.Document.GetLine (startLine));
-				}
-				
-				int curY = startY - (int)Editor.VAdjustment.Value;
-				int line = startLine;
-				while (curY < editor.Allocation.Bottom) {
-					Annotation ann = line < overview.annotations.Count ? overview.annotations[line] : null;
-					
-					do {
-						int lineHeight = Editor.GetLineHeight (line);
-						curY += lineHeight;
-						line++;
-					} while (line + 1 < overview.annotations.Count && ann != null && overview.annotations[line] != null && overview.annotations[line].Revision == ann.Revision);
-					
-					if (ann != null) {
-						cr.MoveTo (Editor.TextViewMargin.XOffset, curY + 0.5);
-						cr.LineTo (Editor.Allocation.Width, curY + 0.5);
-						var color = Style.Dark (State);
-						cr.Color = new Cairo.Color (color.Red / (double)ushort.MaxValue, 
-						                            color.Green / (double)ushort.MaxValue,
-						                            color.Blue / (double)ushort.MaxValue,
-						                            0.2);
-						cr.Stroke ();
-					}
+				if (ann != null) {
+					cr.MoveTo (Editor.TextViewMargin.XOffset, curY + 0.5);
+					cr.LineTo (Editor.Allocation.Width, curY + 0.5);
+					var color = Style.Dark (State);
+					cr.Color = new Cairo.Color (color.Red / (double)ushort.MaxValue, 
+					                            color.Green / (double)ushort.MaxValue,
+					                            color.Blue / (double)ushort.MaxValue,
+					                            0.2);
+					cr.Stroke ();
 				}
 			}
 		}
+		
 		protected override bool OnExposeEvent (EventExpose evnt)
 		{
 			Gdk.GC gc = Style.DarkGC (State);
@@ -281,6 +281,16 @@ namespace MonoDevelop.VersionControl.Views
 			return base.OnExposeEvent (evnt);
 		}
 		
+		void JumpOverFoldings (ref int line)
+		{
+			int lastFold = -1;
+			foreach (FoldSegment fs in Editor.Document.GetStartFoldings (line).Where (fs => fs.IsFolded)) {
+				lastFold = System.Math.Max (fs.EndOffset, lastFold);
+			}
+			if (lastFold > 0) 
+				line = Editor.Document.OffsetToLineNumber (lastFold);
+		}
+
 		class BlameRenderer : DrawingArea 
 		{
 			static readonly Annotation locallyModified = new Annotation ("", "?", DateTime.MinValue);
@@ -288,7 +298,8 @@ namespace MonoDevelop.VersionControl.Views
 			BlameWidget widget;
 			internal List<Annotation> annotations;
 			Pango.Layout layout;
-			
+
+			double dragPosition = -1;
 			public BlameRenderer (BlameWidget widget)
 			{
 				this.widget = widget;
@@ -327,6 +338,49 @@ namespace MonoDevelop.VersionControl.Views
 				}
 			}
 			
+			protected override bool OnMotionNotifyEvent (EventMotion evnt)
+			{
+				TooltipText = null;
+				if (dragPosition >= 0) {
+					int x, y;
+					widget.GetPointer (out x, out y);
+					int newWidthRequest = widget.Allocation.Width - x;
+					newWidthRequest = Math.Min (widget.Allocation.Width - (int)widget.Editor.TextViewMargin.XOffset, Math.Max (leftSpacer, newWidthRequest));
+					
+					WidthRequest = newWidthRequest;
+					QueueResize ();
+				} else {
+					int startLine = widget.Editor.YToLine (widget.Editor.VAdjustment.Value + evnt.Y);
+					var ann = annotations[startLine];
+					if (ann != null)
+						TooltipText = GetCommitMessage (startLine);
+				}
+				
+				return base.OnMotionNotifyEvent (evnt);
+			}
+			
+			uint grabTime;
+			protected override bool OnButtonPressEvent (EventButton evnt)
+			{
+				if (evnt.X < leftSpacer) {
+					grabTime = evnt.Time;
+					var status = Gdk.Pointer.Grab (this.GdkWindow, false, EventMask.PointerMotionHintMask | EventMask.Button1MotionMask | EventMask.ButtonReleaseMask | EventMask.EnterNotifyMask | EventMask.LeaveNotifyMask, null, null, grabTime);
+					if (status == GrabStatus.Success) {
+						dragPosition = evnt.X;
+					}
+				}
+				return base.OnButtonPressEvent (evnt);
+			}
+			
+			protected override bool OnButtonReleaseEvent (EventButton evnt)
+			{
+				if (dragPosition >= 0) {
+					Gdk.Pointer.Ungrab (grabTime);
+					dragPosition = -1;
+				}
+				return base.OnButtonReleaseEvent (evnt);
+			}
+			DateTime minDate, maxDate;
 			/// <summary>
 			/// Reloads annotations for the current document
 			/// </summary>
@@ -339,6 +393,8 @@ namespace MonoDevelop.VersionControl.Views
 				ThreadPool.QueueUserWorkItem (delegate {
 					try {
 						annotations = new List<Annotation> (widget.VersionControlItem.Repository.GetAnnotations (widget.Document.FileName));
+						minDate = annotations.Min (a => a.Date);
+						maxDate = annotations.Max (a => a.Date);
 					} catch (Exception ex) {
 						LoggingService.LogError ("Error retrieving history", ex);
 					}
@@ -377,10 +433,10 @@ namespace MonoDevelop.VersionControl.Views
 					lineCount = Math.Min (lineCount, annotations.Count - startLine);
 					
 					if (lineCount > 0)
-						annotations.RemoveRange (startLine, lineCount);
+						annotations.RemoveRange (startLine - 1, lineCount);
 					if (!string.IsNullOrEmpty (e.Value)) {
 						for (int i=0; i<lineCount; ++i)
-							annotations.Insert (startLine, locallyModified);
+							annotations.Insert (startLine - 1, locallyModified);
 					}
 					return;
 				} else if (0 == e.Count) {
@@ -388,7 +444,7 @@ namespace MonoDevelop.VersionControl.Views
 						tokens = e.Value.Split (new string[]{Environment.NewLine}, StringSplitOptions.None);
 						lineCount = tokens.Length - 1;
 						for (int i=0; i<lineCount; ++i) {
-							annotations.Insert (Math.Min (startLine + 1, annotations.Count), locallyModified);
+							annotations.Insert (Math.Min (startLine, annotations.Count), locallyModified);
 						}
 				} else if (startLine > endLine) {
 					// revert
@@ -407,7 +463,7 @@ namespace MonoDevelop.VersionControl.Views
 					annotations.Add (locallyModified);
 				annotations[index] = text;
 			}
-		
+	
 			/// <summary>
 			/// Gets the commit message matching a given annotation index.
 			/// </summary>
@@ -422,7 +478,6 @@ namespace MonoDevelop.VersionControl.Views
 						}
 					}
 				}
-				
 				return null;
 			}
 
@@ -448,9 +503,9 @@ namespace MonoDevelop.VersionControl.Views
 			Regex regex = new Regex (@"[\s+\*[^:]*\:\s*]*(?<msg>[^:\s*](.)*)$");
 			const int leftSpacer = 4;
 			const int margin = 4;
-			
+
 			protected override bool OnExposeEvent (Gdk.EventExpose e)
-			{	
+			{
 				using (Cairo.Context cr = Gdk.CairoHelper.Create (e.Window)) {
 					cr.LineWidth = Math.Max (1.0, widget.Editor.Options.Zoom);
 					
@@ -458,52 +513,50 @@ namespace MonoDevelop.VersionControl.Views
 					cr.Color = new Cairo.Color (0.95, 0.95, 0.95);
 					cr.Fill ();
 					
-					int startLine = widget.Editor.CalculateLineNumber ((int)widget.Editor.VAdjustment.Value);
+					int startLine = widget.Editor.YToLine ((int)widget.Editor.VAdjustment.Value);
+					double startY = widget.Editor.LineToY (startLine);
 					
-					int startY = widget.Editor.LineToVisualY (startLine);
-					if (startY > 0) {
+					while (startLine > 1 && startLine < annotations.Count && annotations[startLine - 1] != null && annotations[startLine] != null && annotations[startLine - 1].Revision == annotations[startLine].Revision) {
 						startLine--;
 						startY -= widget.Editor.GetLineHeight (widget.Editor.Document.GetLine (startLine));
 					}
 					
-					while (startLine > 0 && startLine < annotations.Count && annotations[startLine - 1] != null && annotations[startLine] != null && annotations[startLine - 1].Revision == annotations[startLine].Revision) {
-						startLine--;
-						startY -= widget.Editor.GetLineHeight (widget.Editor.Document.GetLine (startLine));
-					}
-					
-					int curY = startY - (int)widget.Editor.VAdjustment.Value;
+					double curY = startY - widget.Editor.VAdjustment.Value;
 					int line = startLine;
 					while (curY < Allocation.Bottom) {
-						int curStart = curY;
+						double curStart = curY;
+						widget.JumpOverFoldings (ref line);
 						int lineStart = line;
 						int w = 0, w2 = 0, h = 16;
-						Annotation ann = line < annotations.Count ? annotations[line] : null;
+						Annotation ann = line <= annotations.Count ? annotations[line - 1] : null;
 						if (ann != null) {
 							layout.SetText (ann.Author);
 							layout.GetPixelSize (out w, out h);
-							e.Window.DrawLayout (Style.BlackGC, leftSpacer + margin, curY + (widget.Editor.LineHeight - h) / 2, layout);
+							e.Window.DrawLayout (Style.BlackGC, leftSpacer + margin, (int)(curY + (widget.Editor.LineHeight - h) / 2), layout);
 							
 							
 							layout.SetText (ann.Revision);
 							layout.GetPixelSize (out w2, out h);
-							e.Window.DrawLayout (Style.BlackGC, Allocation.Width - w2 - margin, curY + (widget.Editor.LineHeight - h) / 2, layout);
+							e.Window.DrawLayout (Style.BlackGC, Allocation.Width - w2 - margin, (int)(curY + (widget.Editor.LineHeight - h) / 2), layout);
 
 							if (ann.HasDate) {
 								string dateTime = ann.Date.ToShortDateString ();
 								int middle = w + (Allocation.Width - margin * 2 - leftSpacer - w - w2) / 2;
 								layout.SetText (dateTime);
 								layout.GetPixelSize (out w, out h);
-								e.Window.DrawLayout (Style.BlackGC, leftSpacer + margin + middle - w / 2, curY + (widget.Editor.LineHeight - h) / 2, layout);
+								e.Window.DrawLayout (Style.BlackGC, leftSpacer + margin + middle - w / 2, (int)(curY + (widget.Editor.LineHeight - h) / 2), layout);
 							}
 						
 							do {
-								int lineHeight = widget.Editor.GetLineHeight (line);
+								double lineHeight = widget.Editor.GetLineHeight (line);
 								curY += lineHeight;
 								line++;
-							} while (line + 1 < annotations.Count && annotations[line] != null && annotations[line].Revision == ann.Revision);
+								widget.JumpOverFoldings (ref line);
+							} while (line + 1 <= annotations.Count && annotations[line - 1] != null && annotations[line - 1].Revision == ann.Revision);
 						} else {
 							curY += widget.Editor.GetLineHeight (line);
 							line++;
+							widget.JumpOverFoldings (ref line);
 						}
 						
 						if (ann != null && line - lineStart > 1) {
@@ -528,8 +581,8 @@ namespace MonoDevelop.VersionControl.Views
 								layout.Width = (int)(Allocation.Width * Pango.Scale.PangoScale);
 								using (var gc = new Gdk.GC (e.Window)) {
 									gc.RgbFgColor = Style.Dark (State);
-									gc.ClipRectangle = new Rectangle (0, curStart, Allocation.Width, curY - curStart);
-									e.Window.DrawLayout (gc, leftSpacer + margin, curStart + h, layout);
+									gc.ClipRectangle = new Rectangle (0, (int)curStart, Allocation.Width, (int)(curY - curStart));
+									e.Window.DrawLayout (gc, (int)(leftSpacer + margin), (int)(curStart + h), layout);
 								}
 							}
 						}
@@ -537,21 +590,14 @@ namespace MonoDevelop.VersionControl.Views
 						cr.Rectangle (0, curStart, leftSpacer, curY - curStart);
 						
 						if (ann != null && ann != locallyModified && !string.IsNullOrEmpty (ann.Author)) {
+							double a;
 							
-							double a = 1.0;
-							var history = widget.info.History;
-							if (ann != null && history != null) {
-								for (int i = 0; i < history.Length; i++) {
-									Revision rev = history[i];
-									if (rev.ToString () == ann.Revision) {
-										a = i / (double)history.Length;
-										break;
-									}
-								}
+							if (ann != null && (maxDate - minDate).TotalHours > 0) {
+								a = 1 - (ann.Date  - minDate).TotalHours / (maxDate - minDate).TotalHours;
 							} else {
 								a = 1;
 							}
-	
+							
 							HslColor color = new Cairo.Color (0.90, 0.90, 1);
 							color.L = 0.4 + a / 2;
 							color.S = 1 - a / 2;

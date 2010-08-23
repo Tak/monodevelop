@@ -70,7 +70,6 @@
     <Compile Include="Mono.TextEditor\DocumentLocation.cs" />
     <Compile Include="Mono.TextEditor\DashedLineMargin.cs" />
     <Compile Include="Mono.TextEditor\Document.cs" />
-    <Compile Include="Mono.TextEditor\LineSegmentTree.cs" />
     <Compile Include="Mono.TextEditor\RedBlackTree.cs" />
     <Compile Include="Mono.TextEditor\GutterMargin.cs" />
     <Compile Include="Mono.TextEditor\GapBuffer.cs" />
@@ -170,6 +169,14 @@
     <Compile Include="Mono.TextEditor.Vi\ViEditorContext.cs" />
     <Compile Include="Mono.TextEditor.PopupWindow\ModeHelpWindow.cs" />
     <Compile Include="Mono.TextEditor.Highlighting\CloneableStack.cs" />
+    <Compile Include="Mono.TextEditor.Utils\Diff.cs" />
+    <Compile Include="Mono.TextEditor\IDocumentPartitioner.cs" />
+    <Compile Include="Mono.TextEditor\AbstractPartitioner.cs" />
+    <Compile Include="Mono.TextEditor\TypedSegment.cs" />
+    <Compile Include="Mono.TextEditor.Highlighting\HighlightingPartitioner.cs" />
+    <Compile Include="Mono.TextEditor\ILineSplitter.cs" />
+    <Compile Include="Mono.TextEditor\PrimitiveLineSplitter.cs" />
+    <Compile Include="Mono.TextEditor\StringBuffer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ChangeLog" />
@@ -282,5 +289,6 @@
   <ItemGroup>
     <Folder Include="Mono.TextEditor.PopupWindow\" />
     <Folder Include="Mono.TextEditor.Highlighting.Regex\" />
+    <Folder Include="Mono.TextEditor.Utils\" />
   </ItemGroup>
 </Project>

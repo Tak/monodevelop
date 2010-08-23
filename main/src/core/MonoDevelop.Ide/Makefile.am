@@ -155,13 +155,6 @@ FILES =  \
 	MonoDevelop.Components.Commands/KeyBindingSet.cs \
 	MonoDevelop.Components.Commands/LinkCommandEntry.cs \
 	MonoDevelop.Components.Commands/MenuToolButton.cs \
-	MonoDevelop.Components.Diff/Diff.cs \
-	MonoDevelop.Components.Diff/DiffWidget.cs \
-	MonoDevelop.Components.Diff/Merge.cs \
-	MonoDevelop.Components.Diff/Patch.cs \
-	MonoDevelop.Components.Diff/StructuredDiff.cs \
-	MonoDevelop.Components.Diff/TextDiff.cs \
-	MonoDevelop.Components.Diff/UnifiedDiff.cs \
 	MonoDevelop.Components.Docking/AutoHideBox.cs \
 	MonoDevelop.Components.Docking/DockBar.cs \
 	MonoDevelop.Components.Docking/DockBarItem.cs \
@@ -263,6 +256,7 @@ FILES =  \
 	MonoDevelop.Components/SelectFileDialog.cs \
 	MonoDevelop.Components/SelectFolderDialog.cs \
 	MonoDevelop.Components/TabLabel.cs \
+	MonoDevelop.Components/Tabstrip.cs \
 	MonoDevelop.Components/TooltipWindow.cs \
 	MonoDevelop.Components/TreeViewCellContainer.cs \
 	MonoDevelop.Components/TreeViewState.cs \
@@ -273,6 +267,7 @@ FILES =  \
 	MonoDevelop.Ide.CodeCompletion/CompletionData.cs \
 	MonoDevelop.Ide.CodeCompletion/CompletionDataList.cs \
 	MonoDevelop.Ide.CodeCompletion/CompletionListWindow.cs \
+	MonoDevelop.Ide.CodeCompletion/CompletionMatcher.cs \
 	MonoDevelop.Ide.CodeCompletion/CompletionWindowManager.cs \
 	MonoDevelop.Ide.CodeCompletion/DeclarationViewWindow.cs \
 	MonoDevelop.Ide.CodeCompletion/DisplayFlags.cs \
@@ -515,7 +510,6 @@ FILES =  \
 	MonoDevelop.Ide.Gui/AbstractViewContent.cs \
 	MonoDevelop.Ide.Gui/AddinUpdateHandler.cs \
 	MonoDevelop.Ide.Gui/AsyncDispatchAttribute.cs \
-	MonoDevelop.Ide.Gui/AuthorInformation.cs \
 	MonoDevelop.Ide.Gui/BackgroundProgressMonitor.cs \
 	MonoDevelop.Ide.Gui/ConfigurationComboBox.cs \
 	MonoDevelop.Ide.Gui/DefaultWorkbench.cs \

@@ -39,19 +39,19 @@ namespace Mono.TextEditor.Theatrics
 		Gdk.Pixbuf textImage = null;
 		TextEditor editor;
 		
-		double scale = 0.0;
-		double opacity = 1.0;
+		protected double scale = 0.0;
+		protected double opacity = 1.0;
 		
 		public BounceFadePopupWindow (TextEditor editor) : base (Gtk.WindowType.Popup)
 		{
 			if (!IsComposited)
 				throw new InvalidOperationException ("Only works with composited screen. Check Widget.IsComposited.");
-
+			DoubleBuffered = true;
 			Decorated = false;
 			BorderWidth = 0;
 			HasFrame = true;
 			this.editor = editor;
-			
+			Events = Gdk.EventMask.ExposureMask;
 			Duration = 500;
 			ExpandWidth = 12;
 			ExpandHeight = 2;
@@ -82,37 +82,52 @@ namespace Mono.TextEditor.Theatrics
 		public Easing BounceEasing { get; set; }
 		
 		int x, y;
+		protected int width, height;
 		double vValue, hValue;
-		Rectangle bounds;
+		protected Rectangle bounds;
 
-		public void Popup ()
+		public virtual void Popup ()
 		{
 			editor.GdkWindow.GetOrigin (out x, out y);
 			bounds = CalculateInitialBounds ();
 			x = x + bounds.X - (int)(ExpandWidth / 2);
 			y = y + bounds.Y - (int)(ExpandHeight / 2);
 			Move (x, y);
-			Resize (bounds.Width + (int)ExpandWidth, bounds.Height + (int)ExpandHeight);
-
+			
+			width = bounds.Width + (int)ExpandWidth;
+			height = bounds.Height + (int)ExpandHeight;
+			Resize (width, height);
+			
+			
 			stage.AddOrReset (this, Duration);
 			stage.Play ();
+			ListenToEvents ();
 			Show ();
 		}
 
-		protected override void OnShown ()
+		protected void ListenToEvents ()
 		{
-			base.OnShown ();
 			editor.VAdjustment.ValueChanged += HandleEditorVAdjustmentValueChanged;
 			editor.HAdjustment.ValueChanged += HandleEditorHAdjustmentValueChanged;
 			vValue = editor.VAdjustment.Value;
 			hValue = editor.HAdjustment.Value;
 		}
+
+		protected override void OnShown ()
+		{
+			base.OnShown ();
+		}
 		
+		protected void DetachEvents ()
+		{
+			editor.VAdjustment.ValueChanged -= HandleEditorVAdjustmentValueChanged;
+			editor.HAdjustment.ValueChanged -= HandleEditorHAdjustmentValueChanged;
+		}
+
 		protected override void OnHidden ()
 		{
 			base.OnHidden ();
-			editor.VAdjustment.ValueChanged -= HandleEditorVAdjustmentValueChanged;
-			editor.HAdjustment.ValueChanged -= HandleEditorHAdjustmentValueChanged;
+			DetachEvents ();
 		}
 		
 		void HandleEditorVAdjustmentValueChanged (object sender, EventArgs e)
@@ -134,7 +149,7 @@ namespace Mono.TextEditor.Theatrics
 			QueueDraw ();
 		}
 		
-		bool OnAnimationActorStep (Actor<BounceFadePopupWindow> actor)
+		protected virtual bool OnAnimationActorStep (Actor<BounceFadePopupWindow> actor)
 		{
 			if (actor.Expired) {
 				OnAnimationCompleted ();
@@ -148,7 +163,7 @@ namespace Mono.TextEditor.Theatrics
 			}
 			//for the second half, vary opacity linearly from 1 to 0.
 			else {
-				scale = scale = Choreographer.Compose (1.0, BounceEasing);
+				scale = Choreographer.Compose (1.0, BounceEasing);
 				opacity = 2.0 - actor.Percent * 2;
 			}
 			return true;
@@ -193,7 +208,7 @@ namespace Mono.TextEditor.Theatrics
 					var img = RenderInitialPixbuf (evnt.Window, bounds);
 					if (!img.HasAlpha) {
 						textImage = img.AddAlpha (false, 0, 0, 0);
-						img.Dispose ();
+						img.Dispose (); 
 					} else {
 						textImage = img;
 					}

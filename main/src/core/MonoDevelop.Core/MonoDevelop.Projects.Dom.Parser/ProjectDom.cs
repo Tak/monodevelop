@@ -180,9 +180,15 @@ namespace MonoDevelop.Projects.Dom.Parser
 						types.Push (resolvedType);
 					}
 				}
-
-				if (cur.BaseType == null && cur.FullName != "System.Object") 
-					types.Push (this.GetType (DomReturnType.Object));
+				if (cur.BaseType == null && cur.FullName != "System.Object") {
+					if (cur.ClassType == ClassType.Enum) {
+						types.Push (this.GetType (DomReturnType.Enum));
+					} else if (cur.ClassType == ClassType.Struct) {
+						types.Push (this.GetType (DomReturnType.ValueType));
+					} else {
+						types.Push (this.GetType (DomReturnType.Object));
+					}
+				}
 			}
 		}
 
@@ -562,10 +568,8 @@ namespace MonoDevelop.Projects.Dom.Parser
 			
 			if (returnType.ArrayDimensions > 0) {
 				DomReturnType newType = new DomReturnType (returnType.FullName);
+				// dimensions are correctly updated when cropped
 				newType.ArrayDimensions = returnType.ArrayDimensions - 1;
-				for (int i = 0; i < newType.ArrayDimensions; i++) {
-					newType.SetDimension (i, returnType.ArrayDimensions - 1);
-				}
 				newType.PointerNestingLevel = returnType.PointerNestingLevel;
 				return GetArrayType (newType);
 			}
