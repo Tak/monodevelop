@@ -165,21 +165,20 @@ namespace MonoDevelop.Ide
 					}
 					listen_socket.Connect (ep);
 					listen_socket.Send (Encoding.UTF8.GetBytes (builder.ToString ()));
-					listen_socket.Close();
+					listen_socket.Close ();
 					return 0;
 				} catch {
 					// Reset the socket
 					if (null != socket_filename && File.Exists (socket_filename))
 						File.Delete (socket_filename);
-                    if (options.IpcTcp) {
-                        try {
-                            listen_socket.Close();
-                            listen_socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
-                        }
-                        catch (Exception exc) {
-                            LoggingService.LogError("Error resetting TCP socket", exc);
-                        }
-                    }
+					if (options.IpcTcp) {
+						try {
+							listen_socket.Close ();
+							listen_socket = new Socket (AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.IP);
+						} catch (Exception exc) {
+							LoggingService.LogError ("Error resetting TCP socket", exc);
+						}
+					}
 				}
 			}
 			
@@ -306,31 +305,31 @@ namespace MonoDevelop.Ide
 						continue;
 					file += c;
 				}
-				info = parseFile (file);
+				info = ParseFile (file);
 				if (info != null) files.Add (info);
 			}
-			GLib.Idle.Add(delegate { IdeApp.OpenFiles(files); return false; });
+			GLib.Idle.Add(delegate { IdeApp.OpenFiles (files); return false; });
 		}
 
-		FileOpenInformation parseFile(string file)
+		FileOpenInformation ParseFile (string file)
 		{
-		    if (string.IsNullOrEmpty(file))
-			return null;
+			if (string.IsNullOrEmpty (file))
+				return null;
 
-		    Match fileMatch = StartupInfo.FileExpression.Match(file);
-		    if (null == fileMatch || !fileMatch.Success)
-			return null;
-
-		    int line = 1,
-			column = 1;
-
-		    file = fileMatch.Groups["filename"].Value;
-		    if (fileMatch.Groups["line"].Success)
-			int.TryParse(fileMatch.Groups["line"].Value, out line);
-		    if (fileMatch.Groups["column"].Success)
-			int.TryParse(fileMatch.Groups["column"].Value, out column);
-
-		    return new FileOpenInformation (file, line, column, true);
+			Match fileMatch = StartupInfo.FileExpression.Match (file);
+			if (null == fileMatch || !fileMatch.Success)
+				return null;
+			
+			int line = 1,
+			    column = 1;
+			
+			file = fileMatch.Groups["filename"].Value;
+			if (fileMatch.Groups["line"].Success)
+				int.TryParse (fileMatch.Groups["line"].Value, out line);
+			if (fileMatch.Groups["column"].Success)
+				int.TryParse (fileMatch.Groups["column"].Value, out column);
+			
+			return new FileOpenInformation (file, line, column, true);
 		}
 		
 		bool CheckQtCurve ()

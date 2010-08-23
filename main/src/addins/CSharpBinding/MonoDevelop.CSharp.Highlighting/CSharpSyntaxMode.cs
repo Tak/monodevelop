@@ -208,7 +208,7 @@ namespace MonoDevelop.CSharp.Highlighting
 						if (configuration != null) {
 							CSharpCompilerParameters cparams = configuration.CompilationParameters as CSharpCompilerParameters;
 							if (cparams != null) {
-								string[] syms = cparams.DefineSymbols.Split (';', ',');
+								string[] syms = cparams.DefineSymbols.Split (';', ',', ' ', '\t');
 								foreach (string s in syms) {
 									string ss = s.Trim ();
 									if (ss.Length > 0 && !symbols.Contains (ss))
@@ -313,7 +313,7 @@ namespace MonoDevelop.CSharp.Highlighting
 				}
 				if (CurRule.Name == "<root>" && CurText.IsAt (textOffset, "#if")) {
 					LineSegment line = doc.GetLineByOffset (i);
-					int length = line.Offset + line.EditableLength - i;
+					int length = CurText.Length - textOffset;
 					string parameter = CurText.Substring (textOffset + 3, length - 3);
 					ICSharpCode.NRefactory.Parser.CSharp.Lexer lexer = new ICSharpCode.NRefactory.Parser.CSharp.Lexer (new System.IO.StringReader (parameter));
 					ICSharpCode.NRefactory.Ast.Expression expr = lexer.PPExpression ();

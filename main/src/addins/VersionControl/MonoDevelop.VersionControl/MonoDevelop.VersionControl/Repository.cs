@@ -117,7 +117,7 @@ namespace MonoDevelop.VersionControl
 			VersionInfo vinfo = GetVersionInfo (localFile, false);
 			if (vinfo == null)
 				return false;
-			return vinfo.Status == VersionStatus.Modified;
+			return (vinfo.Status & VersionStatus.Modified) != 0;
 		}
 		
 		// Returns true if the specified file or directory can be added to the repository
@@ -186,7 +186,7 @@ namespace MonoDevelop.VersionControl
 		}
 		
 		// Returns a path to the last version of the file updated from the repository
-		public abstract string GetPathToBaseText (FilePath localFile);
+		public abstract string GetBaseText (FilePath localFile);
 		
 		// Returns the revision history of a file
 		public abstract Revision[] GetHistory (FilePath localFile, Revision since);
@@ -467,12 +467,16 @@ namespace MonoDevelop.VersionControl
 			private set;
 		}
 
-		public string Date {
+		public DateTime Date {
 			get;
 			private set;
 		}
+		
+		public bool HasDate {
+			get { return Date != DateTime.MinValue; }
+		}
 
-		public Annotation (string revision, string author, string date)
+		public Annotation (string revision, string author, DateTime date)
 		{
 			this.Revision = revision;
 			this.Author = author;

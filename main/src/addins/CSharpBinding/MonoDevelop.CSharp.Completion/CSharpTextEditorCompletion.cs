@@ -1380,6 +1380,12 @@ namespace MonoDevelop.CSharp.Completion
 					bool foundNamespace = IsNamespaceInScope (rt.Namespace);
 					if (FullyQualify || !foundNamespace && (NamePrefix.Length == 0 || !rt.Namespace.StartsWith (NamePrefix)) && !rt.Namespace.EndsWith ("." + NamePrefix))
 						flags |= OutputFlags.UseFullName;
+					IType resolvedType = dom.GetType (rt);
+					if (inheritanceTree == null)
+						inheritanceTree = new List<IType>(dom.GetInheritanceTree (declaringType));
+					if (resolvedType != null && resolvedType.DeclaringType != null &&inheritanceTree.Any (t => resolvedType.DeclaringType.DecoratedFullName == t.DecoratedFullName)) {
+						return CompletionList.Add (rt.Name, "md-class");
+					}
 					string returnTypeString = ambience.GetString (rt, flags);
 					if (data.ContainsKey (returnTypeString))
 						return null;
@@ -1710,7 +1716,6 @@ namespace MonoDevelop.CSharp.Completion
 			resolver.SetupResolver (cursorLocation);
 			CompletionDataList result = new ProjectDomCompletionDataList ();
 			CompletionDataCollector col = new CompletionDataCollector (dom, result, Document.CompilationUnit, resolver.CallingType, cursorLocation);
-			
 			if (expressionResult == null) {
 				AddPrimitiveTypes (col);
 				resolver.AddAccessibleCodeCompletionData (ExpressionContext.Global, col);

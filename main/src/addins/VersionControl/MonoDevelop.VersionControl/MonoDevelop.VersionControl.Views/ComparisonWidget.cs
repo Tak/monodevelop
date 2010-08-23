@@ -368,7 +368,7 @@ namespace MonoDevelop.VersionControl.Views
 				((TextEditor)box.Tag).Document.ReadOnly = true;
 				if (n == 1) {
 					box.SetItem ("Base", null, new object());
-					((TextEditor)box.Tag).Document.Text = System.IO.File.ReadAllText (widget.info.Item.Repository.GetPathToBaseText (widget.info.Item.Path));
+					((TextEditor)box.Tag).Document.Text = widget.info.Item.Repository.GetBaseText (widget.info.Item.Path);
 					widget.CreateDiff ();
 					return;
 				}
@@ -402,7 +402,7 @@ namespace MonoDevelop.VersionControl.Views
 				string text = null;
 				try {
 					Console.WriteLine (widget.info.VersionInfo.RepositoryPath);
-					text = widget.info.Item.Repository.GetTextAtRevision (widget.info.VersionInfo.RepositoryPath, rev);
+					text = widget.info.Item.Repository.GetTextAtRevision (widget.info.VersionInfo.LocalPath, rev);
 				} catch (Exception ex) {
 					text = "Error retrieving revision " + rev + Environment.NewLine + ex.ToString ();
 				}

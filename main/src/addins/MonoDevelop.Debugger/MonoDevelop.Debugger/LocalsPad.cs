@@ -46,8 +46,8 @@ namespace MonoDevelop.Debugger
 			base.OnUpdateList ();
 			StackFrame frame = DebuggingService.CurrentFrame;
 			if (frame != null && !FrameEquals (frame, lastFrame)) {
-				tree.ClearExpressions ();
-				tree.AddExpressions (frame.GetAllLocals ().Select (i => i.Name));
+				tree.ClearValues ();
+				tree.AddValues (frame.GetAllLocals ());
 				lastFrame = frame;
 			}
 		}
