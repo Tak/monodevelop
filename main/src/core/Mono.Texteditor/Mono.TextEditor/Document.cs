@@ -143,8 +143,7 @@ namespace Mono.TextEditor
 			set {
 				if (!SurpressHighlightUpdate)
 					Mono.TextEditor.Highlighting.SyntaxModeService.WaitUpdate (this);
-				int oldLength = Length;
-				ReplaceEventArgs args = new ReplaceEventArgs (0, oldLength, value);
+				ReplaceEventArgs args = new ReplaceEventArgs (0, Length, value);
 				this.OnTextReplacing (args);
 				this.buffer.Text = value;
 				splitter.Initalize (value);
@@ -247,6 +246,17 @@ namespace Mono.TextEditor
 			return buffer.GetTextAt (startOffset, endOffset - startOffset);
 		}
 		
+		public string GetTextBetween (DocumentLocation start, DocumentLocation end)
+		{
+			return GetTextBetween (LocationToOffset (start), LocationToOffset (end));
+		}
+		
+		public string GetTextBetween (int startLine, int startColumn, int endLine, int endColumn)
+		{
+			return GetTextBetween (LocationToOffset (startLine, startColumn), LocationToOffset (endLine, endColumn));
+		}
+		
+		
 		public string GetTextAt (int offset, int count)
 		{
 			if (offset < 0)
@@ -256,7 +266,7 @@ namespace Mono.TextEditor
 			if (count < 0)
 				throw new ArgumentException ("count < 0");
 			if (offset + count > Length)
-				throw new ArgumentException ("offset + cound is beyond EOF");
+				throw new ArgumentException ("offset + count is beyond EOF");
 			return buffer.GetTextAt (offset, count);
 		}
 		
@@ -360,19 +370,21 @@ namespace Mono.TextEditor
 		
 		public int LocationToOffset (DocumentLocation location)
 		{
-			if (location.Line >= this.splitter.Count) 
+//			if (location.Column < DocumentLocation.MinColumn)
+//				throw new ArgumentException ("column < MinColumn");
+			if (location.Line > this.splitter.Count || location.Line < DocumentLocation.MinLine)
 				return -1;
 			LineSegment line = GetLine (location.Line);
-			return System.Math.Min (Length, line.Offset + System.Math.Min (line.EditableLength, location.Column));
+			return System.Math.Min (Length, line.Offset + System.Math.Max (0, System.Math.Min (line.EditableLength, location.Column - 1)));
 		}
 		
 		public DocumentLocation OffsetToLocation (int offset)
 		{
 			int lineNr = splitter.OffsetToLineNumber (offset);
-			if (lineNr < 0)
+			if (lineNr < DocumentLocation.MinLine)
 				return DocumentLocation.Empty;
 			LineSegment line = GetLine (lineNr);
-			return new DocumentLocation (lineNr, System.Math.Min (line.Length, offset - line.Offset));
+			return new DocumentLocation (lineNr, System.Math.Min (line.Length, offset - line.Offset) + 1);
 		}
 
 		public string GetLineIndent (int lineNumber)
@@ -389,6 +401,9 @@ namespace Mono.TextEditor
 		
 		public LineSegment GetLine (int lineNumber)
 		{
+			if (lineNumber < DocumentLocation.MinLine)
+				return null;
+			
 			return splitter.Get (lineNumber);
 		}
 		
@@ -973,7 +988,7 @@ namespace Mono.TextEditor
 			public int LogicalToVisualLine (Document doc, int logicalLine)
 			{
 				int result = logicalLine;
-				LineSegment line = doc.GetLine (result) ?? doc.GetLine (doc.LineCount - 1);
+				LineSegment line = doc.GetLine (result) ?? doc.GetLine (doc.LineCount);
 				foreach (FoldSegment segment in Traverse (x => !(x.IsFolded && x.StartLine.Offset < line.Offset))) {
 					if (segment.IsFolded && segment.StartLine.Offset < line.Offset) {
 						result -= doc.GetLineCount (segment);
@@ -1354,8 +1369,8 @@ namespace Mono.TextEditor
 		
 		public int VisualToLogicalLine (int visualLineNumber)
 		{
-			if (visualLineNumber <= 0)
-				return 0;
+			if (visualLineNumber < DocumentLocation.MinLine)
+				return DocumentLocation.MinLine;
 			return this.FoldSegmentTree.VisualToLogicalLine (this, visualLineNumber);
 		}
 		

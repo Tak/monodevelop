@@ -56,6 +56,7 @@ namespace MonoDevelop.VersionControl.Views
 			fixed1.SetSizeRequest (16, 16);
 			this.buttonNext.Clicked += (sender, args) => ComparisonWidget.GotoNext ();
 			this.buttonPrev.Clicked += (sender, args) => ComparisonWidget.GotoPrev ();
+			notebook1.Page = 0;
 			comparisonWidget.DiffChanged += delegate {
 				labelOverview.Markup = "<big>" + LabelText + "</big>";
 				SetButtonSensitivity ();
@@ -68,17 +69,19 @@ namespace MonoDevelop.VersionControl.Views
 			diffTextEditor.Options.ColorScheme = info.Document.Editor.Options.ColorScheme;
 			diffTextEditor.Options.ShowFoldMargin = false;
 			diffTextEditor.Options.ShowIconMargin = false;
-			diffTextEditor.Options.ShowTabs = true;
-			diffTextEditor.Options.ShowSpaces = true;
+			diffTextEditor.Options.ShowTabs = info.Document.Editor.Options.ShowTabs;
+			diffTextEditor.Options.ShowSpaces = info.Document.Editor.Options.ShowSpaces;
+			diffTextEditor.Options.ShowInvalidLines = info.Document.Editor.Options.ShowInvalidLines;
 			diffTextEditor.Options.ShowInvalidLines = info.Document.Editor.Options.ShowInvalidLines;
 			diffTextEditor.Document.ReadOnly = true;
 			scrolledwindow1.Child = diffTextEditor;
 			diffTextEditor.Show ();
+			SetButtonSensitivity ();
 		}
 		
 		void SetButtonSensitivity ()
 		{
-			this.buttonNext.Sensitive = this.buttonPrev.Sensitive = notebook1.Page == 0 && comparisonWidget.Diff.Count > 0;
+			this.buttonNext.Sensitive = this.buttonPrev.Sensitive = notebook1.Page == 0 &&  comparisonWidget.Diff != null && comparisonWidget.Diff.Count > 0;
 		}
 		
 		void HandleButtonDiffhandleClicked (object sender, EventArgs e)

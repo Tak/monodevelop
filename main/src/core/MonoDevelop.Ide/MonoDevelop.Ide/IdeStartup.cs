@@ -93,7 +93,7 @@ namespace MonoDevelop.Ide
 			} catch (Exception ex) {
 				LoggingService.LogError ("Error initialising GLib logging.", ex);
 			}
-			
+
 			//OSXFIXME
 			Gtk.Application.Init ("monodevelop", ref args);
 			InternalLog.Initialize ();

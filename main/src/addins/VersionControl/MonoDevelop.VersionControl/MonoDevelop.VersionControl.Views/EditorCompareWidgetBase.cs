@@ -238,6 +238,19 @@ namespace MonoDevelop.VersionControl.Views
 		public void SetVersionControlInfo (VersionControlDocumentInfo info)
 		{
 			this.info = info;
+			
+			
+			foreach (var editor in editors) {
+				editor.Document.MimeType = info.Document.Editor.Document.MimeType;
+				editor.Options.FontName = info.Document.Editor.Options.FontName;
+				editor.Options.ColorScheme = info.Document.Editor.Options.ColorScheme;
+				editor.Options.ShowSpaces = info.Document.Editor.Options.ShowSpaces;
+				editor.Options.ShowTabs = info.Document.Editor.Options.ShowTabs;
+				editor.Options.ShowEolMarkers = info.Document.Editor.Options.ShowEolMarkers;
+				editor.Options.ShowInvalidLines = info.Document.Editor.Options.ShowInvalidLines;
+				editor.Options.ShowFoldMargin = false;
+				editor.Options.ShowIconMargin = false;
+			}
 		}
 		
 		protected abstract void CreateComponents ();
@@ -288,7 +301,7 @@ namespace MonoDevelop.VersionControl.Views
 				int start = useRemove ? hunk.RemoveStart : hunk.InsertStart;
 				int count = useRemove ? hunk.Removed : hunk.Inserted;
 				for (int i = 0; i < count; i++) {
-					var word = words[start + i];
+					var word = words[start + i - 1];
 					if (endOffset != word.Offset) {
 						if (startOffset >= 0)
 							result.Add (GetDiffRectangle (editor, startOffset, endOffset));
@@ -329,6 +342,7 @@ namespace MonoDevelop.VersionControl.Views
 		{
 			ClearDiffCache ();
 		}
+		
 		public abstract void CreateDiff ();
 
 		void RedrawMiddleAreas ()
@@ -390,8 +404,8 @@ namespace MonoDevelop.VersionControl.Views
 			if (offset < 0 || offset > caret.TextEditorData.Document.Length)
 				return;
 			DocumentLocation location = caret.TextEditorData.LogicalToVisualLocation (caret.Location);
-			IdeApp.Workbench.StatusBar.ShowCaretState (caret.Line + 1,
-			                                           location.Column + 1,
+			IdeApp.Workbench.StatusBar.ShowCaretState (caret.Line,
+			                                           location.Column,
 			                                           caret.TextEditorData.IsSomethingSelected ? caret.TextEditorData.SelectionRange.Length : 0,
 			                                           caret.IsInInsertMode);
 		}
@@ -576,6 +590,16 @@ namespace MonoDevelop.VersionControl.Views
 				data.Document.CommitUpdateAll ();
 			}
 		}
+		
+		public void UpdateLocalText ()
+		{
+			foreach (var data in dict.Values) {
+				data.Document.TextReplaced -= HandleDataDocumentTextReplaced;
+				data.Document.Text = info.Document.Editor.Document.Text;
+				data.Document.TextReplaced += HandleDataDocumentTextReplaced;
+			}
+			CreateDiff ();
+		}
 
 		public void SetLocal (TextEditorData data)
 		{
@@ -610,14 +634,14 @@ namespace MonoDevelop.VersionControl.Views
 			var start = toEditor.Document.GetLine (hunk.InsertStart);
 			int toOffset = start != null ? start.Offset : toEditor.Document.Length;
 			if (start != null && hunk.Inserted > 0) {
-				int line = Math.Min (hunk.InsertStart + hunk.Inserted - 1, toEditor.Document.LineCount - 1);
+				int line = Math.Min (hunk.InsertStart + hunk.Inserted, toEditor.Document.LineCount);
 				var end = toEditor.Document.GetLine (line);
 				toEditor.Remove (start.Offset, end.EndOffset - start.Offset);
 			}
 
 			if (hunk.Removed > 0) {
-				start = fromEditor.Document.GetLine (Math.Min (hunk.RemoveStart, fromEditor.Document.LineCount - 1));
-				int line = Math.Min (hunk.RemoveStart + hunk.Removed - 1, fromEditor.Document.LineCount - 1);
+				start = fromEditor.Document.GetLine (Math.Min (hunk.RemoveStart, fromEditor.Document.LineCount));
+				int line = Math.Min (hunk.RemoveStart + hunk.Removed, fromEditor.Document.LineCount);
 				var end = fromEditor.Document.GetLine (line);
 				toEditor.Insert (toOffset, start.Offset == end.EndOffset ? toEditor.EolMarker : fromEditor.Document.GetTextBetween (start.Offset, end.EndOffset));
 			}

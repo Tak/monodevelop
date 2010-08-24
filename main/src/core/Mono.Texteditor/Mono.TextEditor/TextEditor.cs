@@ -1,4 +1,3 @@
-
 //
 // TextEditor.cs
 //
@@ -693,7 +692,7 @@ namespace Mono.TextEditor
 				start = 0;
 			double visualStart = -this.textEditorData.VAdjustment.Value + LineToY (start);
 			if (end < 0)
-				end = Document.LineCount - 1;
+				end = Document.LineCount;
 			double visualEnd   = -this.textEditorData.VAdjustment.Value + LineToY (end) + GetLineHeight (end);
 			QueueDrawArea ((int)margin.XOffset, (int)visualStart, GetMarginWidth (margin), (int)(visualEnd - visualStart));
 		}
@@ -707,7 +706,7 @@ namespace Mono.TextEditor
 				start = 0;
 			double visualStart = -this.textEditorData.VAdjustment.Value + Document.LogicalToVisualLine (start) * LineHeight;
 			if (end < 0)
-				end = Document.LineCount - 1;
+				end = Document.LineCount;
 			double visualEnd   = -this.textEditorData.VAdjustment.Value + Document.LogicalToVisualLine (end) * LineHeight + LineHeight;
 			QueueDrawArea (0, (int)visualStart, this.Allocation.Width, (int)(visualEnd - visualStart));
 		}
@@ -1167,7 +1166,7 @@ namespace Mono.TextEditor
 		
 		public void CenterTo (DocumentLocation p)
 		{
-			if (isDisposed || p.Line < 0 || p.Line >= Document.LineCount)
+			if (isDisposed || p.Line < 0 || p.Line > Document.LineCount)
 				return;
 			SetAdjustments (this.Allocation);
 			//			Adjustment adj;
@@ -1207,7 +1206,7 @@ namespace Mono.TextEditor
 		
 		public void ScrollTo (DocumentLocation p)
 		{
-			if (isDisposed || p.Line < 0 || p.Line >= Document.LineCount || inCaretScroll)
+			if (isDisposed || p.Line < 0 || p.Line > Document.LineCount || inCaretScroll)
 				return;
 			inCaretScroll = true;
 			try {
@@ -1315,7 +1314,7 @@ namespace Mono.TextEditor
 		internal void SetAdjustments (Gdk.Rectangle allocation)
 		{
 			if (this.textEditorData.VAdjustment != null) {
-				double maxY = LineToY (Document.LineCount - 1);
+				double maxY = Document.LineCount > 1 ? LineToY (Document.LineCount) : LineHeight;
 				if (maxY > allocation.Height)
 					maxY += 5 * this.LineHeight;
 				
@@ -1335,42 +1334,43 @@ namespace Mono.TextEditor
 			return this.textViewMargin.GetWidth (text);
 		}
 		
-		void RenderMargins (Cairo.Context cr, Cairo.Rectangle cairoRectangle)
+		void UpdateMarginXOffsets ()
+		{
+			double curX = 0;
+			foreach (Margin margin in this.margins) {
+				if (!margin.IsVisible)
+					continue;
+				margin.XOffset = curX;
+				curX += margin.Width;
+			}
+		}
+		
+		void RenderMargins (Cairo.Context cr, Cairo.Context textViewCr, Cairo.Rectangle cairoRectangle)
 		{
 			this.TextViewMargin.rulerX = Options.RulerColumn * this.TextViewMargin.CharWidth - this.textEditorData.HAdjustment.Value;
 			int startLine = YToLine (cairoRectangle.Y + this.textEditorData.VAdjustment.Value);
 			double startY = LineToY (startLine);
-			double curX = 0;
 			double curY = startY - this.textEditorData.VAdjustment.Value;
 			bool setLongestLine = false;
-			bool renderFirstLine = true;
 			for (int visualLineNumber = startLine; ; visualLineNumber++) {
 				int logicalLineNumber = visualLineNumber;
 				LineSegment line      = Document.GetLine (logicalLineNumber);
 				double lineHeight     = GetLineHeight (line);
-				int lastFold = -1;
+				int lastFold = 0;
 				foreach (FoldSegment fs in Document.GetStartFoldings (line).Where (fs => fs.IsFolded)) {
 					lastFold = System.Math.Max (fs.EndOffset, lastFold);
 				}
-				if (lastFold > 0) 
+				if (lastFold >= DocumentLocation.MinLine)
 					visualLineNumber = Document.OffsetToLineNumber (lastFold);
 				foreach (Margin margin in this.margins) {
 					if (!margin.IsVisible)
 						continue;
 					try {
-						if (renderFirstLine)
-							margin.XOffset = curX;
-						cr.Rectangle (margin.XOffset, 0, margin.Width >= 0 ? margin.Width : Allocation.Width - curX, Allocation.Height);
-						cr.Clip ();
-						margin.Draw (cr, cairoRectangle, logicalLineNumber, margin.XOffset, curY, lineHeight);
-						cr.ResetClip ();
-						if (renderFirstLine)
-							curX += margin.Width;
+						margin.Draw (margin == textViewMargin ? textViewCr : cr, cairoRectangle, line, logicalLineNumber, margin.XOffset, curY, lineHeight);
 					} catch (Exception e) {
 						System.Console.WriteLine (e);
 					}
 				}
-				renderFirstLine = false;
 				// take the line real render width from the text view margin rendering (a line can consist of more than 
 				// one line and be longer (foldings!) ex. : someLine1[...]someLine2[...]someLine3)
 				double lineWidth = textViewMargin.lastLineRenderWidth + HAdjustment.Value;
@@ -1406,7 +1406,7 @@ namespace Mono.TextEditor
 		
 		void UpdateAdjustments ()
 		{
-			int lastVisibleLine = Document.LogicalToVisualLine (Document.LineCount - 1);
+			int lastVisibleLine = Document.LogicalToVisualLine (Document.LineCount);
 			if (oldRequest != lastVisibleLine) {
 				SetAdjustments (this.Allocation);
 				oldRequest = lastVisibleLine;
@@ -1424,11 +1424,16 @@ namespace Mono.TextEditor
 			
 			var area = e.Region.Clipbox;
 			var cairoArea = new Cairo.Rectangle (area.X, area.Y, area.Width, area.Height);
-			
-			using (Cairo.Context cr = Gdk.CairoHelper.Create (e.Window)) {
+			using (Cairo.Context cr = Gdk.CairoHelper.Create (e.Window))
+			using (Cairo.Context textViewCr = Gdk.CairoHelper.Create (e.Window)) {
+				UpdateMarginXOffsets ();
+				
 				cr.LineWidth = Options.Zoom;
-			
-				RenderMargins (cr, cairoArea);
+				textViewCr.LineWidth = Options.Zoom;
+				textViewCr.Rectangle (textViewMargin.XOffset, 0, Allocation.Width - textViewMargin.XOffset, Allocation.Height);
+				textViewCr.Clip ();
+				
+				RenderMargins (cr, textViewCr, cairoArea);
 			
 #if DEBUG_EXPOSE
 				Console.WriteLine ("{0} expose {1},{2} {3}x{4}", (long)(DateTime.Now - started).TotalMilliseconds,
@@ -1674,6 +1679,16 @@ namespace Mono.TextEditor
 		public string GetTextBetween (int startOffset, int endOffset)
 		{
 			return Document.GetTextBetween (startOffset, endOffset);
+		}
+		
+		public string GetTextBetween (DocumentLocation start, DocumentLocation end)
+		{
+			return Document.GetTextBetween (start, end);
+		}
+		
+		public string GetTextBetween (int startLine, int startColumn, int endLine, int endColumn)
+		{
+			return Document.GetTextBetween (startLine, startColumn, endLine, endColumn);
 		}
 
 		public string GetTextAt (int offset, int count)
@@ -1986,7 +2001,7 @@ namespace Mono.TextEditor
 		
 		public void AnimateSearchResult (SearchResult result)
 		{
-			if (!IsComposited)
+			if (!IsComposited || !Options.EnableAnimations)
 				return;
 			TextViewMargin.MainSearchResult = result;
 			if (result != null) {
@@ -2193,8 +2208,11 @@ namespace Mono.TextEditor
 
 		void ShowTooltip (Gdk.ModifierType modifierState)
 		{
+			var loc = PointToLocation (mx, my);
+			if (loc.IsEmpty)
+				return;
 			ShowTooltip (modifierState, 
-			             Document.LocationToOffset (PointToLocation (mx, my)),
+			             Document.LocationToOffset (loc),
 			             (int)mx,
 			             (int)my);
 		}
@@ -2600,7 +2618,7 @@ namespace Mono.TextEditor
 			{
 				if (view.isDisposed)
 					return;
-				line = System.Math.Min (line, view.Document.LineCount - 1);
+				line = System.Math.Min (line, view.Document.LineCount);
 				view.Caret.AutoScrollToCaret = false;
 				try {
 					view.Caret.Location = new DocumentLocation (line, column);
@@ -2626,6 +2644,11 @@ namespace Mono.TextEditor
 
 		public void SetCaretTo (int line, int column, bool highlight)
 		{
+			if (line < DocumentLocation.MinLine)
+				throw new ArgumentException ("line < MinLine");
+			if (column < DocumentLocation.MinColumn)
+				throw new ArgumentException ("column < MinColumn");
+			
 			if (!IsRealized) {
 				SetCaret setCaret = new SetCaret (this, line, column, highlight);
 				SizeAllocated += setCaret.Run;

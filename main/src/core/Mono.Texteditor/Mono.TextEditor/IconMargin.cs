@@ -94,7 +94,7 @@ namespace Mono.TextEditor
 			}
 		}
 		
-		internal protected override void Draw (Cairo.Context ctx, Cairo.Rectangle area, int line, double x, double y, double lineHeight)
+		internal protected override void Draw (Cairo.Context ctx, Cairo.Rectangle area, LineSegment lineSegment, int line, double x, double y, double lineHeight)
 		{
 			ctx.Rectangle (x, y, Width, lineHeight);
 			ctx.Color = backgroundColor;
@@ -105,9 +105,7 @@ namespace Mono.TextEditor
 			ctx.Color = separatorColor;
 			ctx.Stroke ();
 			
-			if (line < editor.Document.LineCount) {
-				LineSegment lineSegment = editor.Document.GetLine (line);
-				
+			if (line <= editor.Document.LineCount) {
 				foreach (TextMarker marker in lineSegment.Markers) {
 					if (marker is IIconBarMarker) 
 						((IIconBarMarker)marker).DrawIcon (editor, ctx, lineSegment, line, x, y, (int)Width, editor.LineHeight);
