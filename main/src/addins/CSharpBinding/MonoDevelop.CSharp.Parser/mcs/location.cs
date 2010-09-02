@@ -167,7 +167,8 @@ namespace Mono.CSharp {
 	///
 	///   http://lists.ximian.com/pipermail/mono-devel-list/2004-December/009508.html
 	/// </remarks>
-	public struct Location {
+	public struct Location : IEquatable<Location>
+	{
 		int token; 
 
 		struct Checkpoint {
@@ -180,6 +181,11 @@ namespace Mono.CSharp {
 				File = file;
 				CompilationUnit = compile_unit;
 				LineOffset = line - (int) (line % (1 << line_delta_bits));
+			}
+			
+			public override string ToString ()
+			{
+				return string.Format ("[Checkpoint: LineOffset={0}, CompilationUnit={1}, File={2}]", LineOffset, CompilationUnit, File);
 			}
 		}
 
@@ -225,10 +231,12 @@ namespace Mono.CSharp {
 			int id;
 			if (source_files.TryGetValue (path, out id)){
 				string other_name = source_list [id - 1].Name;
-				if (name.Equals (other_name))
-					r.Warning (2002, 1, "Source file `{0}' specified multiple times", other_name);
-				else
-					r.Warning (2002, 1, "Source filenames `{0}' and `{1}' both refer to the same file: {2}", name, other_name, path);
+				if (r != null) {
+					if (name.Equals (other_name))
+						r.Warning (2002, 1, "Source file `{0}' specified multiple times", other_name);
+					else
+						r.Warning (2002, 1, "Source filenames `{0}' and `{1}' both refer to the same file: {2}", name, other_name, path);
+				}
 				return;
 			}
 
@@ -399,7 +407,17 @@ namespace Mono.CSharp {
 			get {
 				if (token == 0)
 					return 1;
-				return checkpoints [CheckpointIndex].LineOffset + ((token & line_delta_mask) >> column_bits);
+				try {
+					return checkpoints [CheckpointIndex].LineOffset + ((token & line_delta_mask) >> column_bits);
+				} catch (Exception e) {
+					Console.WriteLine (e);
+					Console.WriteLine ("checkpoints:" + checkpoints + " CheckpointIndex:" + CheckpointIndex + " Token:" + token);
+					Console.WriteLine ("---- checkpoint contents: " + checkpoints.Length);
+					foreach (var cp in checkpoints) {
+						Console.WriteLine (cp);
+					}
+					return 0;
+				}
 			}
 		}
 
@@ -465,6 +483,15 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 				return (CompilationUnit) source_list [index - 1];
 			}
 		}
+
+		#region IEquatable<Location> Members
+
+		public bool Equals (Location other)
+		{
+			return this.token == other.token;
+		}
+
+		#endregion
 	}
 
 	//
@@ -475,12 +502,12 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 		public class MemberLocations
 		{
 			public IList<Tuple<Modifiers, Location>> Modifiers { get; internal set; }
-			Location[] locations;
+			List<Location> locations;
 			
-			public MemberLocations (IList<Tuple<Modifiers, Location>> mods, Location[] locs)
+			public MemberLocations (IList<Tuple<Modifiers, Location>> mods, IEnumerable<Location> locs)
 			{
 				Modifiers = mods;
-				locations = locs;
+				locations = locs != null ?  new List<Location> (locs) : null;
 			}
 
 			#region Properties
@@ -493,34 +520,53 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 			
 			public int Count {
 				get {
-					return locations != null ? locations.Length : 0;
+					return locations != null ? locations.Count : 0;
 				}
 			}
 
 			#endregion
 
 			public void AddLocations (params Location[] additional)
+
+			{
+
+				AddLocations ((IEnumerable<Location>)additional);
+
+			}
+			public void AddLocations (IEnumerable<Location> additional)
 			{
 				if (additional == null)
 					return;
 				if (locations == null) {
-					locations = additional;
+					locations = new List<Location>(additional);
 				} else {
-					int pos = locations.Length;
-					Array.Resize (ref locations, pos + additional.Length);
-					additional.CopyTo (locations, pos);
+					locations.AddRange (additional);
 				}
 			}
 		}
+		
+		public MemberCore LastMember {
+			get;
+			private set;
+		}
 
-		Dictionary<object, Location[]> simple_locs = new Dictionary<object, Location[]> (ReferenceEquality<object>.Default);
+		Dictionary<object, List<Location>> simple_locs = new Dictionary<object,  List<Location>> (ReferenceEquality<object>.Default);
 		Dictionary<MemberCore, MemberLocations> member_locs = new Dictionary<MemberCore, MemberLocations> (ReferenceEquality<MemberCore>.Default);
 
 		[Conditional ("FULL_AST")]
 		public void AddLocation (object element, params Location[] locations)
+
 		{
-			if (element != null)
-				simple_locs.Add (element, locations);
+
+			AddLocation (element, (IEnumerable<Location>)locations);
+
+		}
+		[Conditional ("FULL_AST")]
+		public void AddLocation (object element, IEnumerable<Location> locations)
+		{
+			if (element == null)
+				return;
+			simple_locs.Add (element, new List<Location> (locations));
 		}
 
 		[Conditional ("FULL_AST")]
@@ -530,14 +576,31 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 				return;
 			if (locations.Length == 0)
 				throw new ArgumentException ("Statement is missing semicolon location");
-			simple_locs.Add (element, locations);
+			simple_locs.Add (element, new List<Location>(locations));
 		}
 
 		[Conditional ("FULL_AST")]
 		public void AddMember (MemberCore member, IList<Tuple<Modifiers, Location>> modLocations, params Location[] locations)
 		{
+			LastMember = member;
 			if (member == null)
 				return;
+			
+			MemberLocations existing;
+			if (member_locs.TryGetValue (member, out existing)) {
+				existing.Modifiers = modLocations;
+				existing.AddLocations (locations);
+				return;
+			}
+			member_locs.Add (member, new MemberLocations (modLocations, locations));
+		}
+		[Conditional ("FULL_AST")]
+		public void AddMember (MemberCore member, IList<Tuple<Modifiers, Location>> modLocations, IEnumerable<Location> locations)
+		{
+			LastMember = member;
+			if (member == null)
+				return;
+			
 			MemberLocations existing;
 			if (member_locs.TryGetValue (member, out existing)) {
 				existing.Modifiers = modLocations;
@@ -550,11 +613,18 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 		[Conditional ("FULL_AST")]
 		public void AppendTo (object existing, params Location[] locations)
 		{
+			AppendTo (existing, (IEnumerable<Location>)locations);
+
+		}
+
+		[Conditional ("FULL_AST")]
+		public void AppendTo (object existing, IEnumerable<Location> locations)
+		{
 			if (existing == null)
 				return;
-			Location[] locs;
+			List<Location> locs;
 			if (simple_locs.TryGetValue (existing, out locs)) {
-				simple_locs [existing] = locs.Concat (locations).ToArray ();
+				simple_locs [existing].AddRange (locations);
 				return;
 			}
 			AddLocation (existing, locations);
@@ -562,6 +632,13 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 		
 		[Conditional ("FULL_AST")]
 		public void AppendToMember (MemberCore existing, params Location[] locations)
+		{
+			AppendToMember (existing, (IEnumerable<Location>)locations);
+
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void AppendToMember (MemberCore existing, IEnumerable<Location> locations)
 		{
 			if (existing == null)
 				return;
@@ -573,9 +650,9 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 			member_locs.Add (existing, new MemberLocations (null, locations));
 		}
 
-		public Location[] GetLocations (object element)
+		public List<Location> GetLocations (object element)
 		{
-			Location[] found;
+			List<Location> found;
 			simple_locs.TryGetValue (element, out found);
 			return found;
 		}
@@ -585,6 +662,127 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 			MemberLocations found;
 			member_locs.TryGetValue (element, out found);
 			return found;
+		}
+	}
+	
+	public class UsingsBag
+	{
+		public class Namespace {
+			public Location NamespaceLocation { get; set; }
+			public MemberName Name { get; set; }
+			
+			public Location OpenBrace { get; set; }
+			public Location CloseBrace { get; set; }
+			public Location OptSemicolon { get; set; }
+			
+			public List<object> usings = new List<object> ();
+			public List<object> members = new List<object> ();
+			
+			
+			public virtual void Accept (StructuralVisitor visitor)
+			{
+				visitor.Visit (this);
+			}
+		}
+		
+		public class AliasUsing
+		{
+			public readonly Location UsingLocation;
+			public readonly Tokenizer.LocatedToken Identifier;
+			public readonly Location AssignLocation;
+			public readonly MemberName Nspace;
+			public readonly Location SemicolonLocation;
+			
+			public AliasUsing (Location usingLocation, Tokenizer.LocatedToken identifier, Location assignLocation, MemberName nspace, Location semicolonLocation)
+			{
+				this.UsingLocation = usingLocation;
+				this.Identifier = identifier;
+				this.AssignLocation = assignLocation;
+				this.Nspace = nspace;
+				this.SemicolonLocation = semicolonLocation;
+			}
+			
+			public virtual void Accept (StructuralVisitor visitor)
+			{
+				visitor.Visit (this);
+			}
+		}
+		
+		public class Using 
+		{
+			public readonly Location UsingLocation;
+			public readonly MemberName NSpace;
+			public readonly Location SemicolonLocation;
+			
+			public Using (Location usingLocation, MemberName nSpace, Location semicolonLocation)
+			{
+				this.UsingLocation = usingLocation;
+				this.NSpace = nSpace;
+				this.SemicolonLocation = semicolonLocation;
+			}
+			public virtual void Accept (StructuralVisitor visitor)
+			{
+				visitor.Visit (this);
+			}
+		}
+		
+		public Namespace Global {
+			get;
+			set;
+		}
+		Stack<Namespace> curNamespace = new Stack<Namespace> ();
+		
+		public UsingsBag ()
+		{
+			Global = new Namespace ();
+			Global.OpenBrace = new Location (1, 1);
+			Global.CloseBrace = new Location (int.MaxValue, int.MaxValue);
+			curNamespace.Push (Global);
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void AddUsingAlias (Location usingLocation, Tokenizer.LocatedToken identifier, Location assignLocation, MemberName nspace, Location semicolonLocation)
+		{
+			curNamespace.Peek ().usings.Add (new AliasUsing (usingLocation, identifier, assignLocation, nspace, semicolonLocation));
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void AddUsing (Location usingLocation, MemberName nspace, Location semicolonLocation)
+		{
+			curNamespace.Peek ().usings.Add (new Using (usingLocation, nspace, semicolonLocation));
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void DeclareNamespace (Location namespaceLocation, MemberName nspace)
+		{
+			var newNamespace = new Namespace () { NamespaceLocation = namespaceLocation, Name = nspace };
+			curNamespace.Peek ().members.Add (newNamespace);
+			curNamespace.Push (newNamespace);
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void AddTypeDeclaration (object type)
+		{
+			curNamespace.Peek ().members.Add (type);
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void EndNamespace (Location optSemicolon)
+		{
+			curNamespace.Peek ().OptSemicolon = optSemicolon;
+			curNamespace.Pop ();
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void OpenNamespace (Location bracketLocation)
+		{
+			curNamespace.Peek ().OpenBrace = bracketLocation;
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void CloseNamespace (Location bracketLocation)
+		{
+			curNamespace.Peek ().CloseBrace = bracketLocation;
 		}
 	}
 }

@@ -41,12 +41,18 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		Project project;
 		Engine engine;
 		string file;
+		ILogWriter currentLogWriter;
+		ConsoleLogger consoleLogger;
 		
 		public ProjectBuilder (string file, string binDir)
 		{
 			this.file = file;
 			engine = new Engine (binDir);
 			engine.GlobalProperties.SetProperty ("BuildingInsideVisualStudio", "true");
+			
+			consoleLogger = new ConsoleLogger (LoggerVerbosity.Normal, LogWriteLine, null, null);
+			engine.RegisterLogger (consoleLogger);
+			
 			Refresh ();
 		}
 		
@@ -56,25 +62,48 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 			project.Load (file);
 		}
 		
-		public MSBuildResult[] RunTarget (string target, string configuration, string platform, ILogWriter logWriter)
+		void LogWriteLine (string txt)
+		{
+			if (currentLogWriter != null)
+				currentLogWriter.WriteLine (txt);
+		}
+		
+		public MSBuildResult[] RunTarget (string target, string configuration, string platform, ILogWriter logWriter,
+			MSBuildVerbosity verbosity)
 		{
 			try {
 				SetupEngine (configuration, platform);
+				currentLogWriter = logWriter;
 				
 				LocalLogger logger = new LocalLogger (Path.GetDirectoryName (file));
 				engine.RegisterLogger (logger);
 				
-				ConsoleLogger consoleLogger = new ConsoleLogger (LoggerVerbosity.Normal, logWriter.WriteLine, null, null);
-				engine.RegisterLogger (consoleLogger);
-				
+				consoleLogger.Verbosity = GetVerbosity (verbosity);
 				project.Build (target);
 				return logger.BuildResult.ToArray ();
 				
 			} finally {
-				engine.UnregisterAllLoggers ();
+				currentLogWriter = null;
 			}
 		}
 		
+		LoggerVerbosity GetVerbosity (MSBuildVerbosity verbosity)
+		{
+			switch (verbosity) {
+			case MSBuildVerbosity.Quiet:
+				return LoggerVerbosity.Quiet;
+			case MSBuildVerbosity.Minimal:
+				return LoggerVerbosity.Minimal;
+			case MSBuildVerbosity.Normal:
+			default:
+				return LoggerVerbosity.Normal;
+			case MSBuildVerbosity.Detailed:
+				return LoggerVerbosity.Detailed;
+			case MSBuildVerbosity.Diagnostic:
+				return LoggerVerbosity.Diagnostic;
+			}
+		}
+
 		public string[] GetAssemblyReferences (string configuration, string platform)
 		{
 			SetupEngine (configuration, platform);
@@ -103,4 +132,3 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		}
 	}
 }
-

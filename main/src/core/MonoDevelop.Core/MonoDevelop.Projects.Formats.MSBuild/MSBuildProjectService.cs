@@ -38,6 +38,7 @@ using MonoDevelop.Projects.Extensions;
 using MonoDevelop.Core.Serialization;
 using MonoDevelop.Core;
 using MonoDevelop.Core.Assemblies;
+using Cecil = Mono.Cecil;
 
 namespace MonoDevelop.Projects.Formats.MSBuild
 {
@@ -46,12 +47,15 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		const string ItemTypesExtensionPath = "/MonoDevelop/ProjectModel/MSBuildItemTypes";
 		public const string GenericItemGuid = "{9344bdbb-3e7f-41fc-a0dd-8665d75ee146}";
 		public const string FolderTypeGuid = "{2150E333-8FDC-42A3-9474-1A3956D46DE8}";
-
+		
+		//FIXME: default toolsversion should match the default format.
 		public const string DefaultFormat = "MSBuild08";
+		const string REFERENCED_MSBUILD_TOOLS = "2.0";
+		internal const string DefaultToolsVersion = REFERENCED_MSBUILD_TOOLS;
 		
 		static DataContext dataContext;
 		
-		static Dictionary<TargetRuntime,RemoteBuildEngine> builders = new Dictionary<TargetRuntime, RemoteBuildEngine> ();
+		static Dictionary<string,RemoteBuildEngine> builders = new Dictionary<string, RemoteBuildEngine> ();
 		static GenericItemTypeNode genericItemTypeNode = new GenericItemTypeNode ();
 		
 		public static DataContext DataContext {
@@ -403,34 +407,41 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		
 		static RemoteBuildEngine currentBuildEngine;
 		
-		public static RemoteProjectBuilder GetProjectBuilder (TargetRuntime runtime, TargetFramework fx, string file)
+		public static RemoteProjectBuilder GetProjectBuilder (TargetRuntime runtime, string toolsVersion, string file)
 		{
 			lock (builders) {
-				string binDir = runtime.GetMSBuildBinPath (fx);
+				var toolsFx = Runtime.SystemAssemblyService.GetTargetFramework (toolsVersion);
+				string binDir = runtime.GetMSBuildBinPath (toolsFx);
 				
+				if (!runtime.IsInstalled (toolsFx))
+					throw new InvalidOperationException (string.Format (
+						"Runtime '{0}' cannot be used to build MSBuild '{0}' format projects",
+						runtime.Id, toolsVersion));
+				
+				string builderKey = runtime.Id + " " + toolsVersion;
 				RemoteBuildEngine builder;
-				if (builders.TryGetValue (runtime, out builder)) {
+				if (builders.TryGetValue (builderKey, out builder)) {
 					builder.ReferenceCount++;
 					return new RemoteProjectBuilder (file, binDir, builder);
 				}
 				
-				if (runtime.IsRunning) {
+				if (runtime.IsRunning && toolsVersion == REFERENCED_MSBUILD_TOOLS) {
 					if (currentBuildEngine == null)
 						currentBuildEngine = new RemoteBuildEngine (null, new BuildEngine ());
 					return new RemoteProjectBuilder (file, binDir, currentBuildEngine);
 				}
 				else {
+					string exe = GetExeLocation (toolsVersion);
 					MonoDevelop.Core.Execution.RemotingService.RegisterRemotingChannel ();
-					string exe = typeof(ProjectBuilder).Assembly.Location;
 					ProcessStartInfo pinfo = new ProcessStartInfo (exe);
-					runtime.GetToolsExecutionEnvironment (fx).MergeTo (pinfo);
+					runtime.GetToolsExecutionEnvironment (toolsFx).MergeTo (pinfo);
 					pinfo.UseShellExecute = false;
 					pinfo.RedirectStandardError = true;
 					pinfo.RedirectStandardInput = true;
 					
 					Process p = null;
 					try {
-						p = runtime.ExecuteAssembly (pinfo, fx);
+						p = runtime.ExecuteAssembly (pinfo);
 						p.StandardInput.WriteLine (Process.GetCurrentProcess ().Id.ToString ());
 						string sref = p.StandardError.ReadLine ();
 						byte[] data = Convert.FromBase64String (sref);
@@ -446,10 +457,76 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 						throw;
 					}
 				}
-				builders [runtime] = builder;
+				builders [builderKey] = builder;
 				builder.ReferenceCount = 1;
 				return new RemoteProjectBuilder (file, binDir, builder);
 			}
+		}
+		
+		static string GetExeLocation (string toolsVersion)
+		{
+			FilePath sourceExe = typeof(ProjectBuilder).Assembly.Location;
+			
+			if (toolsVersion == REFERENCED_MSBUILD_TOOLS)
+				return sourceExe;
+			
+			var newVersions = new Dictionary<string, string[]> ();
+			string version;
+			Mono.Cecil.TargetRuntime runtime;
+			
+			switch (toolsVersion) {
+			case "2.0":
+				version = "2.0.0.0";
+				newVersions.Add ("Microsoft.Build.Engine", new string[] {"Microsoft.Build.Engine", version});
+				newVersions.Add ("Microsoft.Build.Framework", new string[] {"Microsoft.Build.Framework", version});
+				newVersions.Add ("Microsoft.Build.Utilities", new string[] {"Microsoft.Build.Utilities", version});
+				runtime = Mono.Cecil.TargetRuntime.NET_2_0;
+				break;
+			case "3.5":
+				version = "3.5.0.0";
+				newVersions.Add ("Microsoft.Build.Engine", new string[] {"Microsoft.Build.Engine", version});
+				newVersions.Add ("Microsoft.Build.Framework", new string[] {"Microsoft.Build.Framework", version});
+				newVersions.Add ("Microsoft.Build.Utilities", new string[] {"Microsoft.Build.Utilities.v3.5", version});
+				runtime = Mono.Cecil.TargetRuntime.NET_2_0;
+				break;
+			case "4.0":
+				version = "4.0.0.0";
+				newVersions.Add ("Microsoft.Build.Engine", new string[] {"Microsoft.Build.Engine", version});
+				newVersions.Add ("Microsoft.Build.Framework", new string[] {"Microsoft.Build.Framework", version});
+				newVersions.Add ("Microsoft.Build.Utilities", new string[] {"Microsoft.Build.Utilities.v4.0", version});
+				runtime = Mono.Cecil.TargetRuntime.NET_4_0;
+				break;
+			default:
+				throw new InvalidOperationException ("Unknown MSBuild ToolsVersion '" + toolsVersion + "'");
+			}
+			
+			FilePath p = FilePath.Build (PropertyService.ConfigPath, "xbuild", toolsVersion, "MonoDevelop.Projects.Formats.MSBuild.exe");
+			if (!File.Exists (p) || File.GetLastWriteTime (p) < File.GetLastWriteTime (sourceExe)) {
+				if (!Directory.Exists (p.ParentDirectory))
+					Directory.CreateDirectory (p.ParentDirectory);
+				File.Copy (typeof(ProjectBuilder).Assembly.Location, p, true);
+				
+				// Update the references to msbuild
+				Cecil.AssemblyDefinition asm = Cecil.AssemblyFactory.GetAssembly (p);
+				foreach (Cecil.AssemblyNameReference ar in asm.MainModule.AssemblyReferences) {
+					string[] replacement;
+					if (newVersions.TryGetValue (ar.Name, out replacement)) {
+						ar.Name = replacement[0];
+						ar.Version = new Version (replacement[1]);
+					}
+				}
+				asm.Runtime = runtime;
+				Cecil.AssemblyFactory.SaveAssembly (asm, p);
+			}
+			
+			FilePath configFile = p + ".config";
+			FilePath configSrc = typeof(ProjectBuilder).Assembly.Location + ".config";
+			if (!File.Exists (configFile) || File.GetLastWriteTime (configFile) < File.GetLastWriteTime (configSrc)) {
+				var config = File.ReadAllText (configSrc);
+				config = config.Replace (REFERENCED_MSBUILD_TOOLS + ".0.0", version);
+				File.WriteAllText (p + ".config", config);
+			}
+			return p;
 		}
 
 		internal static void ReleaseProjectBuilder (RemoteBuildEngine engine)
@@ -487,7 +564,7 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		{
 			lock (builders) {
 				DateTime tnow = DateTime.Now;
-				foreach (var val in new Dictionary<TargetRuntime,RemoteBuildEngine> (builders)) {
+				foreach (var val in new Dictionary<string,RemoteBuildEngine> (builders)) {
 					if (val.Value.ReferenceCount == 0 && val.Value.ReleaseTime <= tnow) {
 						builders.Remove (val.Key);
 						val.Value.Dispose ();

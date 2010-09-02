@@ -19,7 +19,6 @@
     <DefineConstants>GMCS_SOURCE;NET_2_0;MS_COMPATIBLE;FULL_AST;BOOTSTRAP_BASIC</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <Execution>
       <Execution clr-version="Net_2_0" />
     </Execution>
@@ -156,9 +155,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="MonoDevelop.CSharp.Formatting\CSharpFormattingPolicy.xml">
       <LogicalName>CSharpFormattingPolicy.xml</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Include="templates\GtkSharp2ProjectMac.xpt.xml">
-      <LogicalName>GtkSharp2ProjectMac.xpt.xml</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -354,7 +350,6 @@
     <None Include="ChangeLog" />
     <None Include="Makefile.am" />
     <None Include="MonoDevelop.CSharp.Parser\mcs\cs-parser.jay" />
-    <None Include="MonoDevelop.CSharp.Parser\mcs\smcs.exe.sources" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>

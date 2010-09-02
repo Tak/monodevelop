@@ -101,7 +101,6 @@ namespace MonoDevelop.CSharpBinding.Tests
 			sev.GetLineColumnFromPosition (sev.CursorPosition, out line, out column);
 			ctx.TriggerLine = line;
 			ctx.TriggerLineOffset = column - 1;
-			
 			if (isCtrlSpace)
 				return textEditorCompletion.CodeCompletionCommand (ctx) as CompletionDataList;
 			return textEditorCompletion.HandleCodeCompletion (ctx, editorText[cursorPosition - 1] , ref triggerWordLength) as CompletionDataList;
@@ -2520,7 +2519,7 @@ class Foo
 	}
 }
 
-class Test
+class MyTest
 {
 	static T Test<T> (Func<string, T> myFunc)
 	{
@@ -2736,6 +2735,38 @@ class Program
 }");
 			Assert.IsNotNull (provider, "provider not found.");
 			Assert.IsNotNull (provider.Find ("Foo"), "method 'Foo' not found.");
+		}
+		
+		[Test()]
+		public void TestCommentsWithWindowsEol ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider ("class TestClass\r\n{\r\npublic static void Main (string[] args) {\r\n// TestComment\r\n$args.$\r\n}\r\n}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("ToString"), "method 'ToString' not found.");
+		}
+		
+		[Test()]
+		public void TestGhostEntryBug ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"
+using System.IO;
+
+class TestClass
+{
+	public Path Path {
+		get;
+		set;
+	}
+	
+	void Test ()
+	{
+		$$
+	}
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNull (provider.Find ("System.IO.Path"), "'System.IO.Path' found but shouldn't.");
+			Assert.IsNotNull (provider.Find ("Path"), "property 'Path' not found.");
 		}
 	}
 }

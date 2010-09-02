@@ -535,12 +535,12 @@ namespace MonoDevelop.SourceEditor
 //			info.Line -= 1;
 			
 			// If the line is already underlined
-			if (errors.ContainsKey (info.Region.Start.Line - 1))
+			if (errors.ContainsKey (info.Region.Start.Line))
 				return;
 			
 			LineSegment line = this.TextEditor.Document.GetLine (info.Region.Start.Line);
 			ErrorMarker error = new ErrorMarker (info, line);
-			errors [info.Region.Start.Line - 1] = error;
+			errors [info.Region.Start.Line] = error;
 			error.AddToLine (this.TextEditor.Document);
 		}
 		#endregion
@@ -863,8 +863,8 @@ namespace MonoDevelop.SourceEditor
 			if (offset < 0 || offset > TextEditor.Document.Length)
 				return;
 			DocumentLocation location = TextEditor.LogicalToVisualLocation (TextEditor.Caret.Location);
-			IdeApp.Workbench.StatusBar.ShowCaretState (TextEditor.Caret.Line + 1,
-			                                           location.Column + 1,
+			IdeApp.Workbench.StatusBar.ShowCaretState (TextEditor.Caret.Line,
+			                                           location.Column,
 			                                           TextEditor.IsSomethingSelected ? TextEditor.SelectionRange.Length : 0,
 			                                           TextEditor.Caret.IsInInsertMode);
 		}
