@@ -458,6 +458,7 @@ namespace MonoDevelop.Debugger
 				AppendValue (TreeIter.Zero, null, val);
 				if (val.HasChildren)
 					showExpanders = true;
+				val.Refresh ();
 			}
 			
 			if (valueNames.Count > 0) {
