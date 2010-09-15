@@ -31,7 +31,7 @@ using MonoDevelop.Core;
 using MonoDevelop.Projects.Dom.Parser;
 using MonoDevelop.Refactoring;
 using MonoDevelop.CSharpBinding.Tests;
-using MonoDevelop.Refactoring.ExtractMethod;
+using MonoDevelop.CSharp.Refactoring.ExtractMethod;
 using System.Collections.Generic;
 using MonoDevelop.CSharpBinding;
 using System.Text;
@@ -44,7 +44,6 @@ using Mono.TextEditor;
 namespace MonoDevelop.Refactoring.Tests
 {
 	[TestFixture()]
-	[Ignore("TODO:Refactor extract method.")]
 	public class ExtractMethodTests : UnitTests.TestBase
 	{
 		static int pcount = 0;
@@ -182,7 +181,7 @@ namespace MonoDevelop.Refactoring.Tests
 			ExtractMethodRefactoring.ExtractMethodParameters parameters = refactoring.CreateParameters (options);
 			Assert.IsNotNull (parameters);
 			parameters.Name = "NewMethod";
-			parameters.InsertionPoint = new Mono.TextEditor.InsertionPoint (new DocumentLocation (options.ResolveResult.CallingMember.BodyRegion.End.Line, 1), NewLineInsertion.BlankLine, NewLineInsertion.None);
+			parameters.InsertionPoint = new Mono.TextEditor.InsertionPoint (new DocumentLocation (options.ResolveResult.CallingMember.BodyRegion.End.Line + 1, 1), NewLineInsertion.BlankLine, NewLineInsertion.None);
 			List<Change> changes = refactoring.PerformChanges (options, parameters);
 			string output = GetOutput (options, changes);
 			Assert.IsTrue (CompareSource (output, outputString), "Expected:" + Environment.NewLine + outputString + Environment.NewLine + "was:" + Environment.NewLine + output);
@@ -320,7 +319,7 @@ namespace MonoDevelop.Refactoring.Tests
 		j = i + j;
 		k = j + member;
 		->
-		Console.WriteLine (k);
+		Console.WriteLine (k + j);
 	}
 }
 ", @"class TestClass
@@ -330,7 +329,7 @@ namespace MonoDevelop.Refactoring.Tests
 	{
 		int i = 5, j = 10, k;
 		NewMethod (i, ref j, out k);
-		Console.WriteLine (k);
+		Console.WriteLine (k + j);
 	}
 	
 	void NewMethod (int i, ref int j, out int k)

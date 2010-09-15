@@ -301,7 +301,9 @@ namespace Mono.CSharp {
 		}
 
 		public Expression Source {
-			get { return source; }
+			get {
+				return source;
+			}
 		}
 
 		protected override Expression DoResolve (ResolveContext ec)
@@ -437,19 +439,59 @@ namespace Mono.CSharp {
 		}
 	}
 
-	// This class implements fields and events class initializers
+	//
+	// Compiler generated assign
+	//
+	class CompilerAssign : Assign
+	{
+		public CompilerAssign (Expression target, Expression source, Location loc)
+			: base (target, source, loc)
+		{
+		}
+
+		public void UpdateSource (Expression source)
+		{
+			base.source = source;
+		}
+	}
+
+	//
+	// Implements fields and events class initializers
+	//
 	public class FieldInitializer : Assign
 	{
+		//
+		// Field initializers are tricky for partial classes. They have to
+		// share same constructor (block) for expression trees resolve but
+		// they have they own resolve scope
+		//
+		sealed class FieldInitializerContext : ResolveContext
+		{
+			ExplicitBlock ctor_block;
+
+			public FieldInitializerContext (IMemberContext mc, ResolveContext constructorContext)
+				: base (mc, Options.FieldInitializerScope | Options.ConstructorScope)
+			{
+				this.ctor_block = constructorContext.CurrentBlock.Explicit;
+			}
+
+			public override ExplicitBlock ConstructorBlock {
+				get {
+					return ctor_block;
+				}
+			}
+		}
+
 		//
 		// Keep resolved value because field initializers have their own rules
 		//
 		ExpressionStatement resolved;
-		IMemberContext rc;
+		IMemberContext mc;
 
-		public FieldInitializer (FieldSpec spec, Expression expression, IMemberContext rc)
+		public FieldInitializer (FieldSpec spec, Expression expression, IMemberContext mc)
 			: base (new FieldExpr (spec, expression.Location), expression, expression.Location)
 		{
-			this.rc = rc;
+			this.mc = mc;
 			if (!spec.IsStatic)
 				((FieldExpr)target).InstanceExpression = CompilerGeneratedThis.Instance;
 		}
@@ -461,19 +503,8 @@ namespace Mono.CSharp {
 				return null;
 
 			if (resolved == null) {
-				//
-				// Field initializers are tricky for partial classes. They have to
-				// share same constructor (block) but they have they own resolve scope.
-				//
-
-				IMemberContext old = ec.MemberContext;
-				ec.MemberContext = rc;
-
-				using (ec.Set (ResolveContext.Options.FieldInitializerScope)) {
-					resolved = base.DoResolve (ec) as ExpressionStatement;
-				}
-
-				ec.MemberContext = old;
+				var ctx = new FieldInitializerContext (mc, ec);
+				resolved = base.DoResolve (ctx) as ExpressionStatement;
 			}
 
 			return resolved;

@@ -1,10 +1,10 @@
 // 
-// IExtendedTextTemplatingEngineHost.cs
+// IDocGenerator.cs
 //  
 // Author:
-//       Nathan Baulch <nathan.baulch@gmail.com>
+//       Mike Krüger <mkrueger@novell.com>
 // 
-// Copyright (c) 2009 Nathan Baulch
+// Copyright (c) 2010 Novell, Inc (http://www.novell.com)
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,34 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-
 using System;
-using Microsoft.VisualStudio.TextTemplating;
+using MonoDevelop.Projects.Dom;
+using MonoDevelop.Core;
+using Mono.Addins;
 
-namespace Mono.TextTemplating
+namespace MonoDevelop.Projects.Text
 {
-	public interface IExtendedTextTemplatingEngineHost : ITextTemplatingEngineHost
+	public abstract class DocGenerator
 	{
-		TextTransformation CreateInstance (Type type);
+		public static DocGenerator Instance {
+			get;
+			private set;
+		}
+		
+		public abstract string GenerateDocumentation (IMember member, string linePrefix);
+		
+		static DocGenerator ()
+		{
+			AddinManager.AddExtensionNodeHandler ("/MonoDevelop/ProjectModel/DocumentationGenerator", delegate (object sender, ExtensionNodeEventArgs args) {
+				switch (args.Change) {
+				case ExtensionChange.Add:
+					if (Instance != null)
+						LoggingService.LogWarning ("Duplicate doc generator defined.");
+					Instance = (DocGenerator) args.ExtensionObject;
+					break;
+				}
+			});
+		}
 	}
 }
+

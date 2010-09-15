@@ -129,7 +129,7 @@ namespace Mono.CSharp {
 			// From T to any interface implemented by C
 			//
 			var base_type = expr_type.GetEffectiveBase ();
-			if (base_type == target_type || TypeSpec.IsBaseClass (base_type, target_type, false) || base_type.ImplementsInterface (target_type)) {
+			if (base_type == target_type || TypeSpec.IsBaseClass (base_type, target_type, false) || base_type.ImplementsInterface (target_type, true)) {
 				if (expr_type.IsReferenceType)
 					return new ClassCast (expr, target_type);
 
@@ -239,7 +239,7 @@ namespace Mono.CSharp {
 
 			// from any class-type S to any interface-type T.
 			if (target_type.IsInterface) {
-				if (expr_type.ImplementsInterface (target_type)){
+				if (expr_type.ImplementsInterface (target_type, true)){
 					return !TypeManager.IsValueType (expr_type);
 				}
 			}
@@ -321,7 +321,7 @@ namespace Mono.CSharp {
 
 			// from any interface type S to interface-type T.
 			if (expr_type.IsInterface && target_type.IsInterface) {
-				return expr_type.ImplementsInterface (target_type);
+				return expr_type.ImplementsInterface (target_type, true);
 			}
 
 			// from any delegate type to System.Delegate
@@ -403,7 +403,7 @@ namespace Mono.CSharp {
 
 			// from any class-type S to any interface-type T.
 			if (target_type.IsInterface) {
-				if (expr_type.ImplementsInterface (target_type) &&
+				if (expr_type.ImplementsInterface (target_type, true) &&
 					(TypeManager.IsGenericParameter (expr_type) || TypeManager.IsValueType (expr_type))) {
 					return expr == null ? EmptyExpression.Null : new BoxedCast (expr, target_type);
 				}
@@ -685,6 +685,10 @@ namespace Mono.CSharp {
 					return true;
 				}
 
+				// dynamic to __arglist
+				if (target_type == InternalType.Arglist)
+					return true;
+
 				return false;
 			}
 
@@ -761,7 +765,7 @@ namespace Mono.CSharp {
 			// If `expr_type' implements `target_type' (which is an iface)
 			// see TryImplicitIntConversion
 			//
-			if (target_type.IsInterface && expr_type.ImplementsInterface (target_type))
+			if (target_type.IsInterface && expr_type.ImplementsInterface (target_type, true))
 				return true;
 
 			if (target_type == TypeManager.void_ptr_type && expr_type.IsPointer)
@@ -1246,7 +1250,7 @@ namespace Mono.CSharp {
 				case MemberKind.TypeParameter:
 					Arguments args = new Arguments (1);
 					args.Add (new Argument (expr));
-					return new DynamicConversion (target_type, 0, args, loc).Resolve (ec);
+					return new DynamicConversion (target_type, explicit_cast ? CSharpBinderFlags.ConvertExplicit : 0, args, loc).Resolve (ec);
 				}
 
 				return null;
@@ -1675,7 +1679,7 @@ namespace Mono.CSharp {
 			// sealed, or provided T implements S.
 			//
 			if (source_type.IsInterface) {
-				if (!target_type.IsSealed || target_type.ImplementsInterface (source_type)) {
+				if (!target_type.IsSealed || target_type.ImplementsInterface (source_type, true)) {
 					if (target_type.IsClass)
 						return source == null ? EmptyExpression.Null : new ClassCast (source, target_type);
 
@@ -1746,7 +1750,7 @@ namespace Mono.CSharp {
 			// From any class type S to any interface T, provides S is not sealed
 			// and provided S does not implement T.
 			//
-			if (target_type.IsInterface && !source_type.IsSealed && !source_type.ImplementsInterface (target_type)) {
+			if (target_type.IsInterface && !source_type.IsSealed && !source_type.ImplementsInterface (target_type, true)) {
 				return source == null ? EmptyExpression.Null : new ClassCast (source, target_type);
 			}
 

@@ -35,8 +35,9 @@ using System.Collections.Generic;
 using MonoDevelop.Ide;
 using Mono.TextEditor;
 using Mono.TextEditor.PopupWindow;
+using MonoDevelop.Refactoring;
 
-namespace MonoDevelop.Refactoring.ExtractMethod
+namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 {
 	public partial class ExtractMethodDialog : Gtk.Dialog
 	{
@@ -44,6 +45,9 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 		ExtractMethodRefactoring.ExtractMethodParameters properties;
 		ListStore store;
 		RefactoringOptions options;
+		string methodName;
+		int activeModifier;
+		bool generateComments;
 		
 		public ExtractMethodDialog (RefactoringOptions options, ExtractMethodRefactoring extractMethod, ExtractMethodRefactoring.ExtractMethodParameters properties)
 		{
@@ -140,23 +144,23 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 		
 		void SetProperties ()
 		{
-			properties.Name = entry.Text;
-			properties.GenerateComment = checkbuttonGenerateComment.Active;
-			switch (comboboxModifiers.Active) {
+			properties.Name = methodName;
+			properties.GenerateComment = generateComments;
+			switch (activeModifier) {
 			case 0:
-				properties.Modifiers = ICSharpCode.NRefactory.Ast.Modifiers.None;
+				properties.Modifiers = Modifiers.None;
 				break;
 			case 1:
-				properties.Modifiers = ICSharpCode.NRefactory.Ast.Modifiers.Public;
+				properties.Modifiers = Modifiers.Public;
 				break;
 			case 2:
-				properties.Modifiers = ICSharpCode.NRefactory.Ast.Modifiers.Private;
+				properties.Modifiers = Modifiers.Private;
 				break;
 			case 3:
-				properties.Modifiers = ICSharpCode.NRefactory.Ast.Modifiers.Protected;
+				properties.Modifiers = Modifiers.Protected;
 				break;
 			case 4:
-				properties.Modifiers = ICSharpCode.NRefactory.Ast.Modifiers.Internal;
+				properties.Modifiers = Modifiers.Internal;
 				break;
 			}
 			PropertyService.Set ("MonoDevelop.Refactoring.ExtractMethod.ExtractMethodDialog.DefaultModifier", comboboxModifiers.Active);
@@ -170,7 +174,7 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 			if (editor != null) {
 				IType type = properties.DeclaringMember.DeclaringType;
 				
-				InsertionCursorEditMode mode = new InsertionCursorEditMode (editor, HelperMethods.GetInsertionPoints (editor.Document, type));
+				InsertionCursorEditMode mode = new InsertionCursorEditMode (editor, MonoDevelop.Refactoring.HelperMethods.GetInsertionPoints (editor.Document, type));
 				for (int i = 0; i < mode.InsertionPoints.Count; i++) {
 					var point = mode.InsertionPoints[i];
 					if (point.Location < editor.Caret.Location) {
@@ -189,6 +193,10 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 				helpWindow.Items.Add (new KeyValuePair<string, string> (GettextCatalog.GetString ("<b>Esc</b>"), GettextCatalog.GetString ("<b>Cancel</b> this refactoring.")));
 				mode.HelpWindow = helpWindow;
 				mode.StartMode ();
+				methodName = entry.Text;
+				activeModifier = comboboxModifiers.Active;
+				generateComments = checkbuttonGenerateComment.Active;
+				
 				mode.Exited += delegate(object s, InsertionCursorEventArgs args) {
 					if (args.Success) {
 						SetProperties ();

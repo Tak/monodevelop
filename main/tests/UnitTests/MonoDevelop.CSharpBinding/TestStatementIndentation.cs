@@ -267,7 +267,6 @@ continue;
 		}
 		
 		[Test()]
-		[Ignore("FIX LOCAL VARIABLES!")]
 		public void TestFixedStatementIndentation ()
 		{
 			TextEditorData data = new TextEditorData ();
@@ -295,7 +294,6 @@ fixed (object* obj = &obj)
 		}
 		
 		[Test()]
-		[Ignore("FIX LOCAL VARIABLES!")]
 		public void TestFixedForcementAdd ()
 		{
 			TextEditorData data = new TextEditorData ();
@@ -612,6 +610,45 @@ using (var o = new MyObj()) {
 }", data.Document.Text);
 		}
 		
+		[Test()]
+		public void TestUsingAlignment ()
+		{
+			TextEditorData data = new TextEditorData ();
+			data.Document.FileName = "a.cs";
+			data.Document.Text = @"class Test {
+	Test TestMethod ()
+	{
+using (var p = new MyObj())
+using (var o = new MyObj()) {
+}
+	}
+}";
+			
+			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
+			policy.AlignEmbeddedUsingStatements = true;
+			policy.ClassBraceStyle = BraceStyle.EndOfLine;
+			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"class Test {
+	Test TestMethod ()
+	{
+		using (var p = new MyObj())
+		using (var o = new MyObj()) {
+		}
+	}
+}", data.Document.Text);
+			policy.AlignEmbeddedUsingStatements = false;
+			compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"class Test {
+	Test TestMethod ()
+	{
+		using (var p = new MyObj())
+			using (var o = new MyObj()) {
+			}
+	}
+}", data.Document.Text);
+		}
 		
 		[Test()]
 		public void TestVariableDeclarationIndentation ()
@@ -1093,6 +1130,45 @@ do {
 		}
 		
 		[Test()]
+		public void TestIfAlignment ()
+		{
+			TextEditorData data = new TextEditorData ();
+			data.Document.FileName = "a.cs";
+			data.Document.Text = @"class Test {
+	Test TestMethod ()
+	{
+if (a)
+if (b) {
+}
+	}
+}";
+			
+			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
+			policy.AlignEmbeddedIfStatements = true;
+			policy.ClassBraceStyle = BraceStyle.EndOfLine;
+			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"class Test {
+	Test TestMethod ()
+	{
+		if (a)
+		if (b) {
+		}
+	}
+}", data.Document.Text);
+			policy.AlignEmbeddedIfStatements = false;
+			compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"class Test {
+	Test TestMethod ()
+	{
+		if (a)
+			if (b) {
+			}
+	}
+}", data.Document.Text);
+		}		
+		[Test()]
 		public void TestElseOnNewLine ()
 		{
 			TextEditorData data = new TextEditorData ();
@@ -1251,7 +1327,6 @@ do {
 		}
 		
 		[Test()]
-		[Ignore("FIX LOCAL VARIABLES!")]
 		public void TestFixedBracketPlacement ()
 		{
 			TextEditorData data = new TextEditorData ();

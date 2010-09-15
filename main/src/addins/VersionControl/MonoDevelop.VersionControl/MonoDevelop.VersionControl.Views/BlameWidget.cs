@@ -246,14 +246,14 @@ namespace MonoDevelop.VersionControl.Views
 			int line = startLine;
 			JumpOverFoldings (ref line);
 			while (curY < editor.Allocation.Bottom) {
-				Annotation ann = line < overview.annotations.Count ? overview.annotations[line] : null;
+				Annotation ann = line <= overview.annotations.Count ? overview.annotations[line - 1] : null;
 				
 				do {
 					double lineHeight = Editor.GetLineHeight (line);
 					curY += lineHeight;
 					line++;
 					JumpOverFoldings (ref  line);
-				} while (line + 1 < overview.annotations.Count && ann != null && overview.annotations[line] != null && overview.annotations[line].Revision == ann.Revision);
+				} while (line + 1 <= overview.annotations.Count && ann != null && overview.annotations[line - 1] != null && overview.annotations[line - 1].Revision == ann.Revision);
 				
 				if (ann != null) {
 					cr.MoveTo (Editor.TextViewMargin.XOffset, curY + 0.5);
@@ -289,6 +289,35 @@ namespace MonoDevelop.VersionControl.Views
 			}
 			if (lastFold > 0) 
 				line = Editor.Document.OffsetToLineNumber (lastFold);
+		}
+
+		internal static string FormatMessage (string msg)
+		{
+			StringBuilder sb = new StringBuilder ();
+			bool wasWs = false;
+			foreach (char ch in msg) {
+				if (ch == ' ' || ch == '\t') {
+					if (!wasWs)
+						sb.Append (' ');
+					wasWs = true;
+					continue;
+				}
+				wasWs = false;
+				sb.Append (ch);
+			}
+			
+			Document doc = new Document ();
+			doc.Text = sb.ToString ();
+			for (int i = 1; i <= doc.LineCount; i++) {
+				string text = doc.GetLineText (i).Trim ();
+				int idx = text.IndexOf (':');
+				if (text.StartsWith ("*") && idx >= 0 && idx < text.Length - 1) {
+					int offset = doc.GetLine (i).EndOffset;
+					msg = text.Substring (idx + 1) + doc.GetTextAt (offset, doc.Length - offset);
+					break;
+				}
+			}
+			return msg.TrimStart (' ', '\t');
 		}
 
 		class BlameRenderer : DrawingArea 
@@ -480,7 +509,38 @@ namespace MonoDevelop.VersionControl.Views
 				}
 				return null;
 			}
-
+			
+			string TruncRevision (string revision)
+			{
+				return TruncRevision (revision, 8);
+			}
+			
+			/// <summary>
+			/// Truncates the revision. This is done by trying to find the shortest matching number.
+			/// </summary>
+			/// <returns>
+			/// The shortest revision number (down to a minimum length of initialLength).
+			/// </returns>
+			/// <param name='revision'>
+			/// The revision.
+			/// </param>
+			/// <param name='initalLength'>
+			/// Inital length.
+			/// </param> 
+			string TruncRevision (string revision, int initalLength)
+			{
+				if (initalLength >= revision.Length)
+					return revision;
+				string truncated = revision.Substring (0, initalLength);
+				var history = widget.info.History;
+				if (history != null) {
+					bool isMisleadingMatch = history.Select (r => r.ToString ()).Any (rev => rev != revision && rev.StartsWith (truncated));
+					if (isMisleadingMatch)
+						truncated = TruncRevision (revision, initalLength + 1);
+				}
+				return truncated;
+			}
+			
 			void UpdateWidth ()
 			{
 				int tmpwidth, height, width = 120;
@@ -491,7 +551,7 @@ namespace MonoDevelop.VersionControl.Views
 							layout.SetText (note.Date.ToShortDateString ());
 							layout.GetPixelSize (out dateTimeLength, out height);
 						}
-						layout.SetText (note.Author + note.Revision);
+						layout.SetText (note.Author + TruncRevision (note.Revision));
 						layout.GetPixelSize (out tmpwidth, out height);
 						width = Math.Max (width, tmpwidth);
 					}
@@ -500,10 +560,10 @@ namespace MonoDevelop.VersionControl.Views
 				QueueResize ();
 			}
 
-			Regex regex = new Regex (@"[\s+\*[^:]*\:\s*]*(?<msg>[^:\s*](.)*)$");
 			const int leftSpacer = 4;
 			const int margin = 4;
 
+			
 			protected override bool OnExposeEvent (Gdk.EventExpose e)
 			{
 				using (Cairo.Context cr = Gdk.CairoHelper.Create (e.Window)) {
@@ -535,7 +595,7 @@ namespace MonoDevelop.VersionControl.Views
 							e.Window.DrawLayout (Style.BlackGC, leftSpacer + margin, (int)(curY + (widget.Editor.LineHeight - h) / 2), layout);
 							
 							
-							layout.SetText (ann.Revision);
+							layout.SetText (TruncRevision (ann.Revision));
 							layout.GetPixelSize (out w2, out h);
 							e.Window.DrawLayout (Style.BlackGC, Allocation.Width - w2 - margin, (int)(curY + (widget.Editor.LineHeight - h) / 2), layout);
 
@@ -562,21 +622,7 @@ namespace MonoDevelop.VersionControl.Views
 						if (ann != null && line - lineStart > 1) {
 							string msg = GetCommitMessage (lineStart);
 							if (!string.IsNullOrEmpty (msg)) {
-								StringBuilder sb = new StringBuilder ();
-								bool wasWs = false;
-								foreach (char ch in msg) {
-									if (char.IsWhiteSpace (ch)) {
-										if (!wasWs)
-											sb.Append (' ');
-										wasWs = true;
-										continue;
-									}
-									wasWs = false;
-									sb.Append (ch);
-								}
-								var match = regex.Match (sb.ToString ());
-								if (match.Success)
-									msg = match.Result ("${msg}").Trim ();
+								msg = FormatMessage (msg);
 								layout.SetText (msg);
 								layout.Width = (int)(Allocation.Width * Pango.Scale.PangoScale);
 								using (var gc = new Gdk.GC (e.Window)) {

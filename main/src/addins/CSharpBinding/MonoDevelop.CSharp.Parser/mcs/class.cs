@@ -117,15 +117,6 @@ namespace Mono.CSharp {
 			#endregion
 		}
 
-		sealed class DynamicSiteClass : CompilerGeneratedClass
-		{
-			public DynamicSiteClass (DeclSpace parent)
-				: base (parent, new MemberName (CompilerGeneratedClass.MakeName (null, "c", "DynamicSite", 0)),
-					Modifiers.PRIVATE | Modifiers.STATIC)
-			{
-			}
-		}
-
 		[Flags]
 		enum CachedMethods
 		{
@@ -222,8 +213,6 @@ namespace Mono.CSharp {
 
 		protected TypeSpec spec;
 		TypeSpec current_type;
-
-		CompilerGeneratedClass dynamic_site_container;
 
 		List<TypeContainer> partial_parts;
 
@@ -698,7 +687,7 @@ namespace Mono.CSharp {
 				if (OptAttributes == null)
 					return false;
 
-				return OptAttributes.Contains (PredefinedAttributes.Get.ComImport);
+				return OptAttributes.Contains (Compiler.PredefinedAttributes.ComImport);
 			}
 		}
 
@@ -812,7 +801,7 @@ namespace Mono.CSharp {
 			if (OptAttributes == null)
 				return null;
 
-			Attribute a = OptAttributes.Search (PredefinedAttributes.Get.CoClass);
+			Attribute a = OptAttributes.Search (Compiler.PredefinedAttributes.CoClass);
 			if (a == null)
 				return null;
 
@@ -1066,22 +1055,6 @@ namespace Mono.CSharp {
 		}
 
 		//
-		// Creates a nested container for all compiler generated dynamic stuff
-		//
-		public TypeContainer CreateDynamicSite ()
-		{
-			if (dynamic_site_container == null) {
-				dynamic_site_container = new DynamicSiteClass (this);
-				RootContext.ToplevelTypes.AddCompilerGeneratedClass (dynamic_site_container);
-				dynamic_site_container.CreateType ();
-				dynamic_site_container.DefineType ();
-				dynamic_site_container.Define ();
-			}
-
-			return dynamic_site_container;
-		}
-
-		//
 		// Creates a proxy base method call inside this container for hoisted base member calls
 		//
 		public MethodSpec CreateHoistedBaseCallProxy (ResolveContext rc, MethodSpec method)
@@ -1107,6 +1080,7 @@ namespace Mono.CSharp {
 						var base_param = method.Parameters.FixedParameters[i];
 						base_parameters[i] = new Parameter (new TypeExpression (method.Parameters.Types[i], Location),
 							base_param.Name, base_param.ModFlags, null, Location);
+						base_parameters[i].Resolve (this, i);
 					}
 				}
 
@@ -1659,7 +1633,7 @@ namespace Mono.CSharp {
 			if (!seen_normal_indexers)
 				return;
 
-			PredefinedAttribute pa = PredefinedAttributes.Get.DefaultMember;
+			PredefinedAttribute pa = Compiler.PredefinedAttributes.DefaultMember;
 			if (pa.Constructor == null &&
 				!pa.ResolveConstructor (Location, TypeManager.string_type))
 				return;
@@ -1798,7 +1772,7 @@ namespace Mono.CSharp {
 			}
 
 			if ((ModFlags & Modifiers.COMPILER_GENERATED) != 0 && !Parent.IsCompilerGenerated)
-				PredefinedAttributes.Get.CompilerGenerated.EmitAttribute (TypeBuilder);
+				Compiler.PredefinedAttributes.CompilerGenerated.EmitAttribute (TypeBuilder);
 
 			base.Emit ();
 		}
@@ -2451,11 +2425,11 @@ namespace Mono.CSharp {
 			base.Emit ();
 
 			if ((ModFlags & Modifiers.METHOD_EXTENSION) != 0)
-				PredefinedAttributes.Get.Extension.EmitAttribute (TypeBuilder);
+				Compiler.PredefinedAttributes.Extension.EmitAttribute (TypeBuilder);
 
 			var trans_flags = TypeManager.HasDynamicTypeUsed (base_type);
 			if (trans_flags != null) {
-				var pa = PredefinedAttributes.Get.DynamicTransform;
+				var pa = Compiler.PredefinedAttributes.DynamicTransform;
 				if (pa.Constructor != null || pa.ResolveConstructor (Location, ArrayContainer.MakeType (TypeManager.bool_type))) {
 					TypeBuilder.SetCustomAttribute (new CustomAttributeBuilder (pa.Constructor, new object[] { trans_flags }));
 				}
@@ -2527,7 +2501,7 @@ namespace Mono.CSharp {
 			if (OptAttributes == null)
 				return null;
 
-			Attribute[] attrs = OptAttributes.SearchMulti (PredefinedAttributes.Get.Conditional);
+			Attribute[] attrs = OptAttributes.SearchMulti (Compiler.PredefinedAttributes.Conditional);
 			if (attrs == null)
 				return null;
 
@@ -2945,13 +2919,13 @@ namespace Mono.CSharp {
 
 				ObsoleteAttribute oa = base_member.GetAttributeObsolete ();
 				if (oa != null) {
-					if (OptAttributes == null || !OptAttributes.Contains (PredefinedAttributes.Get.Obsolete)) {
+					if (OptAttributes == null || !OptAttributes.Contains (Compiler.PredefinedAttributes.Obsolete)) {
 						Report.SymbolRelatedToPreviousError (base_member);
 						Report.Warning (672, 1, Location, "Member `{0}' overrides obsolete member `{1}'. Add the Obsolete attribute to `{0}'",
 							GetSignatureForError (), TypeManager.GetFullNameSignature (base_member));
 					}
 				} else {
-					if (OptAttributes != null && OptAttributes.Contains (PredefinedAttributes.Get.Obsolete)) {
+					if (OptAttributes != null && OptAttributes.Contains (Compiler.PredefinedAttributes.Obsolete)) {
 						Report.SymbolRelatedToPreviousError (base_member);
 						Report.Warning (809, 1, Location, "Obsolete member `{0}' overrides non-obsolete member `{1}'",
 							GetSignatureForError (), TypeManager.GetFullNameSignature (base_member));

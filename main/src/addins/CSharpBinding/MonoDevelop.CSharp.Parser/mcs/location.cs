@@ -182,11 +182,6 @@ namespace Mono.CSharp {
 				CompilationUnit = compile_unit;
 				LineOffset = line - (int) (line % (1 << line_delta_bits));
 			}
-			
-			public override string ToString ()
-			{
-				return string.Format ("[Checkpoint: LineOffset={0}, CompilationUnit={1}, File={2}]", LineOffset, CompilationUnit, File);
-			}
 		}
 
 		static List<SourceFile> source_list;
@@ -231,12 +226,10 @@ namespace Mono.CSharp {
 			int id;
 			if (source_files.TryGetValue (path, out id)){
 				string other_name = source_list [id - 1].Name;
-				if (r != null) {
-					if (name.Equals (other_name))
-						r.Warning (2002, 1, "Source file `{0}' specified multiple times", other_name);
-					else
-						r.Warning (2002, 1, "Source filenames `{0}' and `{1}' both refer to the same file: {2}", name, other_name, path);
-				}
+				if (name.Equals (other_name))
+					r.Warning (2002, 1, "Source file `{0}' specified multiple times", other_name);
+				else
+					r.Warning (2002, 1, "Source filenames `{0}' and `{1}' both refer to the same file: {2}", name, other_name, path);
 				return;
 			}
 
@@ -407,17 +400,7 @@ namespace Mono.CSharp {
 			get {
 				if (token == 0)
 					return 1;
-				try {
-					return checkpoints [CheckpointIndex].LineOffset + ((token & line_delta_mask) >> column_bits);
-				} catch (Exception e) {
-					Console.WriteLine (e);
-					Console.WriteLine ("checkpoints:" + checkpoints + " CheckpointIndex:" + CheckpointIndex + " Token:" + token);
-					Console.WriteLine ("---- checkpoint contents: " + checkpoints.Length);
-					foreach (var cp in checkpoints) {
-						Console.WriteLine (cp);
-					}
-					return 0;
-				}
+				return checkpoints [CheckpointIndex].LineOffset + ((token & line_delta_mask) >> column_bits);
 			}
 		}
 
@@ -493,6 +476,111 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 
 		#endregion
 	}
+	
+	public class SpecialsBag
+	{
+		public enum CommentType
+		{
+			Single,
+			Multi,
+			Documentation
+		}
+		
+		public class Comment
+		{
+			public readonly CommentType CommentType;
+			public readonly bool StartsLine;
+			public readonly int Line;
+			public readonly int Col;
+			public readonly int EndLine;
+			public readonly int EndCol;
+			public readonly string Content;
+			
+			public Comment (CommentType commentType, bool startsLine, int line, int col, int endLine, int endCol, string content)
+			{
+				this.CommentType = commentType;
+				this.StartsLine = startsLine;
+				this.Line = line;
+				this.Col = col;
+				this.EndLine = endLine;
+				this.EndCol = endCol;
+				this.Content = content;
+			}
+
+			public override string ToString ()
+			{
+				return string.Format ("[Comment: CommentType={0}, Line={1}, Col={2}, EndLine={3}, EndCol={4}, Content={5}]", CommentType, Line, Col, EndLine, EndCol, Content);
+			}
+		}
+		
+		public class PreProcessorDirective
+		{
+			public readonly int Line;
+			public readonly int Col;
+			public readonly int EndLine;
+			public readonly int EndCol;
+
+			public readonly Tokenizer.PreprocessorDirective Cmd;
+			public readonly string Arg;
+
+			public PreProcessorDirective (int line, int col, int endLine, int endCol, Tokenizer.PreprocessorDirective cmd, string arg)
+			{
+				this.Line = line;
+				this.Col = col;
+				this.EndLine = endLine;
+				this.EndCol = endCol;
+				this.Cmd = cmd;
+				this.Arg = arg;
+			}
+			
+			public override string ToString ()
+			{
+				return string.Format ("[PreProcessorDirective: Line={0}, Col={1}, EndLine={2}, EndCol={3}, Cmd={4}, Arg={5}]", Line, Col, EndLine, EndCol, Cmd, Arg);
+			}
+		}
+		
+		public readonly List<object> Specials = new List<object> ();
+		
+		CommentType curComment;
+		bool startsLine;
+		int startLine, startCol;
+		System.Text.StringBuilder contentBuilder = new System.Text.StringBuilder ();
+		
+		[Conditional ("FULL_AST")]
+		public void StartComment (CommentType type, bool startsLine, int startLine, int startCol)
+		{
+			curComment = type;
+			this.startsLine = startsLine;
+			this.startLine = startLine;
+			this.startCol = startCol;
+			contentBuilder.Length = 0;
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void PushCommentChar (int ch)
+		{
+			if (ch < 0)
+				return;
+			contentBuilder.Append ((char)ch);
+		}
+		[Conditional ("FULL_AST")]
+		public void PushCommentString (string str)
+		{
+			contentBuilder.Append (str);
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void EndComment (int endLine, int endColumn)
+		{
+			Specials.Add (new Comment (curComment, startsLine, startLine, startCol, endLine, endColumn, contentBuilder.ToString ()));
+		}
+		
+		[Conditional ("FULL_AST")]
+		public void AddPreProcessorDirective (int startLine, int startCol, int endLine, int endColumn, Tokenizer.PreprocessorDirective cmd, string arg)
+		{
+			Specials.Add (new PreProcessorDirective (startLine, startCol, endLine, endColumn, cmd, arg));
+		}
+	}
 
 	//
 	// A bag of additional locations to support full ast tree
@@ -555,16 +643,14 @@ if (checkpoints.Length <= CheckpointIndex) throw new Exception (String.Format ("
 
 		[Conditional ("FULL_AST")]
 		public void AddLocation (object element, params Location[] locations)
-
 		{
-
 			AddLocation (element, (IEnumerable<Location>)locations);
-
 		}
+
 		[Conditional ("FULL_AST")]
 		public void AddLocation (object element, IEnumerable<Location> locations)
 		{
-			if (element == null)
+			if (element == null || locations == null)
 				return;
 			simple_locs.Add (element, new List<Location> (locations));
 		}

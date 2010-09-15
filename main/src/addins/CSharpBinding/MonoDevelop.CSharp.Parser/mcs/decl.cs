@@ -514,7 +514,7 @@ namespace Mono.CSharp {
 			if (OptAttributes == null)
 				return null;
 
-			Attribute obsolete_attr = OptAttributes.Search (PredefinedAttributes.Get.Obsolete);
+			Attribute obsolete_attr = OptAttributes.Search (Compiler.PredefinedAttributes.Obsolete);
 			if (obsolete_attr == null)
 				return null;
 
@@ -603,11 +603,12 @@ namespace Mono.CSharp {
 					case Modifiers.PROTECTED | Modifiers.INTERNAL:
 						if (al == Modifiers.INTERNAL)
 							same_access_restrictions = TypeManager.IsThisOrFriendAssembly (Parent.Module.Assembly, p.Assembly);
-						else if (al == Modifiers.PROTECTED)
-							same_access_restrictions = mc.Parent.IsBaseTypeDefinition (p_parent);
 						else if (al == (Modifiers.PROTECTED | Modifiers.INTERNAL))
 							same_access_restrictions = mc.Parent.IsBaseTypeDefinition (p_parent) &&
 								TypeManager.IsThisOrFriendAssembly (Parent.Module.Assembly, p.Assembly);
+						else
+							goto case Modifiers.PROTECTED;
+
 						break;
 
 					case Modifiers.PRIVATE:
@@ -710,7 +711,7 @@ namespace Mono.CSharp {
 			caching_flags &= ~Flags.HasCompliantAttribute_Undetected;
 
 			if (OptAttributes != null) {
-				Attribute cls_attribute = OptAttributes.Search (PredefinedAttributes.Get.CLSCompliant);
+				Attribute cls_attribute = OptAttributes.Search (Compiler.PredefinedAttributes.CLSCompliant);
 				if (cls_attribute != null) {
 					caching_flags |= Flags.HasClsCompliantAttribute;
 					if (cls_attribute.GetClsCompliantAttributeValue ())
@@ -754,7 +755,7 @@ namespace Mono.CSharp {
 		{
 			if (HasClsCompliantAttribute) {
 				if (CodeGen.Assembly.ClsCompliantAttribute == null) {
-					Attribute a = OptAttributes.Search (PredefinedAttributes.Get.CLSCompliant);
+					Attribute a = OptAttributes.Search (Compiler.PredefinedAttributes.CLSCompliant);
 					if ((caching_flags & Flags.ClsCompliantAttributeFalse) != 0) {
 						Report.Warning (3021, 2, a.Location,
 							"`{0}' does not need a CLSCompliant attribute because the assembly is not marked as CLS-compliant",
@@ -768,7 +769,7 @@ namespace Mono.CSharp {
 				}
 
 				if (!IsExposedFromAssembly ()) {
-					Attribute a = OptAttributes.Search (PredefinedAttributes.Get.CLSCompliant);
+					Attribute a = OptAttributes.Search (Compiler.PredefinedAttributes.CLSCompliant);
 					Report.Warning (3019, 2, a.Location, "CLS compliance checking will not be performed on `{0}' because it is not visible from outside this assembly", GetSignatureForError ());
 					return false;
 				}
@@ -784,7 +785,7 @@ namespace Mono.CSharp {
 				}
 
 				if (Parent.Parent != null && !Parent.IsClsComplianceRequired ()) {
-					Attribute a = OptAttributes.Search (PredefinedAttributes.Get.CLSCompliant);
+					Attribute a = OptAttributes.Search (Compiler.PredefinedAttributes.CLSCompliant);
 					Report.Warning (3018, 1, a.Location, "`{0}' cannot be marked as CLS-compliant because it is a member of non CLS-compliant type `{1}'",
 						GetSignatureForError (), Parent.GetSignatureForError ());
 					return false;

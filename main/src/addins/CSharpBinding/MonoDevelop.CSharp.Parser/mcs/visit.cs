@@ -155,6 +155,11 @@ namespace Mono.CSharp
 			return null;
 		}
 
+		public virtual object Visit (BlockVariableDeclaration blockVariableDeclaration)
+		{
+			return null;
+		}
+
 		public virtual object Visit (EmptyStatement emptyStatement)
 		{
 			return null;
@@ -297,11 +302,6 @@ namespace Mono.CSharp
 		}
 
 		public virtual object Visit (Using usingStatement)
-		{
-			return null;
-		}
-
-		public virtual object Visit (UsingTemporary usingTemporaryStatement)
 		{
 			return null;
 		}

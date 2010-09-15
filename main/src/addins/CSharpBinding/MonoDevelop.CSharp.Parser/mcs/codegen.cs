@@ -294,6 +294,8 @@ namespace Mono.CSharp {
 		
 		public readonly IMemberContext MemberContext;
 
+		DynamicSiteClass dynamic_site_container;
+
 		public EmitContext (IMemberContext rc, ILGenerator ig, TypeSpec return_type)
 		{
 			this.MemberContext = rc;
@@ -387,6 +389,25 @@ namespace Mono.CSharp {
 		{
 			ig.EndScope();
 			SymbolWriter.CloseScope(ig);
+		}
+
+		//
+		// Creates a nested container in this context for all dynamic compiler generated stuff
+		//
+		public DynamicSiteClass CreateDynamicSite ()
+		{
+			if (dynamic_site_container == null) {
+				var mc = MemberContext.CurrentMemberDefinition as MemberBase;
+				dynamic_site_container = new DynamicSiteClass (CurrentTypeDefinition.Parent.PartialContainer, mc, CurrentTypeParameters);
+
+				RootContext.ToplevelTypes.AddCompilerGeneratedClass (dynamic_site_container);
+				dynamic_site_container.CreateType ();
+				dynamic_site_container.DefineType ();
+				dynamic_site_container.ResolveTypeParameters ();
+				dynamic_site_container.Define ();
+			}
+
+			return dynamic_site_container;
 		}
 
 		public LocalBuilder DeclareLocal (TypeSpec type, bool pinned)
@@ -1009,13 +1030,13 @@ namespace Mono.CSharp {
 			if (!OptAttributes.CheckTargets())
 				return;
 
-			ClsCompliantAttribute = ResolveAttribute (PredefinedAttributes.Get.CLSCompliant);
+			ClsCompliantAttribute = ResolveAttribute (Compiler.PredefinedAttributes.CLSCompliant);
 
 			if (ClsCompliantAttribute != null) {
 				is_cls_compliant = ClsCompliantAttribute.GetClsCompliantAttributeValue ();
 			}
 
-			Attribute a = ResolveAttribute (PredefinedAttributes.Get.RuntimeCompatibility);
+			Attribute a = ResolveAttribute (Compiler.PredefinedAttributes.RuntimeCompatibility);
 			if (a != null) {
 				var val = a.GetPropertyValue ("WrapNonExceptionThrows") as BoolConstant;
 				if (val != null)
@@ -1388,13 +1409,13 @@ namespace Mono.CSharp {
 			base.Emit (tc);
 
 			if (has_extension_method)
-				PredefinedAttributes.Get.Extension.EmitAttribute (Builder);
+				Compiler.PredefinedAttributes.Extension.EmitAttribute (Builder);
 
-			// FIXME: Does this belong inside SRE.AssemblyBuilder instead?
-			PredefinedAttribute pa = PredefinedAttributes.Get.RuntimeCompatibility;
+			PredefinedAttribute pa = Compiler.PredefinedAttributes.RuntimeCompatibility;
 			if (pa.IsDefined && (OptAttributes == null || !OptAttributes.Contains (pa))) {
 				var ci = TypeManager.GetPredefinedConstructor (pa.Type, Location.Null, TypeSpec.EmptyTypes);
 				PropertyInfo [] pis = new PropertyInfo [1];
+
 				pis [0] = TypeManager.GetPredefinedProperty (pa.Type,
 					"WrapNonExceptionThrows", Location.Null, TypeManager.bool_type).MetaInfo;
 				object [] pargs = new object [1];

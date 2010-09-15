@@ -31,6 +31,12 @@ namespace MonoDevelop.CSharp.Dom
 {
 	public class NamespaceDeclaration : AbstractCSharpNode
 	{
+		public override NodeType NodeType {
+			get {
+				return NodeType.Unknown;
+			}
+		}
+		
 		public string Name {
 			get {
 				return NameIdentifier.QualifiedName;
@@ -43,6 +49,18 @@ namespace MonoDevelop.CSharp.Dom
 				if (parentNamespace != null)
 					return BuildQualifiedName (parentNamespace.QualifiedName, Name);
 				return Name;
+			}
+		}
+		
+		public CSharpTokenNode LBrace {
+			get {
+				return (CSharpTokenNode)GetChildByRole (Roles.LBrace);
+			}
+		}
+		
+		public CSharpTokenNode RBrace {
+			get {
+				return (CSharpTokenNode)GetChildByRole (Roles.RBrace);
 			}
 		}
 		

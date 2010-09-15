@@ -25,21 +25,26 @@
 // THE SOFTWARE.
 
 using System;
+using System.Linq;
 using System.Collections.Generic;
-using System.Text;
+using System.IO;
 
-using ICSharpCode.NRefactory;
-using ICSharpCode.NRefactory.Ast;
-
+using MonoDevelop.Ide.Gui;
 using MonoDevelop.Projects.Dom;
 using MonoDevelop.Projects.Dom.Parser;
 using MonoDevelop.Core;
 using Mono.TextEditor;
-using MonoDevelop.Projects.Dom.Output;
 using MonoDevelop.Ide;
-using System.Linq;
+using System.Text;
+using Mono.TextEditor.PopupWindow;
+using MonoDevelop.Refactoring;
+using MonoDevelop.CSharp.Parser;
+using MonoDevelop.CSharp.Dom;
+using MonoDevelop.Projects.Text;
+using MonoDevelop.Projects.Dom.Output;
+using MonoDevelop.CSharp.Resolver;
 
-namespace MonoDevelop.Refactoring.ExtractMethod
+namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 {
 	public class ExtractMethodRefactoring : RefactoringOperation
 	{
@@ -83,7 +88,7 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 			ExtractMethodParameters param = CreateParameters (options);
 			if (param == null)
 				return;
-			if (Analyze (options, param, false) == null || param.VariablesToGenerate == null) {
+			if (!Analyze (options, param, false)) {
 				MessageService.ShowError (GettextCatalog.GetString ("Invalid selection for method extraction."));
 				return;
 			}
@@ -150,12 +155,7 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 				set;
 			}
 			
-			public ICSharpCode.NRefactory.Ast.Modifiers Modifiers {
-				get;
-				set;
-			}
-			
-			public HashSet<string> ChangedVariables {
+			public Modifiers Modifiers {
 				get;
 				set;
 			}
@@ -165,19 +165,20 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 				set;
 			}
 			
-			public Dictionary<string, VariableDescriptor> VariablesOutside {
+			public List<ICSharpNode> Nodes {
 				get;
 				set;
 			}
-			public List<VariableDescriptor> OutsideVariableList {
-				get;
-				set;
-			}
-				
+	
 			/// <summary>
 			/// The type of the expression, if the text is an expression, otherwise null.
 			/// </summary>
 			public IReturnType ExpressionType {
+				get;
+				set;
+			}
+			
+			public bool OneChangedVariable {
 				get;
 				set;
 			}
@@ -188,36 +189,21 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 					return parameters;
 				}
 			}
-			
-			public List<VariableDescriptor> VariablesToDefine { get; set; }
-			public List<VariableDescriptor> ChangedVariablesUsedOutside { get; set; }
-			public List<VariableDescriptor> VariablesToGenerate { get; set; }
-			
-			public bool OneChangedVariable { get; set; }
 		}
 		
 		static string GetIndent (string text)
 		{
 			Mono.TextEditor.Document doc = new Mono.TextEditor.Document ();
 			doc.Text = text;
-			StringBuilder result = null;
+			string result = null;
 			for (int i = 1; i < doc.LineCount; i++) {
-				LineSegment line = doc.GetLine (i);
-				
-				StringBuilder lineIndent = new StringBuilder ();
-				foreach (char ch in doc.GetTextAt (line)) {
-					if (!char.IsWhiteSpace (ch))
-						break;
-					lineIndent.Append (ch);
-				}
-				if (line.EditableLength == lineIndent.Length)
+				string lineIndent = doc.GetLineIndent (i);
+				if (doc.GetLine (i).EditableLength == lineIndent.Length)
 					continue;
 				if (result == null || lineIndent.Length < result.Length)
 					result = lineIndent;
 			}
-			if (result == null)
-				return "";
-			return result.ToString ();
+			return result ?? "";
 		}
 		
 		static string RemoveIndent (string text, string indent)
@@ -225,8 +211,12 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 			Mono.TextEditor.Document doc = new Mono.TextEditor.Document ();
 			doc.Text = text;
 			StringBuilder result = new StringBuilder ();
+			bool firstLine = true;
 			foreach (LineSegment line in doc.Lines) {
 				string curLineIndent = line.GetIndentation (doc);
+				if (firstLine && curLineIndent.Length == line.EditableLength)
+					continue;
+				firstLine = false;
 				int offset = Math.Min (curLineIndent.Length, indent.Length);
 				result.Append (doc.GetTextBetween (line.Offset + offset, line.EndOffset));
 			}
@@ -246,56 +236,45 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 			return result.ToString ();
 		}
 		
-		ICSharpCode.NRefactory.Ast.INode Analyze (RefactoringOptions options, ExtractMethodParameters param, bool fillParameter)
+		bool Analyze (RefactoringOptions options, ExtractMethodParameters param, bool fillParameter)
 		{
-			IResolver resolver = options.GetResolver ();
-			INRefactoryASTProvider provider = options.GetASTProvider ();
-			if (resolver == null || provider == null)
-				return null;
-
+			var data = options.GetTextEditorData ();
+			var parser = new CSharpParser ();
+			var unit = parser.Parse (data);
+			var resolver = options.GetResolver ();
+			if (unit == null)
+				return false;
+			
+			var startLocation = data.Document.OffsetToLocation (data.SelectionRange.Offset);
+			var endLocation = data.Document.OffsetToLocation (data.SelectionRange.EndOffset);
+			param.Nodes = new List<ICSharpNode> (unit.GetNodesBetween (startLocation.Line, startLocation.Column, endLocation.Line, endLocation.Column));
+			
 			string text = options.Document.Editor.GetTextAt (options.Document.Editor.SelectionRange);
 			
-			TextEditorData data = options.GetTextEditorData ();
-			var cu = provider.ParseFile (data.Document.GetTextAt (0, data.SelectionRange.Offset) + "MethodCall ();" + data.Document.GetTextAt (data.SelectionRange.EndOffset, data.Document.Length - data.SelectionRange.EndOffset));
-			
-			if (cu == null || provider.LastErrors.Count > 0) 
-				cu = provider.ParseFile (data.Document.GetTextAt (0, data.SelectionRange.Offset) + "MethodCall ()" + data.Document.GetTextAt (data.SelectionRange.EndOffset, data.Document.Length - data.SelectionRange.EndOffset));
-			
-			if (cu == null || provider.LastErrors.Count > 0) 
-				return null;
-			
-			param.Text = RemoveIndent (text, GetIndent (text)).TrimEnd ('\n', '\r');
-			
-			ICSharpCode.NRefactory.Ast.INode result = provider.ParseText (text);
-			if (cu == null || provider.LastErrors.Count > 0) {
-				return null;
-			}
-			
+			param.Text = RemoveIndent (text, GetIndent (data.GetTextBetween (data.GetLine (startLocation.Line).Offset, data.GetLine (endLocation.Line).EndOffset))).TrimEnd ('\n', '\r');
 			VariableLookupVisitor visitor = new VariableLookupVisitor (resolver, param.Location);
-			visitor.MemberLocation = new Location (param.DeclaringMember.Location.Column, param.DeclaringMember.Location.Line);
+			visitor.MemberLocation = param.DeclaringMember.Location;
+			visitor.CutRegion = new DomRegion (startLocation.Line, startLocation.Column, endLocation.Line, endLocation.Column);
 			if (fillParameter) {
-				if (result != null)
-					result.AcceptVisitor (visitor, null);
-				if (result is Expression) {
-					ResolveResult resolveResult = resolver.Resolve (new ExpressionResult (text), param.Location);
-					if (resolveResult != null)
+				unit.AcceptVisitor (visitor, null);
+				if (param.Nodes != null && (param.Nodes.Count == 1 && param.Nodes[0].NodeType == NodeType.Expression)) {
+					ResolveResult resolveResult = resolver.Resolve (new ExpressionResult ("(" + text + ")"), param.Location);
+					if (resolveResult != null && resolveResult.ResolvedType != null)
 						param.ExpressionType = resolveResult.ResolvedType;
 				}
 				
-				var startLocation = data.Document.OffsetToLocation (data.SelectionRange.Offset);
-				var endLocation = data.Document.OffsetToLocation (data.SelectionRange.EndOffset);
-//				Console.WriteLine ("startLocation={0}, endLocation={1}", startLocation, endLocation);
-				
-				foreach (VariableDescriptor varDescr in visitor.VariableList.Where (v => !v.IsDefined && v.InitialValueUsed)) {
-					if (startLocation <= varDescr.Location && varDescr.Location < endLocation)
-						continue;
-//					Console.WriteLine (varDescr.Location);
-//					Console.WriteLine (startLocation <= varDescr.Location);
-//					Console.WriteLine (varDescr.Location < endLocation);
+				foreach (VariableDescriptor varDescr in visitor.VariableList.Where (v => !v.IsDefinedInsideCutRegion && (v.UsedInCutRegion || v.IsChangedInsideCutRegion || v.UsedAfterCutRegion && v.IsDefinedInsideCutRegion))) {
 					param.Parameters.Add (varDescr);
 				}
+			
 				param.Variables = new List<VariableDescriptor> (visitor.Variables.Values);
-				foreach (VariableDescriptor varDescr in visitor.VariableList.Where (v => !v.IsDefined && param.Variables.Contains (v))) {
+				param.ReferencesMember = visitor.ReferencesMember;
+				
+				param.OneChangedVariable = param.Parameters.Count (p => p.UsedAfterCutRegion) == 1;
+				if (param.OneChangedVariable)
+					param.ExpressionType = param.Parameters.First (p => p.UsedAfterCutRegion).ReturnType;
+				/*
+					foreach (VariableDescriptor varDescr in visitor.VariableList.Where (v => !v.IsDefined && param.Variables.Contains (v))) {
 					if (param.Parameters.Contains (varDescr))
 						continue;
 					if (startLocation <= varDescr.Location && varDescr.Location < endLocation)
@@ -303,25 +282,26 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 					param.Parameters.Add (varDescr);
 				}
 				
-				param.ReferencesMember = visitor.ReferencesMember;
-				param.ChangedVariables = new HashSet<string> (visitor.Variables.Values.Where (v => v.GetsChanged).Select (v => v.Name));
 				
+				param.ChangedVariables = new HashSet<string> (visitor.Variables.Values.Where (v => v.GetsChanged).Select (v => v.Name));
+				*/
 				// analyze the variables outside of the selected text
 				IMember member = param.DeclaringMember;
 			
 				int startOffset = data.Document.LocationToOffset (member.BodyRegion.Start.Line, member.BodyRegion.Start.Column);
 				int endOffset = data.Document.LocationToOffset (member.BodyRegion.End.Line, member.BodyRegion.End.Column);
 				if (data.SelectionRange.Offset < startOffset || endOffset < data.SelectionRange.EndOffset)
-					return null;
+					return false;
 				text = data.Document.GetTextBetween (startOffset, data.SelectionRange.Offset) + data.Document.GetTextBetween (data.SelectionRange.EndOffset, endOffset);
-				ICSharpCode.NRefactory.Ast.INode parsedNode = provider.ParseText (text);
-				visitor = new VariableLookupVisitor (resolver, param.Location);
-				visitor.CutRegion = new DomRegion (data.MainSelection.MinLine, data.MainSelection.MaxLine);
-				visitor.MemberLocation = new Location (param.DeclaringMember.Location.Column, param.DeclaringMember.Location.Line);
-				if (parsedNode != null)
-					parsedNode.AcceptVisitor (visitor, null);
+//				ICSharpCode.NRefactory.Ast.INode parsedNode = provider.ParseText (text);
+//				visitor = new VariableLookupVisitor (resolver, param.Location);
+//				visitor.CutRegion = new DomRegion (data.MainSelection.MinLine, data.MainSelection.MaxLine);
+//				visitor.MemberLocation = new Location (param.DeclaringMember.Location.Column, param.DeclaringMember.Location.Line);
+//				if (parsedNode != null)
+//					parsedNode.AcceptVisitor (visitor, null);
 				
 				
+			/*	
 				param.VariablesOutside = new Dictionary<string, VariableDescriptor> ();
 				foreach (var pair in visitor.Variables) {
 					if (startLocation < pair.Value.Location || endLocation >= pair.Value.Location) {
@@ -334,10 +314,8 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 						param.OutsideVariableList.Add (v);
 				}
 				
-				
-				
 				param.ChangedVariablesUsedOutside = new List<VariableDescriptor> (param.Variables.Where (v => v.GetsChanged && param.VariablesOutside.ContainsKey (v.Name)));
-				param.OneChangedVariable = result is BlockStatement;
+				param.OneChangedVariable = param.Nodes.Count == 1 && param.Nodes[0] is BlockStatement;
 				if (param.OneChangedVariable) 
 					param.OneChangedVariable = param.ChangedVariablesUsedOutside.Count == 1;
 				
@@ -350,86 +328,186 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 					param.VariablesToDefine.ForEach (var => param.Parameters.Remove (var));
 				} else {
 					param.VariablesToDefine = new List<VariableDescriptor> ();
+				}*/
+			}
+			
+			return true;
+		}
+		
+		static string GenerateMethodCall (RefactoringOptions options, ExtractMethodParameters param)
+		{
+			var data = options.GetTextEditorData ();
+			StringBuilder sb = new StringBuilder ();
+			
+	/*		LineSegment line = data.Document.GetLine (Math.Max (0, data.Document.OffsetToLineNumber (data.SelectionRange.Offset) - 1));
+			if (param.VariablesToGenerate != null && param.VariablesToGenerate.Count > 0) {
+				string indent = options.GetWhitespaces (line.Offset);
+				sb.Append (Environment.NewLine + indent);
+				foreach (VariableDescriptor var in param.VariablesToGenerate) {
+					var returnType = options.ShortenTypeName (var.ReturnType);
+					sb.Append (returnType.ToInvariantString ());
+					sb.Append (" ");
+					sb.Append (var.Name);
+					sb.AppendLine (";");
+					sb.Append (indent);
 				}
+			}*/
+			if (param.OneChangedVariable) {
+				sb.Append (param.Parameters.First (p => p.UsedAfterCutRegion).Name);
+				sb.Append (" = ");
+			}
+			sb.Append (param.Name);
+			sb.Append (" "); // TODO: respect formatting
+			sb.Append ("(");
+			bool first = true;
+			foreach (VariableDescriptor var in param.Parameters) {
+				if (param.OneChangedVariable && var.UsedAfterCutRegion && !var.UsedInCutRegion)
+					continue;
+				if (first) {
+					first = false;
+				} else {
+					sb.Append (", "); // TODO: respect formatting
+				}
+				if (!param.OneChangedVariable) {
+					if (var.UsedAfterCutRegion)
+						sb.Append (var.UsedBeforeCutRegion ? "ref " : "out ");
+				}
+				sb.Append (var.Name);
+			}
+			sb.Append (")");
+			if (param.Nodes != null && (param.Nodes.Count > 1 || param.Nodes.Count == 1 && param.Nodes[0].NodeType != NodeType.Expression)) 
+				sb.Append (";");
+			return sb.ToString ();
+		}
+		
+		static DomMethod GenerateMethodStub (RefactoringOptions options, ExtractMethodParameters param)
+		{
+			DomMethod result = new DomMethod ();
+			result.Name = param.Name;
+			result.ReturnType = param.ExpressionType ?? DomReturnType.Void;
+			result.Modifiers = param.Modifiers;
+			if (!param.ReferencesMember)
+				result.Modifiers |= Modifiers.Static;
+			
+			if (param.Parameters == null)
+				return result;
+			foreach (var p in param.Parameters) {
+				if (param.OneChangedVariable && p.UsedAfterCutRegion && !p.UsedInCutRegion)
+					continue;
+				var newParameter = new DomParameter ();
+				newParameter.Name = p.Name;
+				newParameter.ReturnType = p.ReturnType;
+				
+				if (!param.OneChangedVariable) {
+				if (p.UsedAfterCutRegion)	
+						newParameter.ParameterModifiers = p.UsedBeforeCutRegion ? ParameterModifiers.Ref : ParameterModifiers.Out;
+				}
+				result.Add (newParameter);
 			}
 			return result;
+		}
+		
+		static string GenerateMethodDeclaration (RefactoringOptions options, ExtractMethodParameters param)
+		{
+			StringBuilder methodText = new StringBuilder ();
+			string indent = options.GetIndent (param.DeclaringMember);
+			
+			switch (param.InsertionPoint.LineBefore) {
+			case NewLineInsertion.Eol:
+				methodText.AppendLine ();
+				break;
+			case NewLineInsertion.BlankLine:
+				methodText.AppendLine ();
+				methodText.Append (indent);
+				methodText.AppendLine ();
+				break;
+			}
+			var codeGenerator = new CSharpCodeGenerator () {
+				UseSpaceIndent = options.Document.Editor.Options.TabsToSpaces,
+				EolMarker = options.Document.Editor.EolMarker,
+				TabSize = options.Document.Editor.Options.TabSize
+			};
+			
+			var newMethod = GenerateMethodStub (options, param);
+			IType callingType = null;
+			var cu = options.Document.CompilationUnit;
+			if (cu != null)
+				callingType = newMethod.DeclaringType = options.Document.CompilationUnit.GetTypeAt (options.Document.Editor.Caret.Line, options.Document.Editor.Caret.Column);
+				
+			var createdMethod = codeGenerator.CreateMemberImplementation (callingType, newMethod, false);
+
+			if (param.GenerateComment && DocGenerator.Instance != null)
+				methodText.AppendLine (DocGenerator.Instance.GenerateDocumentation (newMethod, indent + "/// "));
+			string code = createdMethod.Code;
+			int idx1 = code.LastIndexOf ("throw");
+			int idx2 = code.LastIndexOf (";");
+			methodText.Append (code.Substring (0, idx1));
+
+			if (param.Nodes != null && (param.Nodes.Count == 1 && param.Nodes[0].NodeType == NodeType.Expression)) {
+				methodText.Append ("return ");
+				methodText.Append (param.Text.Trim ());
+				methodText.Append (";");
+			} else {
+				StringBuilder text = new StringBuilder ();
+				if (param.OneChangedVariable) {
+					var par = param.Parameters.First (p => p.UsedAfterCutRegion);
+					if (!par.UsedInCutRegion) {
+						
+						text.Append (new CSharpAmbience ().GetString (par.ReturnType, OutputFlags.ClassBrowserEntries));
+						text.Append (" ");
+						text.Append (par.Name);
+						text.AppendLine (";");
+					}
+				}
+				text.Append (param.Text);
+				if (param.OneChangedVariable) {
+					text.AppendLine ();
+					text.Append ("return ");
+					text.Append (param.Parameters.First (p => p.UsedAfterCutRegion).Name);
+					text.Append (";");
+				}
+				methodText.Append (AddIndent (text.ToString (), indent + "\t"));
+			}
+
+			methodText.AppendLine (code.Substring (idx2 + 1));
+			switch (param.InsertionPoint.LineAfter) {
+			case NewLineInsertion.Eol:
+				methodText.AppendLine ();
+				break;
+			case NewLineInsertion.BlankLine:
+				methodText.AppendLine ();
+				methodText.AppendLine ();
+				methodText.Append (indent);
+				break;
+			}
+			return methodText.ToString ();
 		}
 		
 		public override List<Change> PerformChanges (RefactoringOptions options, object prop)
 		{
 			List<Change> result = new List<Change> ();
 			ExtractMethodParameters param = (ExtractMethodParameters)prop;
-			TextEditorData data = options.GetTextEditorData ();
-			INRefactoryASTProvider provider = options.GetASTProvider ();
-			IResolver resolver = options.GetResolver ();
-			ICSharpCode.NRefactory.Ast.INode node = Analyze (options, param, false);
-			if (param.VariablesToGenerate.Count > 0) {
-				TextReplaceChange varGen = new TextReplaceChange ();
-				varGen.Description = GettextCatalog.GetString ("Generate some temporary variables");
-				varGen.FileName = options.Document.FileName;
-				LineSegment line = data.Document.GetLine (Math.Max (0, data.Document.OffsetToLineNumber (data.SelectionRange.Offset) - 1));
-				varGen.Offset = line.Offset + line.EditableLength;
-				varGen.InsertedText = Environment.NewLine + options.GetWhitespaces (line.Offset);
-				foreach (VariableDescriptor var in param.VariablesToGenerate) {
-					TypeReference tr = options.ShortenTypeName (var.ReturnType).ConvertToTypeReference ();
-					varGen.InsertedText += provider.OutputNode (options.Dom, new LocalVariableDeclaration (new VariableDeclaration (var.Name, null, tr))).Trim ();
-				}
-				result.Add (varGen);
-			}
-			InvocationExpression invocation = new InvocationExpression (new IdentifierExpression (param.Name));
-			foreach (VariableDescriptor var in param.Parameters) {
-				if (!param.OneChangedVariable && param.ChangedVariables.Contains (var.Name)) {
-					FieldDirection fieldDirection = FieldDirection.Ref;
-					VariableDescriptor outsideVar = null;
-					if (param.VariablesOutside.TryGetValue (var.Name, out outsideVar) && (var.GetsAssigned || param.VariablesToGenerate.Where (v => v.Name == var.Name).Any ())) {
-						if (!outsideVar.GetsAssigned)
-							fieldDirection = FieldDirection.Out;
-					}
-					invocation.Arguments.Add (new DirectionExpression (fieldDirection, new IdentifierExpression (var.Name)));
-				} else {
-					invocation.Arguments.Add (new IdentifierExpression (var.Name));
-				}
-			}
-			//	string mimeType = DesktopService.GetMimeTypeForUri (options.Document.FileName);
-			TypeReference returnType = new TypeReference ("System.Void", true);
-			ICSharpCode.NRefactory.Ast.INode outputNode;
-			if (param.OneChangedVariable) {
-				string name = param.ChangedVariables.First ();
-				returnType = options.ShortenTypeName (param.Variables.Find (v => v.Name == name).ReturnType).ConvertToTypeReference ();
-				if (param.OutsideVariableList.Any (v => v.Name == name && !v.IsDefined)) {
-					LocalVariableDeclaration varDecl = new LocalVariableDeclaration (returnType);
-					varDecl.Variables.Add (new VariableDeclaration (name, invocation));
-					outputNode = varDecl;
-				} else {
-					outputNode = new ExpressionStatement (new AssignmentExpression (new IdentifierExpression (name), ICSharpCode.NRefactory.Ast.AssignmentOperatorType.Assign, invocation));
-				}
-			} else {
-				outputNode = node is BlockStatement ? (ICSharpCode.NRefactory.Ast.INode)new ExpressionStatement (invocation) : invocation;
-			}
+			var data = options.GetTextEditorData ();
+		//	IResolver resolver = options.GetResolver ();
+			
 			TextReplaceChange replacement = new TextReplaceChange ();
 			replacement.Description = string.Format (GettextCatalog.GetString ("Substitute selected statement(s) with call to {0}"), param.Name);
 			replacement.FileName = options.Document.FileName;
 			replacement.Offset = options.Document.Editor.SelectionRange.Offset;
 			replacement.RemovedChars = options.Document.Editor.SelectionRange.Length;
 			replacement.MoveCaretToReplace = true;
-			
-			LineSegment line1 = data.Document.GetLineByOffset (options.Document.Editor.SelectionRange.EndOffset);
-			if (options.Document.Editor.SelectionRange.EndOffset == line1.Offset) {
-				if (line1.Offset > 0) {
-					LineSegment line2 = data.Document.GetLineByOffset (line1.Offset - 1);
-					replacement.RemovedChars -= line2.DelimiterLength;
-				}
-			}
-			
-			replacement.InsertedText = options.GetWhitespaces (options.Document.Editor.SelectionRange.Offset) + provider.OutputNode (options.Dom, outputNode).Trim ();
-			
+			replacement.InsertedText = GenerateMethodCall (options, param);
 			result.Add (replacement);
-
+			
 			TextReplaceChange insertNewMethod = new TextReplaceChange ();
 			insertNewMethod.FileName = options.Document.FileName;
 			insertNewMethod.Description = string.Format (GettextCatalog.GetString ("Create new method {0} from selected statement(s)"), param.Name);
-			insertNewMethod.RemovedChars = param.InsertionPoint.LineBefore == NewLineInsertion.Eol ? 0 : param.InsertionPoint.Location.Column;
+			insertNewMethod.RemovedChars = param.InsertionPoint.LineBefore == NewLineInsertion.Eol ? 0 : param.InsertionPoint.Location.Column - 1;
 			insertNewMethod.Offset = data.Document.LocationToOffset (param.InsertionPoint.Location) - insertNewMethod.RemovedChars;
+			insertNewMethod.InsertedText = GenerateMethodDeclaration (options, param);
+			result.Add (insertNewMethod);
+			
+			/*
 			
 			ExtractMethodAstTransformer transformer = new ExtractMethodAstTransformer (param.VariablesToGenerate);
 			node.AcceptVisitor (transformer, null);
@@ -444,8 +522,7 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 			methodDecl.Modifier = param.Modifiers;
 			methodDecl.TypeReference = returnType;
 			
-			if (!param.ReferencesMember)
-				methodDecl.Modifier |= ICSharpCode.NRefactory.Ast.Modifiers.Static;
+			
 			if (node is BlockStatement) {
 				methodDecl.Body = new BlockStatement ();
 				methodDecl.Body.AddChild (new EmptyStatement ());
@@ -463,24 +540,7 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 				block.Children.Insert (0, varDecl);
 			}
 			
-			foreach (VariableDescriptor var in param.Parameters) {
-				TypeReference typeReference = options.ShortenTypeName (var.ReturnType).ConvertToTypeReference ();
-				ParameterDeclarationExpression pde = new ParameterDeclarationExpression (typeReference, var.Name);
-				if (!param.OneChangedVariable) {
-					if (param.ChangedVariables.Contains (var.Name))
-						pde.ParamModifier = ICSharpCode.NRefactory.Ast.ParameterModifiers.Ref;
-					if (param.VariablesToGenerate.Where (v => v.Name == var.Name).Any ()) {
-						pde.ParamModifier = ICSharpCode.NRefactory.Ast.ParameterModifiers.Out;
-					}
-					VariableDescriptor outsideVar = null;
-					if (var.GetsAssigned && param.VariablesOutside.TryGetValue (var.Name, out outsideVar)) {
-						if (!outsideVar.GetsAssigned)
-							pde.ParamModifier = ICSharpCode.NRefactory.Ast.ParameterModifiers.Out;
-					}
-				}
-				
-				methodDecl.Parameters.Add (pde);
-			}
+			
 			
 			string indent = options.GetIndent (param.DeclaringMember);
 			StringBuilder methodText = new StringBuilder ();
@@ -538,19 +598,7 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 				methodText.Append (provider.OutputNode (options.Dom, methodDecl, options.GetIndent (param.DeclaringMember)).Trim ());
 			}
 			
-			switch (param.InsertionPoint.LineAfter) {
-			case NewLineInsertion.Eol:
-				methodText.AppendLine ();
-				break;
-			case NewLineInsertion.BlankLine:
-				methodText.AppendLine ();
-				methodText.AppendLine ();
-				methodText.Append (indent);
-				break;
-			}
-			insertNewMethod.InsertedText = methodText.ToString ();
-			result.Add (insertNewMethod);
-
+			 */
 			return result;
 		}
 	}

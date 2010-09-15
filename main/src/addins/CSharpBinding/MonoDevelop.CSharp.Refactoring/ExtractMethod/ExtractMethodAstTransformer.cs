@@ -33,7 +33,7 @@ using ICSharpCode.NRefactory.Visitors;
 using ICSharpCode.NRefactory.Ast;
 using System.Diagnostics;
 
-namespace MonoDevelop.Refactoring.ExtractMethod
+namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 {
 	class ExtractMethodAstTransformer : AbstractAstTransformer
 	{
@@ -89,7 +89,6 @@ namespace MonoDevelop.Refactoring.ExtractMethod
 			
 			return base.VisitVariableDeclaration (variableDeclaration, data);
 		}
-
 
 	}
 }

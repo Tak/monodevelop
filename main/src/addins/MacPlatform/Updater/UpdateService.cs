@@ -170,8 +170,14 @@ namespace MonoDevelop.Platform.Updater
 				query.Append (level.ToString ().ToLower ());
 			}
 			
-			if (Directory.Exists ("/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator4.0.sdk")) {
-				query.Append ("&env=iphsdk4.0");
+			var sdkDir = "/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs";
+			if (Directory.Exists (sdkDir)) {
+				foreach (var dir in Directory.GetDirectories (sdkDir, "iPhoneSimulator*")) {
+					var name = Path.GetFileNameWithoutExtension (dir);
+					int len = "iPhoneSimulator".Length;
+					if (name != null && name.Length > len) 
+						query.Append ("&env=iphsdk" + name.Substring (len));
+				}
 			}
 			
 			var request = (HttpWebRequest) WebRequest.Create (query.ToString ());

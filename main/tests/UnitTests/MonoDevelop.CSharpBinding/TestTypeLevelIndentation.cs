@@ -52,11 +52,31 @@ namespace MonoDevelop.CSharpBinding.FormattingTests
 @"			class Test {}";
 			
 			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
-			policy.ClassBraceStyle =  BraceStyle.DoNotChange;
+			policy.ClassBraceStyle = BraceStyle.DoNotChange;
 			
 			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
 			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
 			Assert.AreEqual (@"class Test {}", data.Document.Text);
+		}
+		
+		
+		[Test()]
+		public void TestClassIndentationInNamespaces ()
+		{
+			TextEditorData data = new TextEditorData ();
+			data.Document.FileName = "a.cs";
+			data.Document.Text = 
+@"namespace A { class Test {} }";
+			
+			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
+			policy.NamespaceBraceStyle = BraceStyle.EndOfLine;
+			policy.ClassBraceStyle = BraceStyle.DoNotChange;
+			
+			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"namespace A {
+	class Test {}
+}", data.Document.Text);
 		}
 		
 		[Test()]
@@ -345,9 +365,50 @@ set {
 }", data.Document.Text);
 		}
 		
+			
+		[Test()]
+		public void TestPropertyAlignment ()
+		{
+			TextEditorData data = new TextEditorData ();
+			data.Document.FileName = "a.cs";
+			data.Document.Text = 
+@"class Test
+{
+	Test TestMe { get; set; }
+}";
+			
+			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
+			policy.PropertyFormatting = PropertyFormatting.AllowOneLine;
+				
+			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"class Test
+{
+	Test TestMe { get; set; }
+}", data.Document.Text);
+			policy.PropertyFormatting = PropertyFormatting.ForceNewLine;
+			
+			compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"class Test
+{
+	Test TestMe {
+		get;
+		set;
+	}
+}", data.Document.Text);
+			policy.PropertyFormatting = PropertyFormatting.ForceOneLine;
+			
+			compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"class Test
+{
+	Test TestMe { get; set; }
+}", data.Document.Text);
+		}
+
 		
 		[Test()]
-		[Ignore("currently failing because namespaces are not inserted")]
 		public void TestIndentNamespaceBody ()
 		{
 			TextEditorData data = new TextEditorData ();
@@ -358,7 +419,8 @@ class FooBar {}
 		}";
 			
 			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
-			policy.ClassBraceStyle =  BraceStyle.DoNotChange;
+			policy.ClassBraceStyle = BraceStyle.DoNotChange;
+			policy.NamespaceBraceStyle = BraceStyle.EndOfLine;
 			policy.IndentNamespaceBody = true;
 			
 			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
@@ -375,6 +437,7 @@ class FooBar {}
 }", data.Document.Text);
 		}
 		
+		
 		[Test()]
 		public void TestMethodIndentation ()
 		{
@@ -387,7 +450,7 @@ MyType TestMethod () {}
 }";
 			
 			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
-			policy.MethodBraceStyle =  BraceStyle.DoNotChange;
+			policy.MethodBraceStyle = BraceStyle.DoNotChange;
 			
 			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
 			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
@@ -409,7 +472,7 @@ MyType TestMethod () {}
 }";
 			
 			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
-			policy.PropertyBraceStyle =  BraceStyle.DoNotChange;
+			policy.PropertyBraceStyle = BraceStyle.DoNotChange;
 			
 			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
 			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
@@ -434,6 +497,7 @@ set;
 }";
 			
 			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
+			
 			
 			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
 			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);

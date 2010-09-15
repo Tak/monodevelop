@@ -25,8 +25,9 @@
 //THE SOFTWARE.
 
 using System;
+using MonoDevelop.Refactoring;
 
-namespace MonoDevelop.Refactoring.ExtractMethod
+namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 {
 	public class ExtractMethodHandler : AbstractRefactoringCommandHandler
 	{
