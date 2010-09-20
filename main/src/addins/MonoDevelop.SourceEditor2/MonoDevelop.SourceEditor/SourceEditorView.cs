@@ -431,7 +431,7 @@ namespace MonoDevelop.SourceEditor
 				this.hadBom = file.HadBOM;
 			}
 			ContentName = fileName;
-			// widget.SetParsedDocument (ProjectDomService.GetParsedDocument (ProjectDomService.GetProjectDom (Project), fileName), false);
+			widget.SetParsedDocument (ProjectDomService.GetParsedDocument (ProjectDomService.GetProjectDom (Project), fileName), false);
 			widget.TextEditor.Caret.Offset = 0;
 			UpdateExecutionLocation ();
 			UpdateBreakpoints ();
