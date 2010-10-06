@@ -7,6 +7,11 @@ DIR=$(cd "$(dirname "$0")"; pwd)
 FINAL_INSTALL_DIR="$DIR/../Frameworks/Mono.framework"
 MONO_FRAMEWORK_PATH="$FINAL_INSTALL_DIR/Versions/Current"
 
+if test "x${TMPDIR}" = "x"; then
+	# Make sure TMPDIR gets set - should never be reached on OSX
+	TMPDIR=/tmp
+fi
+
 export DYLD_FALLBACK_LIBRARY_PATH=$MONO_FRAMEWORK_PATH/lib:/lib:/usr/lib
 export MONO_GAC_PREFIX=$MONO_FRAMEWORK_PATH
 export MONO_PATH=$MONO_FRAMEWORK_PATH/lib/mono:$MONO_FRAMEWORK_PATH/lib/gtk-sharp-2.0:$MONO_FRAMEWORK_PATH/lib/mono/2.0:$MONO_FRAMEWORK_PATH/lib/mono/1.0
@@ -15,20 +20,35 @@ export MONO_CFG_DIR=$MONO_FRAMEWORK_PATH/etc
 export XDG_DATA_HOME=$MONO_FRAMEWORK_PATH/share
 export GDK_PIXBUF_MODULE_FILE=$MONO_FRAMEWORK_PATH/etc/gtk-2.0/gdk-pixbuf.loaders
 export GDK_PIXBUF_MODULEDIR=$MONO_FRAMEWORK_PATH/lib/gtk-2.0/2.10.0/loaders
-export PANGO_RC_FILE=$MONO_FRAMEWORK_PATH/etc/pango/pangorc
+export PANGO_RC_FILE=$TMPDIR/etc/pango/pangorc
 export GTK_DATA_PREFIX=$MONO_FRAMEWORK_PATH
 export GTK_EXE_PREFIX=$MONO_FRAMEWORK_PATH
 export GTK_PATH=$MONO_FRAMEWORK_PATH/lib/gtk-2.0:$MONO_FRAMEWORK_PATH/lib/gtk-2.0/2.10.0
 export GTK2_RC_FILES=$MONO_FRAMEWORK_PATH/etc/gtk-2.0/gtkrc
 
 echo "Rewriting config files..."
-find ${FINAL_INSTALL_DIR} -name '*.config.in' -execdir "${DIR}/replacePath.sh" {} \;
-find ${FINAL_INSTALL_DIR} -name '*.pc.in' -execdir "${DIR}/replacePath.sh" {} \;
-find ${FINAL_INSTALL_DIR} -name '*.loaders.in' -execdir "${DIR}/replacePath.sh" {} \;
+find "${FINAL_INSTALL_DIR}" -name '*.config.in' -execdir "${DIR}/replacePath.sh" "{}" \;
+find "${FINAL_INSTALL_DIR}" -name '*.pc.in' -execdir "${DIR}/replacePath.sh" "{}" \;
+find "${FINAL_INSTALL_DIR}" -name '*.loaders.in' -execdir "${DIR}/replacePath.sh" "{}" \;
 "${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/mono/config.in"
-"${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules.in"
-"${DIR}/replacePath.sh" "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc.in"
-find ${MONO_FRAMEWORK_PATH}/bin -name '*.in' -execdir "${DIR}/replacePath.sh" {} \;
+
+# Move pango config and module files to $TMPDIR, since pango absolutely can't handle being in a subdir of a weird path
+cp "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules.in" "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules"
+sed -i'.orig' "s,/Library/Frameworks/Mono.framework/Versions/Current,${TMPDIR},g" "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules"
+mkdir -p "${TMPDIR}/etc/pango"
+mv "${MONO_FRAMEWORK_PATH}/etc/pango/pango.modules" "${TMPDIR}/etc/pango/pango.modules"
+
+cp "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc.in" "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc"
+sed -i'.orig' "s,/Library/Frameworks/Mono.framework/Versions/Current,${TMPDIR},g" "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc"
+mv "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc" "${TMPDIR}/etc/pango/pangorc"
+
+if test ! -d "${TMPDIR}/lib/pango"; then
+	rm -rf "${TMPDIR}/lib/pango"
+	mkdir -p "${TMPDIR}/lib"
+	cp -R "${MONO_FRAMEWORK_PATH}/lib/pango" "${TMPDIR}/lib"
+fi
+
+find "${MONO_FRAMEWORK_PATH}/bin" -name '*.in' -execdir "${DIR}/replacePath.sh" "{}" \;
 
 #we need lots of file handles
 ulimit -n 1024
