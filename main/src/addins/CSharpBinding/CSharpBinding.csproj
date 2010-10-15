@@ -89,6 +89,7 @@
     <Reference Include="Mono.Posix" />
     <Reference Include="Mono.Addins, Version=0.4.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
       <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
       <SpecificVersion>False</SpecificVersion>
@@ -155,6 +156,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="MonoDevelop.CSharp.Formatting\CSharpFormattingPolicy.xml">
       <LogicalName>CSharpFormattingPolicy.xml</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Include="MonoDevelop.CSharp.Formatting\FormattingProfiles.xml">
+      <LogicalName>FormattingProfiles.xml</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -351,6 +355,15 @@
     <Compile Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\ExtractMethodRefactoring.cs" />
     <Compile Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\VariableLookupVisitor.cs" />
     <Compile Include="gtk-gui\MonoDevelop.CSharp.Refactoring.ExtractMethod.ExtractMethodDialog.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\CSharpFormattingPolicyPanelWidget.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CSharp.Formatting.CSharpFormattingPolicyPanelWidget.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\NewFormattingProfileDialog.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CSharp.Formatting.NewFormattingProfileDialog.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\CSharpFormattingProfileDialog.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CSharp.Formatting.CSharpFormattingProfileDialog.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\FormattingProfileService.cs" />
+    <Compile Include="MonoDevelop.CSharp.Dom\ComposedType.cs" />
+    <Compile Include="MonoDevelop.CSharp.Dom\Expressions\DirectionExpression.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ChangeLog" />

@@ -135,9 +135,20 @@ namespace MonoDevelop.SourceEditor
 			}
 		}
 		
+		static bool? testNewViMode = null;
+		static bool TestNewViMode {
+			get {
+				if (!testNewViMode.HasValue)
+					testNewViMode = System.Environment.GetEnvironmentVariable ("TEST_NEW_VI_MODE") != null;
+				return testNewViMode.Value;
+			}
+		}
+		
 		void UpdateEditMode ()
 		{
-			if (Options.UseViModes) {
+			if (TestNewViMode && !(CurrentMode is NewIdeViMode)) {
+				CurrentMode = new NewIdeViMode (this);
+			} else if (Options.UseViModes) {
 				if (!(CurrentMode is IdeViMode))
 					CurrentMode = new IdeViMode (this);
 			} else {
@@ -336,6 +347,10 @@ namespace MonoDevelop.SourceEditor
 			foreach (Span span in stack) {
 				if (string.IsNullOrEmpty (span.Color))
 					continue;
+				if (span.Color == "string.other") {
+					inStringOrComment = inChar = inString = true;
+					break;
+				}
 				if (span.Color == "string.single" || span.Color == "string.double" || span.Color.StartsWith ("comment")) {
 					inStringOrComment = true;
 					inChar |= span.Color == "string.single";
@@ -345,14 +360,18 @@ namespace MonoDevelop.SourceEditor
 					break;
 				}
 			}
-			
+			if (Caret.Offset > 0) {
+				char c = GetCharAt (Caret.Offset - 1);
+				if (c == '"' || c == '\'')
+					inStringOrComment = inChar = inString = true;
+			}
 			Document.BeginAtomicUndo ();
 
 			// insert template when space is typed (currently disabled - it's annoying).
 			bool templateInserted = false;
 			//!inStringOrComment && (key == Gdk.Key.space) && DoInsertTemplate ();
 			bool returnBetweenBraces = key == Gdk.Key.Return && (state & (Gdk.ModifierType.ControlMask | Gdk.ModifierType.ShiftMask)) == Gdk.ModifierType.None && Caret.Offset > 0 && Caret.Offset < Document.Length && Document.GetCharAt (Caret.Offset - 1) == '{' && Document.GetCharAt (Caret.Offset) == '}' && !inStringOrComment;
-			int initialOffset = Caret.Offset;
+//			int initialOffset = Caret.Offset;
 			const string openBrackets = "{[('\"";
 			const string closingBrackets = "}])'\"";
 			int braceIndex = openBrackets.IndexOf ((char)ch);
@@ -408,16 +427,12 @@ namespace MonoDevelop.SourceEditor
 				if (Extension != null) {
 					if (ExtensionKeyPress (key, ch, state)) 
 						result = base.OnIMProcessedKeyPressEvent (key, ch, state);
-					if (returnBetweenBraces) {
-						Caret.Offset = initialOffset;
-						ExtensionKeyPress (Gdk.Key.Return, (char)0, Gdk.ModifierType.None);
-					}
+					if (returnBetweenBraces)
+						 HitReturn ();
 				} else {
 					result = base.OnIMProcessedKeyPressEvent (key, ch, state);
-					if (returnBetweenBraces) {
-						Caret.Offset = initialOffset;
-						base.SimulateKeyPress (Gdk.Key.Return, 0, Gdk.ModifierType.None);
-					}
+					if (returnBetweenBraces)
+						 HitReturn ();
 				}
 			}
 			if (insertionChar != '\0')
@@ -430,6 +445,15 @@ namespace MonoDevelop.SourceEditor
 				
 			Document.EndAtomicUndo ();
 			return result;
+		}
+		
+		void HitReturn ()
+		{
+			int o = Caret.Offset - 1;
+			while (o > 0 && char.IsWhiteSpace (GetCharAt (o - 1))) 
+				o--;
+			Caret.Offset = o;
+			ExtensionKeyPress (Gdk.Key.Return, (char)0, Gdk.ModifierType.None);			
 		}
 		
 		internal string GetErrorInformationAt (int offset)

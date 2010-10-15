@@ -45,6 +45,7 @@ using ICSharpCode.NRefactory.Ast;
 using ICSharpCode.NRefactory.Visitors;
 using MonoDevelop.Ide.FindInFiles;
 using MonoDevelop.CSharp.Resolver;
+using MonoDevelop.Core;
 
 namespace MonoDevelop.CSharp.Refactoring
 {
@@ -105,7 +106,12 @@ namespace MonoDevelop.CSharp.Refactoring
 				this.searchedMemberLocation = ((IMember)searchedMember).Location;
 				
 				if (searchedMember is IType) {
-					this.searchedMemberFile = ((IType)searchedMember).CompilationUnit.FileName;
+					var unit = ((IType)searchedMember).CompilationUnit;
+					if (unit != null) {
+						this.searchedMemberFile = unit.FileName;
+					} else {
+						LoggingService.LogWarning (searchedMember + " has no compilation unit.");
+					}
 				} else {
 					if (((IMember)searchedMember).DeclaringType != null && ((IMember)searchedMember).DeclaringType.CompilationUnit != null)
 						this.searchedMemberFile = ((IMember)searchedMember).DeclaringType.CompilationUnit.FileName;
@@ -382,8 +388,9 @@ namespace MonoDevelop.CSharp.Refactoring
 			}
 			
 			return (string.IsNullOrEmpty (searchedMemberFile) || fileName == searchedMemberFile) && 
-			       node.StartLocation.Line == this.searchedMemberLocation.Line && 
-			       node.StartLocation.Column == this.searchedMemberLocation.Column;
+			       node.StartLocation.Line == this.searchedMemberLocation.Line 
+//					&& node.StartLocation.Column == this.searchedMemberLocation.Column
+					;
 		}
 		
 		static bool IsIdentifierPart (char ch)
@@ -514,8 +521,9 @@ namespace MonoDevelop.CSharp.Refactoring
 				if (parent != null &&
 					localVariableDeclaration.StartLocation.Line == searchedVariable.Location.Line && 
 					localVariableDeclaration.StartLocation.Column == searchedVariable.Location.Column && 
-				    parent.StartLocation.Line == searchedVariable.DeclaringMember.Location.Line && 
-				    parent.StartLocation.Column == searchedVariable.DeclaringMember.Location.Column) {
+				    parent.StartLocation.Line == searchedVariable.DeclaringMember.Location.Line 
+//					&& parent.StartLocation.Column == searchedVariable.DeclaringMember.Location.Column
+					) {
 					foreach (VariableDeclaration decl in localVariableDeclaration.Variables) {
 						if (decl.Name == searchedMemberName) 
 							AddUniqueReference (decl.StartLocation.Y, decl.StartLocation.X, searchedMemberName);

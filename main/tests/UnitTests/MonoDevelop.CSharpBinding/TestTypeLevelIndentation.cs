@@ -80,6 +80,61 @@ namespace MonoDevelop.CSharpBinding.FormattingTests
 		}
 		
 		[Test()]
+		public void TestNoIndentationInNamespaces ()
+		{
+			TextEditorData data = new TextEditorData ();
+			data.Document.FileName = "a.cs";
+			data.Document.Text = 
+@"namespace A { class Test {} }";
+			
+			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
+			policy.NamespaceBraceStyle = BraceStyle.EndOfLine;
+			policy.ClassBraceStyle = BraceStyle.DoNotChange;
+			policy.IndentNamespaceBody = false;
+			
+			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"namespace A {
+class Test {}
+}", data.Document.Text);
+		}
+		
+		[Test()]
+		public void TestClassIndentationInNamespacesCase2 ()
+		{
+			TextEditorData data = new TextEditorData ();
+			data.Document.FileName = "a.cs";
+			data.Document.Text = 
+@"using System;
+
+namespace MonoDevelop.CSharp.Formatting {
+	public class FormattingProfileService {
+		public FormattingProfileService () {
+		}
+	}
+}";
+			
+			CSharpFormattingPolicy policy = new CSharpFormattingPolicy ();
+			policy.NamespaceBraceStyle = BraceStyle.NextLine;
+			policy.ClassBraceStyle = BraceStyle.NextLine;
+			policy.ConstructorBraceStyle = BraceStyle.NextLine;
+			
+			CSharp.Dom.CompilationUnit compilationUnit = new CSharpParser ().Parse (data);
+			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
+			Assert.AreEqual (@"using System;
+
+namespace MonoDevelop.CSharp.Formatting
+{
+	public class FormattingProfileService
+	{
+		public FormattingProfileService ()
+		{
+		}
+	}
+}", data.Document.Text);
+		}
+		
+		[Test()]
 		public void TestIndentClassBody ()
 		{
 			TextEditorData data = new TextEditorData ();

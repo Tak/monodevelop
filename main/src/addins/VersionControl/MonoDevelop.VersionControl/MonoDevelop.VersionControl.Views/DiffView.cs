@@ -58,11 +58,17 @@ namespace MonoDevelop.VersionControl.Views
 			get;
 			set;
 		}
+		
+		public Repository Repository {
+			get;
+			set;
+		}
 
-		public VersionControlDocumentInfo (Document document, VersionControlItem item)
+		public VersionControlDocumentInfo (Document document, VersionControlItem item, Repository repository)
 		{
 			this.Document = document;
 			this.Item = item;
+			this.Repository = repository;
 		}
 
 		public void Start ()
@@ -71,19 +77,36 @@ namespace MonoDevelop.VersionControl.Views
 				return;
 			alreadyStarted = true;
 			ThreadPool.QueueUserWorkItem (delegate {
-				try {
-					History      = Item.Repository.GetHistory (Item.Path, null);
-					VersionInfo  = Item.Repository.GetVersionInfo (Item.Path, false);
-				} catch (Exception ex) {
-					LoggingService.LogError ("Error retrieving history", ex);
+				lock (updateLock) {
+					try {
+						History      = Item.Repository.GetHistory (Item.Path, null);
+						VersionInfo  = Item.Repository.GetVersionInfo (Item.Path, false);
+					} catch (Exception ex) {
+						LoggingService.LogError ("Error retrieving history", ex);
+					}
+					
+					DispatchService.GuiDispatch (delegate {
+						OnUpdated (EventArgs.Empty);
+					});
+					isUpdated = true;
 				}
-				
-				DispatchService.GuiDispatch (delegate {
-					OnUpdated (EventArgs.Empty);
-				});
 			});
 		}
-
+		
+		object updateLock = new object ();
+		bool isUpdated = false;
+		
+		public void RunAfterUpdate (Action act) 
+		{
+			if (isUpdated) {
+				act ();
+				return;
+			}
+			while (!isUpdated)
+				Thread.Sleep (10);
+			act ();
+		}
+		
 		protected virtual void OnUpdated (EventArgs e)
 		{
 			EventHandler handler = this.Updated;
@@ -130,7 +153,7 @@ namespace MonoDevelop.VersionControl.Views
 			if (window.SubViewContents.Any (sub => sub is DiffView))
 				return;
 			
-			VersionControlDocumentInfo info = new VersionControlDocumentInfo (document, item);
+			VersionControlDocumentInfo info = new VersionControlDocumentInfo (document, item, item.Repository);
 			
 			DiffView comparisonView = new DiffView (info);
 			window.AttachViewContent (comparisonView);

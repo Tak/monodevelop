@@ -30,6 +30,9 @@ REFS =  \
 FILES =  \
 	AssemblyInfo.cs \
 	gtk-gui/generated.cs \
+	gtk-gui/MonoDevelop.CSharp.Formatting.CSharpFormattingPolicyPanelWidget.cs \
+	gtk-gui/MonoDevelop.CSharp.Formatting.CSharpFormattingProfileDialog.cs \
+	gtk-gui/MonoDevelop.CSharp.Formatting.NewFormattingProfileDialog.cs \
 	gtk-gui/MonoDevelop.CSharp.Project.CodeGenerationPanelWidget.cs \
 	gtk-gui/MonoDevelop.CSharp.Project.CompilerOptionsPanelWidget.cs \
 	gtk-gui/MonoDevelop.CSharp.Refactoring.ExtractMethod.ExtractMethodDialog.cs \
@@ -44,6 +47,7 @@ FILES =  \
 	MonoDevelop.CSharp.Dom/AbstractCSharpNode.cs \
 	MonoDevelop.CSharp.Dom/AbtractCSharpDomVisitor.cs \
 	MonoDevelop.CSharp.Dom/CompilationUnit.cs \
+	MonoDevelop.CSharp.Dom/ComposedType.cs \
 	MonoDevelop.CSharp.Dom/CSharpAmbience.cs \
 	MonoDevelop.CSharp.Dom/CSharpModifierToken.cs \
 	MonoDevelop.CSharp.Dom/CSharpTokenNode.cs \
@@ -58,6 +62,7 @@ FILES =  \
 	MonoDevelop.CSharp.Dom/Expressions/CheckedExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/ConditionalExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/DefaultValueExpression.cs \
+	MonoDevelop.CSharp.Dom/Expressions/DirectionExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/IdentifierExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/IndexerExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/InvocationExpression.cs \
@@ -128,13 +133,17 @@ FILES =  \
 	MonoDevelop.CSharp.Formatting/CSharpFormatter.cs \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicy.cs \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicyPanel.cs \
+	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicyPanelWidget.cs \
+	MonoDevelop.CSharp.Formatting/CSharpFormattingProfileDialog.cs \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingProperties.cs \
 	MonoDevelop.CSharp.Formatting/CSharpIndentEngine.cs \
 	MonoDevelop.CSharp.Formatting/CSharpIndentEngineStack.cs \
 	MonoDevelop.CSharp.Formatting/CSharpTextEditorIndentation.cs \
 	MonoDevelop.CSharp.Formatting/DomIndentationVisitor.cs \
 	MonoDevelop.CSharp.Formatting/DomSpacingVisitor.cs \
+	MonoDevelop.CSharp.Formatting/FormattingProfileService.cs \
 	MonoDevelop.CSharp.Formatting/Indent.cs \
+	MonoDevelop.CSharp.Formatting/NewFormattingProfileDialog.cs \
 	MonoDevelop.CSharp.Formatting/OnTheFlyFormatter.cs \
 	MonoDevelop.CSharp.Highlighting/CSharpSyntaxMode.cs \
 	MonoDevelop.CSharp.Highlighting/HighlightCSharpSemanticRule.cs \
@@ -232,6 +241,7 @@ RES =  \
 	md1format.xml \
 	MonoCSharpPolicy.xml \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicy.xml \
+	MonoDevelop.CSharp.Formatting/FormattingProfiles.xml \
 	templates/AssemblyInfo.xft.xml \
 	templates/ConsoleProject.xpt.xml \
 	templates/EmptyCSharpFile.xft.xml \

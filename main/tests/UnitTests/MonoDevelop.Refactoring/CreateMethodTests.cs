@@ -64,7 +64,7 @@ namespace MonoDevelop.Refactoring.Tests
 			Assert.IsTrue (refactoring.IsValid (options));
 			
 			if (returnWholeFile) {
-				refactoring.SetInsertionPoint (MonoDevelop.Refactoring.HelperMethods.GetInsertionPoints (options.GetTextEditorData ().Document, refactoring.DeclaringType).First ());
+				refactoring.SetInsertionPoint (MonoDevelop.Refactoring.HelperMethods.GetInsertionPoints (options.Document, refactoring.DeclaringType).First ());
 			} else {
 				DocumentLocation loc = new DocumentLocation (1, 1);
 				refactoring.SetInsertionPoint (new InsertionPoint (loc, NewLineInsertion.Eol, NewLineInsertion.Eol));
@@ -93,7 +93,7 @@ namespace MonoDevelop.Refactoring.Tests
 		}
 
 		[Test()]
-		public void TestPrivadeSimpleCreateMethod ()
+		public void TestPrivateSimpleCreateMethod ()
 		{
 			TestCreateMethod (@"class TestClass
 {
@@ -247,6 +247,79 @@ class TestClass
 	}
 }
 ", true);
+		}
+		
+		[Test()]
+		public void TestCreateInterfaceMethod ()
+		{
+			TestCreateMethod (
+@"
+interface FooBar
+{
+}
+
+class TestClass
+{
+	void TestMethod ()
+	{
+		FooBar fb;
+		fb.$NonExistantMethod ();
+	}
+}
+", @"
+interface FooBar
+{
+	void NonExistantMethod ();
+}
+
+class TestClass
+{
+	void TestMethod ()
+	{
+		FooBar fb;
+		fb.NonExistantMethod ();
+	}
+}
+", true);
+		}
+		
+		[Test()]
+		public void TestCreateInStaticClassMethod ()
+		{
+			TestCreateMethod (
+@"
+static class FooBar
+{
+}
+
+class TestClass
+{
+	void TestMethod ()
+	{
+		FooBar.$NonExistantMethod ();
+	}
+}
+", @"public static void NonExistantMethod ()
+{
+	throw new System.NotImplementedException ();
+}");
+		}
+		
+		[Test()]
+		public void TestRefOutCreateMethod ()
+		{
+			TestCreateMethod (@"class TestClass
+{
+	void TestMethod ()
+	{
+		int a, b;
+		$NonExistantMethod (ref a, out b);
+	}
+}
+", @"void NonExistantMethod (ref int a, out int b)
+{
+	throw new System.NotImplementedException ();
+}");
 		}
 		
 		

@@ -33,6 +33,7 @@ using System.Collections.Generic;
 using MonoDevelop.Ide;
 using System.Text.RegularExpressions;
 using Mono.TextEditor.Highlighting;
+using MonoDevelop.Ide.Fonts;
 
 namespace MonoDevelop.SourceEditor
 {
@@ -319,11 +320,8 @@ namespace MonoDevelop.SourceEditor
 				return;
 			
 			layouts = new List<LayoutDescriptor> ();
-			fontDescription = Pango.FontDescription.FromString (editor.Options.FontName);
-			var label = new Gtk.Label ("");
-			fontDescription.Family = label.Style.FontDescription.Family;
-			label.Destroy ();
-			fontDescription.Size = (int)(fontDescription.Size * 0.9f * editor.Options.Zoom);
+			fontDescription = FontService.GetFontDescription ("MessageBubbles");
+			
 			foreach (ErrorText errorText in errors) {
 				Pango.Layout layout = new Pango.Layout (editor.PangoContext);
 				layout.FontDescription = fontDescription;
@@ -694,8 +692,13 @@ namespace MonoDevelop.SourceEditor
 		{
 			if (DebuggingService.IsDebugging)
 				return;
-// TODO:
-//			win.DrawPixbuf (editor.Style.BaseGC (Gtk.StateType.Normal), errors.Any (e => e.IsError) ? errorPixbuf : warningPixbuf, 0, 0, x + (width - errorPixbuf.Width) / 2, y + (height - errorPixbuf.Height) / 2, errorPixbuf.Width, errorPixbuf.Height, Gdk.RgbDither.None, 0, 0);
+			editor.GdkWindow.DrawPixbuf (editor.Style.BaseGC (Gtk.StateType.Normal), 
+				errors.Any (e => e.IsError) ? errorPixbuf : warningPixbuf, 
+				0, 0, 
+				(int)(x + (width - errorPixbuf.Width) / 2), 
+				(int)(y + (height - errorPixbuf.Height) / 2), 
+				errorPixbuf.Width, errorPixbuf.Height, 
+				Gdk.RgbDither.None, 0, 0);
 		}
 
 		public void MousePress (MarginMouseEventArgs args)
@@ -705,7 +708,18 @@ namespace MonoDevelop.SourceEditor
 		public void MouseRelease (MarginMouseEventArgs args)
 		{
 		}
-
+		
+		public void MouseHover (MarginMouseEventArgs args)
+		{
+			var sb = new System.Text.StringBuilder ();
+			foreach (var error in errors) {
+				if (sb.Length > 0)
+					sb.AppendLine ();
+				sb.Append (error.ErrorMessage);
+			}
+			args.Editor.TooltipText = sb.ToString ();
+		}
+		
 		#endregion
 
 		public Gdk.Rectangle ErrorTextBounds {

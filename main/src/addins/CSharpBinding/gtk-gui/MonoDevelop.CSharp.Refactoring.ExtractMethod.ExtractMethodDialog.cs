@@ -5,43 +5,24 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 	public partial class ExtractMethodDialog
 	{
 		private global::Gtk.VBox vbox2;
-
 		private global::Gtk.Table table1;
-
 		private global::Gtk.ComboBox comboboxModifiers;
-
 		private global::Gtk.Entry entry;
-
 		private global::Gtk.Label label1;
-
 		private global::Gtk.Label labelNewName;
-
 		private global::Gtk.Label label2;
-
 		private global::Gtk.HBox hbox2;
-
 		private global::Gtk.ScrolledWindow GtkScrolledWindow;
-
 		private global::Gtk.TreeView treeviewParameters;
-
 		private global::Gtk.VBox vbox3;
-
 		private global::Gtk.Button buttonUp;
-
 		private global::Gtk.Button buttonDown;
-
 		private global::Gtk.CheckButton checkbuttonGenerateComment;
-
 		private global::Gtk.HBox hbox3;
-
 		private global::Gtk.Image imageWarning;
-
 		private global::Gtk.Label labelWarning;
-
 		private global::Gtk.Button buttonCancel;
-
 		private global::Gtk.Button buttonPreview;
-
 		private global::Gtk.Button buttonOk;
 
 		protected virtual void Build ()
@@ -70,7 +51,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.comboboxModifiers = global::Gtk.ComboBox.NewText ();
 			this.comboboxModifiers.Name = "comboboxModifiers";
 			this.table1.Add (this.comboboxModifiers);
-			global::Gtk.Table.TableChild w2 = ((global::Gtk.Table.TableChild)(this.table1[this.comboboxModifiers]));
+			global::Gtk.Table.TableChild w2 = ((global::Gtk.Table.TableChild)(this.table1 [this.comboboxModifiers]));
 			w2.TopAttach = ((uint)(1));
 			w2.BottomAttach = ((uint)(2));
 			w2.LeftAttach = ((uint)(1));
@@ -84,18 +65,18 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.entry.IsEditable = true;
 			this.entry.InvisibleChar = '●';
 			this.table1.Add (this.entry);
-			global::Gtk.Table.TableChild w3 = ((global::Gtk.Table.TableChild)(this.table1[this.entry]));
+			global::Gtk.Table.TableChild w3 = ((global::Gtk.Table.TableChild)(this.table1 [this.entry]));
 			w3.LeftAttach = ((uint)(1));
 			w3.RightAttach = ((uint)(2));
 			w3.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child table1.Gtk.Table+TableChild
 			this.label1 = new global::Gtk.Label ();
 			this.label1.Name = "label1";
-			this.label1.Xalign = 0f;
+			this.label1.Xalign = 0F;
 			this.label1.LabelProp = global::Mono.Unix.Catalog.GetString ("_Access modifier:");
 			this.label1.UseUnderline = true;
 			this.table1.Add (this.label1);
-			global::Gtk.Table.TableChild w4 = ((global::Gtk.Table.TableChild)(this.table1[this.label1]));
+			global::Gtk.Table.TableChild w4 = ((global::Gtk.Table.TableChild)(this.table1 [this.label1]));
 			w4.TopAttach = ((uint)(1));
 			w4.BottomAttach = ((uint)(2));
 			w4.XOptions = ((global::Gtk.AttachOptions)(4));
@@ -103,26 +84,26 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			// Container child table1.Gtk.Table+TableChild
 			this.labelNewName = new global::Gtk.Label ();
 			this.labelNewName.Name = "labelNewName";
-			this.labelNewName.Xalign = 0f;
+			this.labelNewName.Xalign = 0F;
 			this.labelNewName.LabelProp = global::Mono.Unix.Catalog.GetString ("_Method name:");
 			this.labelNewName.UseUnderline = true;
 			this.table1.Add (this.labelNewName);
-			global::Gtk.Table.TableChild w5 = ((global::Gtk.Table.TableChild)(this.table1[this.labelNewName]));
+			global::Gtk.Table.TableChild w5 = ((global::Gtk.Table.TableChild)(this.table1 [this.labelNewName]));
 			w5.XOptions = ((global::Gtk.AttachOptions)(4));
 			w5.YOptions = ((global::Gtk.AttachOptions)(4));
 			this.vbox2.Add (this.table1);
-			global::Gtk.Box.BoxChild w6 = ((global::Gtk.Box.BoxChild)(this.vbox2[this.table1]));
+			global::Gtk.Box.BoxChild w6 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.table1]));
 			w6.Position = 0;
 			w6.Expand = false;
 			w6.Fill = false;
 			// Container child vbox2.Gtk.Box+BoxChild
 			this.label2 = new global::Gtk.Label ();
 			this.label2.Name = "label2";
-			this.label2.Xalign = 0f;
+			this.label2.Xalign = 0F;
 			this.label2.LabelProp = global::Mono.Unix.Catalog.GetString ("_Parameters:");
 			this.label2.UseUnderline = true;
 			this.vbox2.Add (this.label2);
-			global::Gtk.Box.BoxChild w7 = ((global::Gtk.Box.BoxChild)(this.vbox2[this.label2]));
+			global::Gtk.Box.BoxChild w7 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.label2]));
 			w7.Position = 1;
 			w7.Expand = false;
 			w7.Fill = false;
@@ -140,7 +121,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.treeviewParameters.Name = "treeviewParameters";
 			this.GtkScrolledWindow.Add (this.treeviewParameters);
 			this.hbox2.Add (this.GtkScrolledWindow);
-			global::Gtk.Box.BoxChild w9 = ((global::Gtk.Box.BoxChild)(this.hbox2[this.GtkScrolledWindow]));
+			global::Gtk.Box.BoxChild w9 = ((global::Gtk.Box.BoxChild)(this.hbox2 [this.GtkScrolledWindow]));
 			w9.Position = 0;
 			// Container child hbox2.Gtk.Box+BoxChild
 			this.vbox3 = new global::Gtk.VBox ();
@@ -153,7 +134,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.buttonUp.UseUnderline = true;
 			this.buttonUp.Label = global::Mono.Unix.Catalog.GetString ("_Up");
 			this.vbox3.Add (this.buttonUp);
-			global::Gtk.Box.BoxChild w10 = ((global::Gtk.Box.BoxChild)(this.vbox3[this.buttonUp]));
+			global::Gtk.Box.BoxChild w10 = ((global::Gtk.Box.BoxChild)(this.vbox3 [this.buttonUp]));
 			w10.Position = 0;
 			w10.Expand = false;
 			w10.Fill = false;
@@ -164,17 +145,17 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.buttonDown.UseUnderline = true;
 			this.buttonDown.Label = global::Mono.Unix.Catalog.GetString ("_Down");
 			this.vbox3.Add (this.buttonDown);
-			global::Gtk.Box.BoxChild w11 = ((global::Gtk.Box.BoxChild)(this.vbox3[this.buttonDown]));
+			global::Gtk.Box.BoxChild w11 = ((global::Gtk.Box.BoxChild)(this.vbox3 [this.buttonDown]));
 			w11.Position = 1;
 			w11.Expand = false;
 			w11.Fill = false;
 			this.hbox2.Add (this.vbox3);
-			global::Gtk.Box.BoxChild w12 = ((global::Gtk.Box.BoxChild)(this.hbox2[this.vbox3]));
+			global::Gtk.Box.BoxChild w12 = ((global::Gtk.Box.BoxChild)(this.hbox2 [this.vbox3]));
 			w12.Position = 1;
 			w12.Expand = false;
 			w12.Fill = false;
 			this.vbox2.Add (this.hbox2);
-			global::Gtk.Box.BoxChild w13 = ((global::Gtk.Box.BoxChild)(this.vbox2[this.hbox2]));
+			global::Gtk.Box.BoxChild w13 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.hbox2]));
 			w13.Position = 2;
 			// Container child vbox2.Gtk.Box+BoxChild
 			this.checkbuttonGenerateComment = new global::Gtk.CheckButton ();
@@ -184,7 +165,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.checkbuttonGenerateComment.DrawIndicator = true;
 			this.checkbuttonGenerateComment.UseUnderline = true;
 			this.vbox2.Add (this.checkbuttonGenerateComment);
-			global::Gtk.Box.BoxChild w14 = ((global::Gtk.Box.BoxChild)(this.vbox2[this.checkbuttonGenerateComment]));
+			global::Gtk.Box.BoxChild w14 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.checkbuttonGenerateComment]));
 			w14.Position = 3;
 			w14.Expand = false;
 			w14.Fill = false;
@@ -197,7 +178,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.imageWarning.Name = "imageWarning";
 			this.imageWarning.Pixbuf = global::Stetic.IconLoader.LoadIcon (this, "gtk-apply", global::Gtk.IconSize.Button);
 			this.hbox3.Add (this.imageWarning);
-			global::Gtk.Box.BoxChild w15 = ((global::Gtk.Box.BoxChild)(this.hbox3[this.imageWarning]));
+			global::Gtk.Box.BoxChild w15 = ((global::Gtk.Box.BoxChild)(this.hbox3 [this.imageWarning]));
 			w15.Position = 0;
 			w15.Expand = false;
 			w15.Fill = false;
@@ -205,17 +186,17 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.labelWarning = new global::Gtk.Label ();
 			this.labelWarning.Name = "labelWarning";
 			this.hbox3.Add (this.labelWarning);
-			global::Gtk.Box.BoxChild w16 = ((global::Gtk.Box.BoxChild)(this.hbox3[this.labelWarning]));
+			global::Gtk.Box.BoxChild w16 = ((global::Gtk.Box.BoxChild)(this.hbox3 [this.labelWarning]));
 			w16.Position = 1;
 			w16.Expand = false;
 			w16.Fill = false;
 			this.vbox2.Add (this.hbox3);
-			global::Gtk.Box.BoxChild w17 = ((global::Gtk.Box.BoxChild)(this.vbox2[this.hbox3]));
+			global::Gtk.Box.BoxChild w17 = ((global::Gtk.Box.BoxChild)(this.vbox2 [this.hbox3]));
 			w17.Position = 4;
 			w17.Expand = false;
 			w17.Fill = false;
 			w1.Add (this.vbox2);
-			global::Gtk.Box.BoxChild w18 = ((global::Gtk.Box.BoxChild)(w1[this.vbox2]));
+			global::Gtk.Box.BoxChild w18 = ((global::Gtk.Box.BoxChild)(w1 [this.vbox2]));
 			w18.Position = 0;
 			// Internal child MonoDevelop.CSharp.Refactoring.ExtractMethod.ExtractMethodDialog.ActionArea
 			global::Gtk.HButtonBox w19 = this.ActionArea;
@@ -232,7 +213,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.buttonCancel.UseUnderline = true;
 			this.buttonCancel.Label = "gtk-cancel";
 			this.AddActionWidget (this.buttonCancel, -6);
-			global::Gtk.ButtonBox.ButtonBoxChild w20 = ((global::Gtk.ButtonBox.ButtonBoxChild)(w19[this.buttonCancel]));
+			global::Gtk.ButtonBox.ButtonBoxChild w20 = ((global::Gtk.ButtonBox.ButtonBoxChild)(w19 [this.buttonCancel]));
 			w20.Expand = false;
 			w20.Fill = false;
 			// Container child dialog1_ActionArea.Gtk.ButtonBox+ButtonBoxChild
@@ -242,7 +223,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.buttonPreview.UseUnderline = true;
 			this.buttonPreview.Label = global::Mono.Unix.Catalog.GetString ("_Preview");
 			this.AddActionWidget (this.buttonPreview, 0);
-			global::Gtk.ButtonBox.ButtonBoxChild w21 = ((global::Gtk.ButtonBox.ButtonBoxChild)(w19[this.buttonPreview]));
+			global::Gtk.ButtonBox.ButtonBoxChild w21 = ((global::Gtk.ButtonBox.ButtonBoxChild)(w19 [this.buttonPreview]));
 			w21.Position = 1;
 			w21.Expand = false;
 			w21.Fill = false;
@@ -255,7 +236,7 @@ namespace MonoDevelop.CSharp.Refactoring.ExtractMethod
 			this.buttonOk.UseUnderline = true;
 			this.buttonOk.Label = "gtk-ok";
 			this.AddActionWidget (this.buttonOk, -5);
-			global::Gtk.ButtonBox.ButtonBoxChild w22 = ((global::Gtk.ButtonBox.ButtonBoxChild)(w19[this.buttonOk]));
+			global::Gtk.ButtonBox.ButtonBoxChild w22 = ((global::Gtk.ButtonBox.ButtonBoxChild)(w19 [this.buttonOk]));
 			w22.Position = 2;
 			w22.Expand = false;
 			w22.Fill = false;

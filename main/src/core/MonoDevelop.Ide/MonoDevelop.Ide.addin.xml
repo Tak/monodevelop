@@ -291,6 +291,16 @@
 		<ExtensionNode name="Tool" type="MonoDevelop.Ide.Extensions.CustomToolExtensionNode"/>
 	</ExtensionPoint>
 	
+	<ExtensionPoint path = "/MonoDevelop/Ide/Fonts" name = "IDE Fonts">
+		<Description>Addins can register own fonts to be configured.</Description>
+		<ExtensionNode name="Font" type="MonoDevelop.Ide.Fonts.FontDescriptionCodon"/>
+	</ExtensionPoint>
+	
+	<ExtensionPoint path = "/MonoDevelop/Ide/Updater" name = "Updater information">
+		<Description>Path of an updateinfo file.</Description>
+		<ExtensionNode name="UpdateInfo" type="MonoDevelop.Ide.Updater.UpdateInfoExtensionNode"/>
+	</ExtensionPoint>
+	
 	<!-- Extensions -->
 	
 	<Extension path = "/MonoDevelop/Core/Applications">
@@ -656,6 +666,7 @@
 	<Extension path = "/MonoDevelop/Ide/StartupHandlers">
 		<Class class = "MonoDevelop.Ide.Gui.AddinUpdateHandler"/>
 		<Class class = "MonoDevelop.Ide.Gui.Dialogs.TipOfTheDayStartup"/>
+		<Class class = "MonoDevelop.Ide.Updater.CheckForUpdatesOnStartUpHandler" />
 	</Extension>
 	
 	<Extension path = "/MonoDevelop/Ide/Commands">
@@ -1315,6 +1326,10 @@
 				_label = "_About" 
 				icon = "gtk-about" 
 				_description = "Show about dialog" />
+		<Command id  = "MonoDevelop.Ide.Updater.UpdateCommands.CheckForUpdates"
+				defaultHandler = "MonoDevelop.Ide.Updater.CheckForUpdatesHandler"
+				_label = "_Check for Updates"
+				_description = "Check for updates to MonoDevelop and packages it requires" />
 		</Category>
 		
 		<!-- SearchCommands -->
@@ -1822,6 +1837,7 @@
 			<Section id = "Style" _label = "Visual Style" icon="md-visual-style" class = "MonoDevelop.Ide.Gui.OptionPanels.IDEStyleOptionsPanel" />
 			<Section id = "KeyBindings" _label = "Key Bindings" fill="true" icon="md-keyboard-shortcuts" class = "MonoDevelop.Ide.Gui.OptionPanels.KeyBindingsPanel" />
 			<Section id = "LoadSave" _label = "Load/Save" icon="gtk-harddisk" class = "MonoDevelop.Ide.Gui.OptionPanels.LoadSavePanel" />
+			<Section id = "Fonts" _label = "Fonts" fill="true" class = "MonoDevelop.Ide.Fonts.FontChooserPanel"/>
 			<Section id = "Build" _label = "Build" icon="md-build-current-selected-project" class = "MonoDevelop.Ide.Gui.OptionPanels.BuildPanel">
 				<Panel id = "BuildMessages" _label = "Errors and Warnings" class = "MonoDevelop.Ide.Gui.OptionPanels.BuildMessagePanel" />
 				<Panel id = "Directories" _label = "Assembly Folders" class = "MonoDevelop.Ide.Gui.OptionPanels.AssemblyFoldersPanel" />
@@ -2184,6 +2200,7 @@
 		<ItemSet id = "Help" _label = "_Help">
 			<CommandItem id = "MonoDevelop.Ide.Commands.HelpCommands.Help" />
 			<CommandItem id = "MonoDevelop.Ide.Commands.HelpCommands.TipOfTheDay" />
+			<CommandItem id = "MonoDevelop.Ide.Updater.UpdateCommands.CheckForUpdates" />
 			<SeparatorItem id = "Separator2" />
 			<ItemSet id = "Web" _label = "_Web">
 				<LinkItem id = "MonoDevelop" _label = "MonoDevelop" link = "http://www.monodevelop.com" />
@@ -2278,5 +2295,9 @@
 	<Extension path = "/MonoDevelop/Ide/ExecutionCommandEditors">
 		<Customizer id="MonoDevelop.Ide.Execution.CustomArgsCustomizer" _name="Arguments" />
 		<Customizer id="MonoDevelop.Ide.Execution.MonoExecutionCustomizer" _name="Mono Options" />
+	</Extension>
+	
+	<Extension path = "/MonoDevelop/Ide/Fonts">
+		<Font name ="Editor" _displayName="Text Editor" default ="_DEFAULT_MONOSPACE"/>
 	</Extension>
 </Addin>

@@ -12,8 +12,8 @@ REFS =  \
 	$(MONO_ADDINS_SETUP_LIBS) \
 	$(MONODOC_LIBS) \
 	-r:ICSharpCode.SharpZipLib \
-	-r:Mono.Cairo \
 	-r:Mono.Posix \
+	-r:Mono.Cairo \
 	-r:System \
 	-r:System.Core \
 	-r:System.Data \
@@ -21,7 +21,8 @@ REFS =  \
 	-r:System.Runtime.Remoting \
 	-r:System.Web \
 	-r:System.Web.Services \
-	-r:System.Xml
+	-r:System.Xml \
+	-r:System.Xml.Linq
 
 FILES =  \
 	AssemblyInfo.cs \
@@ -40,6 +41,7 @@ FILES =  \
 	gtk-gui/MonoDevelop.Ide.ExternalTools.ExternalToolPanelWidget.cs \
 	gtk-gui/MonoDevelop.Ide.FindInFiles.FindInFilesDialog.cs \
 	gtk-gui/MonoDevelop.Ide.FindInFiles.SearchResultWidget.cs \
+	gtk-gui/MonoDevelop.Ide.Fonts.FontChooserPanelWidget.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Components.ExecutionModeComboBox.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Components.StringTagSelectorButton.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.AddinLoadErrorDialog.cs \
@@ -95,6 +97,7 @@ FILES =  \
 	gtk-gui/MonoDevelop.Ide.Projects.SelectReferenceDialog.cs \
 	gtk-gui/MonoDevelop.Ide.SelectEncodingsDialog.cs \
 	gtk-gui/MonoDevelop.Ide.StandardHeader.StandardHeaderPolicyPanelWidget.cs \
+	gtk-gui/MonoDevelop.Ide.Updater.UpdateDialog.cs \
 	MonoDevelop.Components.AutoTest/AutoTestClientSession.cs \
 	MonoDevelop.Components.AutoTest/AutoTestService.cs \
 	MonoDevelop.Components.AutoTest/AutoTestSession.cs \
@@ -370,6 +373,10 @@ FILES =  \
 	MonoDevelop.Ide.FindInFiles/SearchResult.cs \
 	MonoDevelop.Ide.FindInFiles/SearchResultPad.cs \
 	MonoDevelop.Ide.FindInFiles/SearchResultWidget.cs \
+	MonoDevelop.Ide.Fonts/FontChooserPanel.cs \
+	MonoDevelop.Ide.Fonts/FontChooserPanelWidget.cs \
+	MonoDevelop.Ide.Fonts/FontDescriptionCodon.cs \
+	MonoDevelop.Ide.Fonts/FontService.cs \
 	MonoDevelop.Ide.Gui.Components/CellRendererPixbuf.cs \
 	MonoDevelop.Ide.Gui.Components/CustomCommandTargetAttribute.cs \
 	MonoDevelop.Ide.Gui.Components/DragOperation.cs \
@@ -631,6 +638,11 @@ FILES =  \
 	MonoDevelop.Ide.Templates/SolutionDescriptor.cs \
 	MonoDevelop.Ide.Templates/SolutionItemDescriptor.cs \
 	MonoDevelop.Ide.Templates/TextFileDescriptionTemplate.cs \
+	MonoDevelop.Ide.Updater/UpdateCommands.cs \
+	MonoDevelop.Ide.Updater/UpdateDialog.cs \
+	MonoDevelop.Ide.Updater/UpdateInfoExtensionNode.cs \
+	MonoDevelop.Ide.Updater/UpdateResult.cs \
+	MonoDevelop.Ide.Updater/UpdateService.cs \
 	MonoDevelop.Ide.WebBrowser/IWebBrowser.cs \
 	MonoDevelop.Ide.WebBrowser/IWebBrowserLoader.cs \
 	MonoDevelop.Ide.WebBrowser/LoadingProgressChangedEventArgs.cs \

@@ -80,6 +80,8 @@ namespace MonoDevelop.CSharp.Refactoring.CreateMethod
 				var memberReference = (MemberReferenceExpression)target.Parent;
 				target = (ICSharpNode)memberReference.Target;
 				var targetResult = options.GetResolver ().Resolve (new ExpressionResult (data.GetTextBetween (target.StartLocation.Line, target.StartLocation.Column, target.EndLocation.Line, target.EndLocation.Column)), resolvePosition);
+				if (targetResult.StaticResolve)
+					modifiers = MonoDevelop.Projects.Dom.Modifiers.Static;
 				declaringType = options.Dom.GetType (targetResult.ResolvedType);
 				methodName = memberReference.Identifier.Name;
 			} else if (target is Identifier) {
@@ -196,14 +198,16 @@ namespace MonoDevelop.CSharp.Refactoring.CreateMethod
 			if (isInInterface) {
 				modifiers = MonoDevelop.Projects.Dom.Modifiers.None;
 			} else {
+				bool isStatic = (modifiers & MonoDevelop.Projects.Dom.Modifiers.Static) != 0;
 				modifiers = options.ResolveResult.CallingMember.Modifiers;
 				if (declaringType.DecoratedFullName != options.ResolveResult.CallingType.DecoratedFullName) {
 					modifiers = MonoDevelop.Projects.Dom.Modifiers.Public;
 					if (options.ResolveResult.CallingMember.IsStatic)
-						modifiers |= MonoDevelop.Projects.Dom.Modifiers.Static;
+						isStatic = true;
 				}
+				if (isStatic)
+					modifiers |= MonoDevelop.Projects.Dom.Modifiers.Static;
 			}
-			
 			returnType = GuessReturnType (options);
 			
 			return true;
@@ -257,7 +261,7 @@ namespace MonoDevelop.CSharp.Refactoring.CreateMethod
 			}
 			indent += "\t";
 			
-			InsertionCursorEditMode mode = new InsertionCursorEditMode (data.Parent, MonoDevelop.Refactoring.HelperMethods.GetInsertionPoints (data.Document, declaringType));
+			InsertionCursorEditMode mode = new InsertionCursorEditMode (data.Parent, MonoDevelop.Refactoring.HelperMethods.GetInsertionPoints (options.Document, declaringType));
 			if (fileName == options.Document.FileName) {
 				for (int i = 0; i < mode.InsertionPoints.Count; i++) {
 					var point = mode.InsertionPoints[i];
@@ -338,10 +342,18 @@ namespace MonoDevelop.CSharp.Refactoring.CreateMethod
 			DomMethod result = new DomMethod (methodName, modifiers, MethodModifier.None, DomLocation.Empty, DomRegion.Empty, returnType);
 			result.DeclaringType = new DomType ("GeneratedType") { ClassType = declaringType.ClassType };
 			int i = 1;
-			foreach (ICSharpNode argument in invocation.Arguments) {
+			foreach (ICSharpNode curArg in invocation.Arguments) {
+				ICSharpNode argument = curArg;
 				DomParameter arg = new DomParameter ();
+				if (argument is DirectionExpression) {
+					var de = (DirectionExpression)argument;
+					arg.ParameterModifiers = de.FieldDirection == FieldDirection.Out ? ParameterModifiers.Out : ParameterModifiers.Ref; 
+					argument = de.Expression;
+				}
+				
 				string argExpression = data.GetTextBetween (argument.StartLocation.Line, argument.StartLocation.Column, argument.EndLocation.Line, argument.EndLocation.Column);
 				var resolveResult = resolver.Resolve (new ExpressionResult (argExpression), resolvePosition);
+				
 				if (argument is MemberReferenceExpression) {
 					arg.Name = ((MemberReferenceExpression)argument).Identifier.Name;
 				} else if (argument is IdentifierExpression) {

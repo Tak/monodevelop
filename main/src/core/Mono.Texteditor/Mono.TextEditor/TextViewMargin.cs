@@ -644,8 +644,8 @@ namespace Mono.TextEditor
 					int lineOffset = line.Offset;
 					int lineNumber = Document.OffsetToLineNumber (lineOffset);
 					if (textEditor.MainSelection.MinLine <= lineNumber && lineNumber <= textEditor.MainSelection.MaxLine) {
-						selectionStart = lineOffset + line.GetLogicalColumn (this.textEditor.GetTextEditorData (), System.Math.Min (visStart.Column, visEnd.Column));
-						selectionEnd = lineOffset + line.GetLogicalColumn (this.textEditor.GetTextEditorData (), System.Math.Max (visStart.Column, visEnd.Column));
+						selectionStart = lineOffset + line.GetLogicalColumn (this.textEditor.GetTextEditorData (), System.Math.Min (visStart.Column, visEnd.Column)) - 1;
+						selectionEnd = lineOffset + line.GetLogicalColumn (this.textEditor.GetTextEditorData (), System.Math.Max (visStart.Column, visEnd.Column)) - 1;
 					}
 				}
 			}
@@ -2102,7 +2102,7 @@ namespace Mono.TextEditor
 				DocumentLocation end = textEditor.MainSelection.Lead;
 				DocumentLocation visStart = Document.LogicalToVisualLocation (this.textEditor.GetTextEditorData (), start);
 				DocumentLocation visEnd = Document.LogicalToVisualLocation (this.textEditor.GetTextEditorData (), end);
-
+				
 				double x1 = this.ColumnToX (line, visStart.Column);
 				double x2 = this.ColumnToX (line, visEnd.Column);
 				if (x1 > x2) {
@@ -2336,6 +2336,7 @@ namespace Mono.TextEditor
 		
 		public double ColumnToX (LineSegment line, int column)
 		{
+			column--;
 			if (line == null || line.EditableLength == 0 || column < 0)
 				return 0;
 			int logicalRulerColumn = line.GetLogicalColumn (textEditor.GetTextEditorData(), textEditor.Options.RulerColumn);
