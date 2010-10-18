@@ -44,12 +44,12 @@ namespace CBinding
 {
 	public class ParameterDataProvider : IParameterDataProvider
 	{
-		private TextEditor editor;
+		private Mono.TextEditor.TextEditorData editor;
 		private List<Function> functions = new List<Function> ();
 		
 		public ParameterDataProvider (Document document, ProjectInformation info, string functionName)
 		{
-			this.editor = document.TextEditor;
+			this.editor = document.Editor;
 			
 			foreach (Function f in info.Functions) {
 				if (f.Name == functionName) {
@@ -79,11 +79,11 @@ namespace CBinding
 		// -1 means the cursor is outside the method parameter list
 		// 0 means no parameter entered
 		// > 0 is the index of the parameter (1-based)
-		public int GetCurrentParameterIndex (CodeCompletionContext ctx)
+		public int GetCurrentParameterIndex (ICompletionWidget widget, CodeCompletionContext ctx)
 		{
-			int cursor = editor.CursorPosition;
+			int cursor = widget.CurrentCodeCompletionContext.TriggerOffset;
 			int i = ctx.TriggerOffset;
-			if (i < 0 || i >= editor.TextLength || editor.GetCharAt (i) == ')')
+			if (i < 0 || i >= editor.Length || editor.GetCharAt (i) == ')')
 				return -1;
 			
 			if (i > cursor)
@@ -94,9 +94,9 @@ namespace CBinding
 			int parameterIndex = 1;
 			
 			while (i++ < cursor) {
-				if (i >= editor.TextLength)
+				if (i >= widget.TextLength)
 					break;
-				char ch = editor.GetCharAt (i);
+				char ch = widget.GetChar (i);
 				if (ch == ',')
 					parameterIndex++;
 				else if (ch == ')')

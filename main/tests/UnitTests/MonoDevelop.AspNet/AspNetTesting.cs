@@ -66,8 +66,8 @@ namespace MonoDevelop.AspNet.Tests
 			ProjectDomService.Load (project);
 			ProjectDom dom = ProjectDomService.GetProjectDom (project);
 			dom.ForceUpdate (true);
-			ProjectDomService.Parse (project, file, null, delegate { return parsedText; });
-			ProjectDomService.Parse (project, file, null, delegate { return parsedText; });
+			ProjectDomService.Parse (project, file, delegate { return parsedText; });
+			ProjectDomService.Parse (project, file, delegate { return parsedText; });
 			
 			sev.Project = project;
 			sev.ContentName = file;
@@ -88,7 +88,7 @@ namespace MonoDevelop.AspNet.Tests
 			int line, column;
 			sev.GetLineColumnFromPosition (sev.CursorPosition, out line, out column);
 			ctx.TriggerLine = line;
-			ctx.TriggerLineOffset = column;
+			ctx.TriggerLineOffset = column - 1;
 			
 			if (isCtrlSpace)
 				return textEditorCompletion.CodeCompletionCommand (ctx) as CompletionDataList;

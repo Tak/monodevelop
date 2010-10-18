@@ -1,7 +1,28 @@
-2010-07-29  Levi Bard  <levi@unity3d.com>
+2010-08-04  Lluis Sanchez Gual  <lluis@novell.com>
 
-	* MonoDevelop.Ide.Commands/WindowCommands.cs:
-	  Disable document switcher by default on windows.
+	* Makefile.am:
+	* MonoDevelop.Ide.csproj:
+	* MonoDevelop.Ide/RootWorkspace.cs:
+	* MonoDevelop.Ide.Gui/AuthorInformation.cs:
+	* MonoDevelop.Ide.StandardHeader/StandardHeaderService.cs:
+	* MonoDevelop.Ide.Gui.OptionPanels/AuthorInformationPanel.cs:
+	* MonoDevelop.Ide.Gui.OptionPanels/GlobalAuthorInformationPanel.cs:
+	  Moved AuthorInformation to MD.Projects. Use the new
+	  AuthorInformation added to Solution and SolutionItem. Track
+	  api changes.
+
+2010-08-03  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Ide/RootWorkspace.cs: Pick a good default
+	  configuration when loading a solution for the first time.
+	  Fixes bug 627297 - Projects from VS.NET solution are not
+	  build.
+
+2010-07-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.Ide.Gui.Pads.ProjectPad/SolutionNodeBuilder.cs:
+	  Don't show the project count in the solution node. That
+	  space can be used for more useful things.
 
 2010-07-27  Levi Bard  <levi@unity3d.com>
 
@@ -9,11 +30,30 @@
 	* MonoDevelop.Ide.Gui/StartupInfo.cs:
 	  Make opening files at startup more robust.
 
-2010-07-23  Levi Bard  <levi@unity3d.com>
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
 
-	* MonoDevelop.Ide/IdeStartup.cs:
-	  If a combine is specified, don't 
-	  force new window.
+	* MonoDevelop.Ide.Commands/EditCommands.cs:
+	* MonoDevelop.Ide.Commands/ViewCommands.cs: Use delegation
+	  methods.
+
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/Document.cs: Use the parser service
+	  parser queue to update parse documents (=> fewer threads &
+	  fixes a possible dead lock)
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/Document.cs:
+	* MonoDevelop.Ide/RootWorkspace.cs:
+	* MonoDevelop.Ide/ProjectOperations.cs: Changed document
+	  parsing/text file provider now returns texteditordata
+	  provider.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/Document.cs: Be more carefully when
+	  updating parsed documents.
 
 2010-07-20  Levi Bard  <levi@unity3d.com>
 
@@ -21,10 +61,87 @@
 	  Ensure that results are displayed once they come in for
 	  mutable completion lists.
 
+2010-07-19  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.ProgressMonitoring/BaseProgressMonitor.cs:
+	  Better fix for Bug 617276 - MonoDevelop crashes when
+	  clicking on a script error in Unity3d.
+
+2010-07-19  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide/Ide.cs:
+	* MonoDevelop.Ide.Gui/Document.cs:
+	* MonoDevelop.Ide.Gui/Workbench.cs:
+	* MonoDevelop.Ide/RootWorkspace.cs:
+	* MonoDevelop.Ide/DesktopService.cs:
+	* MonoDevelop.Ide.Desktop/RecentItem.cs:
+	* MonoDevelop.Ide.Desktop/RecentOpen.cs:
+	* MonoDevelop.Ide.Commands/FileCommands.cs:
+	* MonoDevelop.Ide.Desktop/PlatformService.cs:
+	* MonoDevelop.Ide.Desktop/RecentFileStorage.cs: Moved recent
+	  files/projects lists to the desktopservice/platformservice
+	  so it can be made platform-dependent.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Tasks/CommentTasksView.cs: Track API
+	  changes.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* MonoDevelop.Ide.csproj:
+	* MonoDevelop.Ide.Gui/Document.cs:
+	* MonoDevelop.Ide.Gui/Workbench.cs:
+	* MonoDevelop.Ide.Gui/TextEditor.cs:
+	* MonoDevelop.Ide.FindInFiles/Scope.cs:
+	* MonoDevelop.Ide.Commands/EditCommands.cs:
+	* MonoDevelop.Ide.Commands/ViewCommands.cs:
+	* MonoDevelop.Ide.Tasks/CommentTasksView.cs:
+	* MonoDevelop.Ide.Gui/ViewCommandHandlers.cs:
+	* MonoDevelop.Ide.FindInFiles/FileProvider.cs:
+	* MonoDevelop.Ide.CodeTemplates/CodeTemplate.cs:
+	* MonoDevelop.Ide.CodeTemplates/ExpansionObject.cs:
+	* MonoDevelop.Ide.Gui.Content/TextEditorExtension.cs:
+	* MonoDevelop.Ide.Commands/CustomStringTagProvider.cs:
+	* MonoDevelop.Ide.Navigation/NavigationHistoryService.cs:
+	* MonoDevelop.Ide.StandardHeader/StandardHeaderService.cs:
+	* MonoDevelop.Ide.CodeFormatting/CodeFormattingCommands.cs:
+	* MonoDevelop.Ide.Gui.Content/CompletionTextEditorExtension.cs:
+	  Replaced old text editor reminders with mono.texteditor &
+	  renamed the texteditordata property to editor.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.CodeTemplates/CodeTemplate.cs:
+	* MonoDevelop.Ide.Gui.Content/TextEditorExtension.cs:
+	* MonoDevelop.Ide.Gui.Content/CompletionTextEditorExtension.cs:
+	  Text editor extensions are now based on the mono.texteditor
+	  infrastructure.
+
+2010-07-16  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide/ImageService.cs: Scale images when they
+	  don't fit when composing icons (Bug 609979 - Icon size
+	  errors).
+
 2010-07-15  Levi Bard  <levi@unity3d.com>
 
 	* MonoDevelop.Ide/RootWorkspace.cs:
 	  Don't second-guess NeedsReload logic.
+
+2010-07-15  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/Document.cs:
+	* MonoDevelop.Ide.Gui/TextEditor.cs:
+	* MonoDevelop.Ide.CodeTemplates/ExpansionObject.cs:
+	* MonoDevelop.Ide.Gui.Content/TextEditorExtension.cs:
+	* MonoDevelop.Ide.CodeCompletion/ICompletionWidget.cs:
+	* MonoDevelop.Ide.CodeCompletion/IParameterDataProvider.cs:
+	* MonoDevelop.Ide.Gui.Content/CompletionTextEditorExtension.cs:
+	* MonoDevelop.Ide.CodeCompletion/ParameterInformationWindowManager.cs:
+	  Worked on 'Bug 621658 - Parameter hints disappear
+	  afterkeystroke'.
 
 2010-07-14  Levi Bard  <levi@unity3d.com>
 
@@ -32,15 +149,135 @@
 	* MonoDevelop.Ide/IdeStartup.cs:
 	  Don't open projects as source files.
 
+2010-07-14  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/SearchEntry.cs: Fixed potential issue
+	  in search entry when reparenting.
+
+2010-07-13  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.Gui/DefaultWorkbench.cs: Better comments
+	  about OS X hacks.
+
+2010-07-13  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* MonoDevelop.Ide.csproj:
+	* MonoDevelop.Components/DropDownBox.cs:
+	* MonoDevelop.Components/DropDownBoxListWindow.cs: Moved
+	  dropdown box to components.
+
 2010-07-13  Levi Bard  <levi@unity3d.com>
 
 	* MonoDevelop.Ide.Gui/DefaultWorkbench.cs:
 	  Restore previous window state at launch on OSX.
 
+2010-07-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.Extensions/TextEditorExtensionNode.cs:
+	  Case-insensitive file extension comparison.
+
+2010-07-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.Gui/Document.cs: Track
+	  ProjectDomService/Parser API.
+
+2010-07-12  Levi Bard  <levi@unity3d.com>
+
+	* MonoDevelop.Ide.ProgressMonitoring/BaseProgressMonitor.cs:
+	  Fix #617276: MD crashes when clicking a script error in Unity3d.
+
+2010-07-12  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.NavigateToDialog/NavigateToDialog.cs: ':'
+	  now automatically only filters files.
+
+2010-07-11  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.addin.xml:
+	* MonoDevelop.Ide.Projects.OptionPanels/NamespaceSynchronisationPanel.cs:
+	  Naming policies panel should be shown for all items that
+	  contain DotNetProject, not just DotNetProject. 
+
+2010-07-11  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* gtk-gui/gui.stetic: Flsuh.
+
+	* Makefile.am:
+	* gtk-gui/objects.xml: Removed objects.xml from the
+	  Makefile.am since it's not in the project file and was
+	  breaking the build when MD added a resource ID to the
+	  makefile.
+
+2010-07-11  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.Ide.addin.xml: The "navigate forward/back"
+	  commands now use the Xcode binding, and a similar binding on
+	  Windows so they no longer block the subword navigation. Also
+	  add a Mac binding for "move selection up/down"
+
 2010-07-09  Levi Bard  <levi@unity3d.com>
 
 	* MonoDevelop.Ide/RootWorkspace.cs:
 	  Implement less disk-intensive project autoupdate.
+
+2010-07-09  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/SearchEntry.cs: taken out event
+	  handler on destroy.
+
+2010-07-08  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* MonoDevelop.Ide.csproj:
+	* MonoDevelop.Components.Diff/Diff.cs:
+	* MonoDevelop.Components/DropDownBoxListWindow.cs: Worked on
+	  version control gui.
+
+2010-07-08  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/ViewCommandHandlers.cs: Removed unused
+	  event handler (deletetolineend is handled by the text
+	  editor).
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/PathBar.cs: Changed redrawing.
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/PathBar.cs: Added bounds check.
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/PathBar.cs: Improved resizing
+	  behavior.
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/PathBar.cs: fixed multi monitor
+	  support.
+
+2010-07-06  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/PathBar.cs: Path bar now supports a
+	  right hand side.
+
+2010-07-05  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Ide.Gui/Document.cs:
+	* MonoDevelop.Ide.Gui/Workbench.cs:
+	* MonoDevelop.Ide.Gui/TextEditor.cs:
+	* MonoDevelop.Ide.Gui/IBaseViewContent.cs:
+	* MonoDevelop.Ide.Gui/SdiWorkspaceWindow.cs:
+	* MonoDevelop.Ide.Gui/ViewCommandHandlers.cs:
+	* MonoDevelop.Ide.Gui/AbstractBaseViewContent.cs: Worked on
+	  navigation panel/content interface.
+
+2010-07-05  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.Components/PathBar.cs: Added the ability to show
+	  a separator inside a path.
 
 2010-07-05  Mike Krüger  <mkrueger@novell.com>
 
@@ -214,10 +451,6 @@
 	* MonoDevelop.Ide.Gui.Pads.ProjectPad/FileOperationsBuilderExtension.cs:
 	  Use platform service CanOpenTerminal/OpenInTerminal instead
 	  of hardcoded gnome-terminal.
-
-2010-06-08  Levi Bard  <levi@unity3d.com>
-
-	* MonoDevelop.Ide/Ide.cs: Don't reload an already loaded solution.
 
 2010-06-08  Michael Hutchinson  <mhutchinson@novell.com>
 

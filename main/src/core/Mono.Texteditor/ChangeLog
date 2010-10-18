@@ -1,3 +1,204 @@
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditorData.cs: fix build.
+
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditorData.cs: Added some delegation
+	  methods.
+
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextViewMargin.cs: Cache line offsets in
+	  performance critical sections.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/Document.cs: Fixed issue with folding
+	  update.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs: Cached stack top
+	  elements.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/GapBuffer.cs:
+	* SyntaxModes/DiffSyntaxMode.xml:
+	* SyntaxModes/MakefileSyntaxMode.xml:
+	* SyntaxModes/ChangeLogSyntaxMode.xml:
+	* Mono.TextEditor.Highlighting/Span.cs:
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs:
+	* Mono.TextEditor.Highlighting.Regex/Regex.cs:
+	* Mono.TextEditor.Highlighting/JaySyntaxMode.cs: Tried to
+	  speed up highlighting.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/LineSegment.cs: fixed 'regression Bug 615624
+	  - Pressing DOWN after RETURN moves cursor to beginning of
+	  blank lines instead of to the indent'.
+
+2010-07-20  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxModeService.cs: Fixed
+	  highlighting bug.
+
+2010-07-20  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/LineSegment.cs: fix build.
+
+2010-07-20  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs:
+	* Mono.TextEditor/LineSegment.cs:
+	* Mono.TextEditor/TextViewMargin.cs:
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs:
+	* Mono.TextEditor/FoldingScreenbackgroundRenderer.cs: Tweaked
+	  text editor performance.
+
+2010-07-20  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs:
+	* Mono.TextEditor.Highlighting/SyntaxModeService.cs: Optimized
+	  highlighting thread.
+
+2010-07-19  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/SimpleEditMode.cs: 
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditorData.cs: Added SetCaretTo
+	  delegation.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditorData.cs: SelectionRange is now
+	  always != null.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs:
+	* Mono.TextEditor/TextEditorData.cs: Added some delegation
+	  methods to the texteditordata to make its usage easier -
+	  moved the advanced setcaret (with highlight & pulse) to the
+	  texteditor.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxModeService.cs:
+	  comment-in span remove code.
+
+2010-07-17  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs: pop span before
+	  end tag.
+
+2010-07-17  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs:
+	* Mono.TextEditor.Highlighting/JaySyntaxMode.cs:
+	* Mono.TextEditor.Highlighting/SyntaxModeService.cs: Worked on
+	  syntax highlighting.
+
+2010-07-17  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/Chunk.cs:
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs: Changed
+	  highlighting.
+
+2010-07-16  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextViewMargin.cs: Check span stack.
+
+2010-07-16  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* Mono.TextEditor.csproj:
+	* Styles/TangoLightStyle.xml:
+	* Mono.TextEditor/LineSegment.cs:
+	* Mono.TextEditor/TextViewMargin.cs:
+	* Mono.TextEditor/ClipboardActions.cs:
+	* Mono.TextEditor.Highlighting/Chunk.cs:
+	* Mono.TextEditor.Highlighting/SyntaxMode.cs:
+	* Mono.TextEditor.Highlighting/JaySyntaxMode.cs:
+	* Mono.TextEditor.Highlighting/CloneableStack.cs:
+	* Mono.TextEditor.Highlighting/SyntaxModeService.cs: Worked on
+	  highlighting - it's now more speed & memory efficient and
+	  fixed 'Bug 622108 - Background color issues'.
+
+2010-07-15  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextViewMargin.cs: Added null check.
+
+2010-07-14  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* Mono.TextEditor.Highlighting/Style.cs: Fix colours.
+
+2010-07-14  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/Caret.cs:
+	* Mono.TextEditor/TextEditorData.cs: Caret now exposes it's
+	  TextEditorData.
+
+2010-07-13  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* SyntaxModes/AspNetSyntaxMode.xml:
+	* Mono.TextEditor.Highlighting/Style.cs: Added styles for
+	  templated regions in files, e.g. ASP.NET and T4.
+
+2010-07-13  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* Mono.TextEditor.csproj:
+	* Mono.TextEditor/Document.cs:
+	* Mono.TextEditor.Highlighting/WorkerThread.cs: Replaced
+	  custom workerthread with
+	  system.compontentmodel.backgroundworker.
+
+2010-07-12  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextViewMargin.cs: Fixed 'Bug 621483 - MD
+	  hangs for a few seconds when searching'.
+
+2010-07-12  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/Document.cs:
+	* Mono.TextEditor/FoldSegment.cs: Optimized fold segment
+	  updating/fixed 'Bug 621484 - Editor repaints multiple times
+	  after "resolve using"'.
+
+2010-07-12  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/DefaultEditActions.cs: Implemented 'Bug
+	  621461 - shift+tab should outdent a code line without
+	  selecting it' / shift-tab behaves now like in gedit.
+
+2010-07-09  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs: fixed build.
+
+2010-07-09  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/TextEditor.cs: Added some gdk window checks.
+
+2010-07-09  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/DefaultEditActions.cs: Fixed indent
+	  selection.
+
+2010-07-09  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor.Highlighting/Rule.cs: Fixed 'Bug 620977 -
+	  Special characters in source code crashes MD'.
+
+2010-07-08  Mike Krüger  <mkrueger@novell.com>
+
+	* Mono.TextEditor/DeleteActions.cs: Fixed 'Bug 620854 -
+	  "delete to end of line" messes up edited file'.
+
 2010-07-08  Mike Krüger  <mkrueger@novell.com>
 
 	* Mono.TextEditor/TextMarker.cs: Changed the isVisible flag

@@ -478,7 +478,7 @@ namespace MonoDevelop.AspNet
 			if (webConfig == null || !File.Exists (webConfig.FilePath))
 				return;
 			
-			var textFile = DesignerSupport.OpenDocumentFileProvider.Instance.GetEditableTextFile (webConfig.FilePath);
+			var textFile = MonoDevelop.Ide.TextFileProvider.Instance.GetEditableTextFile (webConfig.FilePath);
 			//use textfile API because it's write safe (writes out to another file then moves)
 			if (textFile == null)
 				textFile = MonoDevelop.Projects.Text.TextFile.ReadFile (webConfig.FilePath);
@@ -710,7 +710,7 @@ namespace MonoDevelop.AspNet
 			protected override string GenerateInfo (string filename)
 			{
 				try {
-					var doc = ProjectDomService.Parse (Project, filename, null) as AspNetParsedDocument;
+					var doc = ProjectDomService.Parse (Project, filename) as AspNetParsedDocument;
 					if (doc != null && !string.IsNullOrEmpty (doc.Info.InheritedClass))
 						return doc.Info.InheritedClass;
 				} catch (Exception ex) {

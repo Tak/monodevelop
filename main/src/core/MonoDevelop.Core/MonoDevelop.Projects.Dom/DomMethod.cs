@@ -130,7 +130,7 @@ namespace MonoDevelop.Projects.Dom
 					result.Append ("M:");
 					result.Append (FullName);
 					if (TypeParameters.Count > 0) {
-						result.Append ("~");
+						result.Append ("`");
 						result.Append (TypeParameters.Count);
 					}
 				}
@@ -274,7 +274,8 @@ namespace MonoDevelop.Projects.Dom
 						DomReturnType drr = new DomReturnType (res.FullName);
 						drr.PointerNestingLevel = type.PointerNestingLevel;
 						drr.ArrayDimensions = type.ArrayDimensions;
-						drr.Type  = type.Type; // May be anonymous type
+						if (!(type.Type is ITypeParameterType))
+							drr.Type  = type.Type; // May be anonymous type
 						for (int i = 0; i < type.ArrayDimensions; i++)
 							drr.SetDimension (i, type.GetDimension (i));
 						return drr;
@@ -354,21 +355,12 @@ namespace MonoDevelop.Projects.Dom
 			}
 		}
 		
-		public void Add (IParameter parameter)
+		public override void Add (IParameter parameter)
 		{
 			if (parameters == null) 
 				parameters = new List<IParameter> ();
 			parameter.DeclaringMember = this;
 			parameters.Add (parameter);
-		}
-		
-		public void Add (IEnumerable<IParameter> parameters)
-		{
-			if (parameters == null)
-				return;
-			foreach (IParameter parameter in parameters) {
-				Add (parameter);
-			}
 		}
 		
 		XmlNode FindMatch (XmlNodeList nodes)

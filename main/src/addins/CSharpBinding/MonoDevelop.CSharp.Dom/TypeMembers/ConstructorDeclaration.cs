@@ -39,6 +39,20 @@ namespace MonoDevelop.CSharp.Dom
 			}
 		}
 		
+		public IEnumerable<ParameterDeclarationExpression> Arguments { 
+			get {
+				return base.GetChildrenByRole (Roles.Argument).Cast <ParameterDeclarationExpression> ();
+			}
+		}
+		
+		public CSharpTokenNode LPar {
+			get { return (CSharpTokenNode)GetChildByRole (Roles.LPar); }
+		}
+		
+		public CSharpTokenNode RPar {
+			get { return (CSharpTokenNode)GetChildByRole (Roles.RPar); }
+		}
+		
 		public ConstructorInitializer Initializer {
 			get {
 				return (ConstructorInitializer)base.GetChildByRole (Roles.Initializer);
@@ -58,6 +72,12 @@ namespace MonoDevelop.CSharp.Dom
 	
 	public class ConstructorInitializer : AbstractCSharpNode
 	{
+		public override NodeType NodeType {
+			get {
+				return NodeType.Unknown;
+			}
+		}
+		
 		public ConstructorInitializerType ConstructorInitializerType {
 			get;
 			set;

@@ -46,6 +46,7 @@ using MonoDevelop.Projects.Dom.Parser;
 using MonoDevelop.Ide.Tasks;
 using Mono.Addins;
 using MonoDevelop.Ide.Extensions;
+using System.Linq;
 
 namespace MonoDevelop.Ide.Gui
 {
@@ -55,8 +56,6 @@ namespace MonoDevelop.Ide.Gui
 		
 		IWorkbenchWindow window;
 		TextEditorExtension editorExtension;
-		bool editorChecked;
-		TextEditor textEditor;
 		bool closed;
 		
 		bool parsing;
@@ -75,17 +74,17 @@ namespace MonoDevelop.Ide.Gui
 			get { return this.editorExtension; }
 		}
  		
-		public object GetContent (Type type)
+		public T GetContent<T> () where T : class
 		{
 			//check whether the ViewContent can return the type directly
-			object ret = Window.ActiveViewContent.GetContent (type);
+			T ret = Window.ActiveViewContent.GetContent<T> ();
 			if (ret != null)
 				return ret;
 			
 			//check the primary viewcontent
 			//not sure if this is the right thing to do, but things depend on this behaviour
 			if (Window.ViewContent != Window.ActiveViewContent) {
-				ret = Window.ViewContent.GetContent (type);
+				ret = Window.ViewContent.GetContent<T> ();
 				if (ret != null)
 					return ret;
 			}
@@ -93,16 +92,11 @@ namespace MonoDevelop.Ide.Gui
 			//no, so look through the TexteditorExtensions as well
 			TextEditorExtension nextExtension = editorExtension;
 			while (nextExtension != null) {
-				if (type.IsAssignableFrom (nextExtension.GetType ()))
-					return nextExtension;
+				if (typeof(T).IsAssignableFrom (nextExtension.GetType ()))
+					return nextExtension as T;
 				nextExtension = nextExtension.Next as TextEditorExtension;
 			}
 			return null;
-		}
-		
-		public T GetContent <T>()
-		{
-			return (T) GetContent (typeof(T));
 		}
 		
 		public Document (IWorkbenchWindow window)
@@ -141,16 +135,22 @@ namespace MonoDevelop.Ide.Gui
 			get { return Window.ViewContent.Project; }
 		}
 		
-		ProjectDom fileDom;
+		ProjectDom dom;
+		bool isFileDom;
 		public ProjectDom Dom {
 			get {
-				ProjectDom result = ProjectDomService.GetProjectDom (Project);
-				if (result != null)
-					return result;
-				
-				if (fileDom == null) 
-					fileDom = ProjectDomService.GetFileDom (FileName);
-				return fileDom ?? ProjectDom.Empty;
+				if (dom == null) {
+					isFileDom = false;
+					dom = ProjectDomService.GetProjectDom (Project);
+					if (dom == null) {
+						dom = ProjectDomService.GetFileDom (FileName);
+						isFileDom = true;
+					}
+				}
+				return dom ?? ProjectDom.Empty;
+			}
+			set {
+				dom = value;
 			}
 		}
 		
@@ -177,19 +177,9 @@ namespace MonoDevelop.Ide.Gui
 				return view.IsUntitled ? view.UntitledName : view.ContentName;
 			}
 		}
-		
-		public TextEditor TextEditor {
-			get {
-				if (!editorChecked) {
-					editorChecked = true;
-					textEditor = TextEditor.GetTextEditor (Window.ViewContent);
-				}
-				return textEditor;
-			}
-		}
-		
+
 		Mono.TextEditor.TextEditorData data = null;
-		public Mono.TextEditor.TextEditorData TextEditorData {
+		public Mono.TextEditor.TextEditorData Editor {
 			get {
 				if (data == null) {
 					Mono.TextEditor.ITextEditorDataProvider view = GetContent <Mono.TextEditor.ITextEditorDataProvider> ();
@@ -201,8 +191,7 @@ namespace MonoDevelop.Ide.Gui
 				return data;
 			}
 		}
-		
-		
+
 		public bool IsViewOnly {
 			get { return Window.ViewContent.IsViewOnly; }
 		}
@@ -240,7 +229,7 @@ namespace MonoDevelop.Ide.Gui
 
 				if (!File.Exists (Window.ViewContent.ContentName) || (File.GetAttributes(window.ViewContent.ContentName) & attr) != 0) {
 					SaveAs ();
-				} else {						
+				} else {
 					string fileName = Window.ViewContent.ContentName;
 					// save backup first						
 					if((bool) PropertyService.Get ("SharpDevelop.CreateBackupCopy", false)) {
@@ -319,7 +308,7 @@ namespace MonoDevelop.Ide.Gui
 				Window.ViewContent.Save (filename);
 
 			FileService.NotifyFileChanged (filename);
-			IdeApp.Workbench.RecentOpen.AddLastFile (filename, null);
+			DesktopService.RecentFiles.AddFile (filename, (Project)null);
 			
 			OnSaved (EventArgs.Empty);
 		}
@@ -385,6 +374,10 @@ namespace MonoDevelop.Ide.Gui
 		void OnClosed (object s, EventArgs a)
 		{
 			closed = true;
+			if (parseTimeout != 0) {
+				GLib.Source.Remove (parseTimeout);
+				parseTimeout = 0;
+			}
 			ClearTasks ();
 			
 			string currentParseFile = FileName;
@@ -416,14 +409,13 @@ namespace MonoDevelop.Ide.Gui
 			// is closed without saving the changes, the saved compilation unit
 			// information will be restored
 			if (currentParseFile != null) {
-				System.Threading.ThreadPool.QueueUserWorkItem (delegate {
-					// Don't access Document properties from the thread
-					ProjectDomService.Parse (curentParseProject, currentParseFile, DesktopService.GetMimeTypeForUri (currentParseFile));
-				});
+				ProjectDomService.QueueParseJob (dom, delegate (string name, IProgressMonitor monitor) {
+					ProjectDomService.Parse (curentParseProject, currentParseFile);
+				}, FileName);
 			}
-			if (fileDom != null) {
+			if (isFileDom) {
 				ProjectDomService.RemoveFileDom (FileName);
-				fileDom = null;
+				dom = null;
 			}
 			
 			Counters.OpenDocuments--;
@@ -446,7 +438,12 @@ namespace MonoDevelop.Ide.Gui
 		
 		public ICompilationUnit CompilationUnit {
 			get {
-				return parsedDocument != null ? parsedDocument.CompilationUnit : null;
+				if (parsedDocument == null)
+					return null;
+				// HACK: The parser sometimes doesn't send back >any< info on the file on certain errors, this code detects if the last error free parsed document is the better best-fit.
+				if (parsedDocument.HasErrors && !parsedDocument.CompilationUnit.Types.Any () && lastErrorFreeParsedDocument != null && lastErrorFreeParsedDocument.CompilationUnit.Types.Any ())
+					return lastErrorFreeParsedDocument.CompilationUnit;
+				return parsedDocument.CompilationUnit;
 			}
 		}
 		
@@ -496,14 +493,11 @@ namespace MonoDevelop.Ide.Gui
 			IExtensibleTextEditor editor = GetContent<IExtensibleTextEditor> ();
 			if (editor == null)
 				return;
-			editor.TextChanged += OnDocumentChanged;
-			//this.parsedDocument = MonoDevelop.Projects.Dom.Parser.ProjectDomService.Parse (Project, FileName, DesktopService.GetMimeTypeForUri (FileName), TextEditor.Text);
-			OnDocumentChanged (this, null);
-
+			Editor.Document.TextReplaced += OnDocumentChanged;
+			
 			// If the new document is a text editor, attach the extensions
 			
 			ExtensionNodeList extensions = AddinManager.GetExtensionNodes ("/MonoDevelop/Ide/TextEditorExtensions", typeof(TextEditorExtensionNode));
-			
 			editorExtension = null;
 			TextEditorExtension last = null;
 			
@@ -523,16 +517,19 @@ namespace MonoDevelop.Ide.Gui
 			if (editorExtension != null)
 				last.Next = editor.AttachExtension (editorExtension);
 			window.Document = this;
+			this.parsedDocument = MonoDevelop.Projects.Dom.Parser.ProjectDomService.GetParsedDocument (this.dom, FileName);
+			OnDocumentParsed (EventArgs.Empty);
 			
 			if (window is SdiWorkspaceWindow)
 				((SdiWorkspaceWindow)window).AttachToPathedDocument (GetContent<MonoDevelop.Ide.Gui.Content.IPathedDocument> ());
 		}
+
 		
 		internal void SetProject (Project project)
 		{
 			IExtensibleTextEditor editor = GetContent<IExtensibleTextEditor> ();
 			if (editor != null)
-				editor.TextChanged -= OnDocumentChanged;
+				Editor.Document.TextReplaced -= OnDocumentChanged;
 			while (editorExtension != null) {
 				try {
 					editorExtension.Dispose ();
@@ -561,10 +558,9 @@ namespace MonoDevelop.Ide.Gui
 			parsing = true;
 			try {
 				string currentParseFile = FileName;
-				string mime = DesktopService.GetMimeTypeForUri (currentParseFile);
-				string currentParseText = TextEditor.Text;
+				string currentParseText = Editor.Text;
 					Project curentParseProject = Project;
-				this.parsedDocument = ProjectDomService.Parse (curentParseProject, currentParseFile, mime, currentParseText);
+				this.parsedDocument = ProjectDomService.Parse (curentParseProject, currentParseFile, currentParseText);
 				if (this.parsedDocument != null && !this.parsedDocument.HasErrors)
 					this.lastErrorFreeParsedDocument = parsedDocument;
 			} finally {
@@ -574,34 +570,27 @@ namespace MonoDevelop.Ide.Gui
 			return this.parsedDocument;
 		}
 		
-		void OnDocumentChanged (object o, EventArgs a)
+		uint parseTimeout = 0;
+		void OnDocumentChanged (object sender, Mono.TextEditor.ReplaceEventArgs e)
 		{
 			// Don't directly parse the document because doing it at every key press is
 			// very inefficient. Do it after a small delay instead, so several changes can
 			// be parsed at the same time.
-			
-			if (parsing)
-				return;
-
-			parsing = true;
 			string currentParseFile = FileName;
-			string mime = DesktopService.GetMimeTypeForUri (currentParseFile);
-			
-			GLib.Timeout.Add (ParseDelay, delegate {
-				if (closed)
-					return false;
-				parsing = false;
-				string currentParseText = TextEditor.Text;
+			if (parseTimeout != 0)
+				GLib.Source.Remove (parseTimeout);
+			parseTimeout = GLib.Timeout.Add (ParseDelay, delegate {
+				string currentParseText = Editor.Text;
 				Project curentParseProject = Project;
-				System.Threading.ThreadPool.QueueUserWorkItem (delegate {
-					// Don't access Document properties from the thread
-					this.parsedDocument = ProjectDomService.Parse (curentParseProject, currentParseFile, mime, currentParseText);
+				ProjectDomService.QueueParseJob (dom, delegate (string name, IProgressMonitor monitor) {
+					this.parsedDocument = ProjectDomService.Parse (curentParseProject, currentParseFile, currentParseText);
 					if (this.parsedDocument != null && !this.parsedDocument.HasErrors)
 						this.lastErrorFreeParsedDocument = parsedDocument;
 					DispatchService.GuiSyncDispatch (delegate {
 						OnDocumentParsed (EventArgs.Empty);
 					});
-				});
+				}, FileName);
+				parseTimeout = 0;
 				return false;
 			});
 		}
@@ -634,6 +623,49 @@ namespace MonoDevelop.Ide.Gui
 		public event EventHandler ViewChanged;
 		
 		public event EventHandler DocumentParsed;
+		
+		public string[] CommentTags {
+			get {
+				return GetCommentTags (FileName);
+			}
+		}
+		
+		public static string[] GetCommentTags (string fileName)
+		{
+			//Document doc = IdeApp.Workbench.ActiveDocument;
+			string loadedMimeType = DesktopService.GetMimeTypeForUri (fileName);
+			
+			Mono.TextEditor.Highlighting.SyntaxMode mode = null;
+			foreach (string mt in DesktopService.GetMimeTypeInheritanceChain (loadedMimeType)) {
+				mode = Mono.TextEditor.Highlighting.SyntaxModeService.GetSyntaxMode (mt);
+				if (mode != null)
+					break;
+			}
+			
+			if (mode == null)
+				return null;
+			
+			List<string> ctags;
+			if (mode.Properties.TryGetValue ("LineComment", out ctags) && ctags.Count > 0) {
+				return new string [] { ctags [0] };
+			}
+			List<string> tags = new List<string> ();
+			if (mode.Properties.TryGetValue ("BlockCommentStart", out ctags))
+				tags.Add (ctags [0]);
+			if (mode.Properties.TryGetValue ("BlockCommentEnd", out ctags))
+				tags.Add (ctags [0]);
+			if (tags.Count == 2)
+				return tags.ToArray ();
+			else
+				return null;
+		}
+	
+		public MonoDevelop.Projects.CodeGeneration.CodeGenerator CreateCodeGenerator ()
+		{
+			return MonoDevelop.Projects.CodeGeneration.CodeGenerator.CreateGenerator (Editor.Document.MimeType, 
+				Editor.Options.TabsToSpaces, Editor.Options.TabSize, Editor.EolMarker);
+		}
+
 	}
 	
 	

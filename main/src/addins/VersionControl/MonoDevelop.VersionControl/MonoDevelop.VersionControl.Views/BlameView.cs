@@ -36,15 +36,27 @@ namespace MonoDevelop.VersionControl.Views
 		
 		public override Gtk.Widget Control { 
 			get {
+				if (widget == null)
+					widget = new BlameWidget (info);
 				return widget;
 			}
+		}
+		
+		public static bool Show (VersionControlItemList items, bool test)
+		{
+			if (!test) {
+				Show (items);
+				return true;
+			}
+			else
+				return items.Count > 0 && CanShow (items[0].Repository, items[0].Path);
 		}
 		
 		public static void Show (VersionControlItemList items)
 		{
 			foreach (VersionControlItem item in items) {
 				var document = IdeApp.Workbench.OpenDocument (item.Path);
-				ComparisonView.AttachViewContents (document, item);
+				DiffView.AttachViewContents (document, item);
 				document.Window.SwitchView (3);
 			}
 		}
@@ -60,22 +72,21 @@ namespace MonoDevelop.VersionControl.Views
 		public BlameView (VersionControlDocumentInfo info) : base ("Blame")
 		{
 			this.info = info;
-			widget = new BlameWidget (info);
+			
 		}
 		
 		#region IAttachableViewContent implementation
 		public void Selected ()
 		{
-			widget.Editor.Document.IgnoreFoldings = true;
-			widget.Editor.Caret.Location = info.Document.TextEditorData.Caret.Location;
-			widget.Editor.CenterToCaret ();
+			info.Start ();
+			widget.Editor.Caret.Location = info.Document.Editor.Caret.Location;
+			widget.Editor.VAdjustment.Value = info.Document.Editor.VAdjustment.Value;
 		}
 
 		public void Deselected ()
 		{
-			info.Document.TextEditorData.Caret.Location = widget.Editor.Caret.Location;
-			info.Document.TextEditorData.Parent.CenterToCaret ();
-			widget.Editor.Document.IgnoreFoldings = false;
+			info.Document.Editor.Caret.Location = widget.Editor.Caret.Location;
+			info.Document.Editor.VAdjustment.Value = widget.Editor.VAdjustment.Value;
 		}
 
 		public void BeforeSave ()

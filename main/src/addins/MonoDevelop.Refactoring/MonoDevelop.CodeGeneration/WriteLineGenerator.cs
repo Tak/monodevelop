@@ -34,7 +34,6 @@ using ICSharpCode.NRefactory.Ast;
 using System.Text;
 using MonoDevelop.Core;
 using MonoDevelop.Refactoring;
-using MonoDevelop.Refactoring.ExtractMethod;
 using ICSharpCode.NRefactory.Visitors;
 using ICSharpCode.NRefactory;
 
@@ -85,9 +84,9 @@ namespace MonoDevelop.CodeGeneration
 				
 				// add local variables
 				LookupTableVisitor visitor = new LookupTableVisitor (ICSharpCode.NRefactory.SupportedLanguage.CSharp);
-				Location location = new Location (Options.Document.TextEditor.CursorColumn, Options.Document.TextEditor.CursorLine);
+				Location location = new Location (Options.Document.Editor.Caret.Line, Options.Document.Editor.Caret.Column);
 				INRefactoryASTProvider provider = Options.GetASTProvider ();
-				var result = provider.ParseFile (Options.Document.TextEditor.Text);
+				var result = provider.ParseFile (Options.Document.Editor.Text);
 				result.AcceptVisitor (visitor, null);
 				foreach (var list in visitor.Variables.Values) {
 					foreach (LocalLookupVariable varDescr in list) {

@@ -40,6 +40,106 @@ namespace MonoDevelop.CSharp.Dom
 	{
 		const string nullString = "Null";
 		static Dictionary<string, string> netToCSharpTypes = new Dictionary<string, string> ();
+		static HashSet<string> keywords = new HashSet<string> (new [] {
+			"abstract",
+			"as",
+			"base",
+			"bool",
+			"break",
+			"byte",
+			"case",
+			"catch",
+			"char",
+			"checked",
+			"class",
+			"const",
+			"continue",
+			"decimal",
+			"default",
+			"delegate",
+			"do",
+			"double",
+			"else",
+			"enum",
+			"event",
+			"explicit",
+			"extern",
+			"false",
+			"finally",
+			"fixed",
+			"float",
+			"for",
+			"foreach",
+			"goto",
+			"if",
+			"implicit",
+			"in",
+			"int",
+			"interface",
+			"internal",
+			"is",
+			"lock",
+			"long",
+			"namespace",
+			"new",
+			"null",
+			"object",
+			"operator",
+			"out",
+			"override",
+			"params",
+			"private",
+			"protected",
+			"public",
+			"readonly",
+			"ref",
+			"return",
+			"sbyte",
+			"sealed",
+			"short",
+			"sizeof",
+			"stackalloc",
+			"static",
+			"string",
+			"struct",
+			"switch",
+			"this",
+			"throw",
+			"true",
+			"try",
+			"typeof",
+			"uint",
+			"ulong",
+			"unchecked",
+			"unsafe",
+			"ushort",
+			"using",
+			"virtual",
+			"void",
+			"volatile",
+			"while",
+			"partial",
+			
+			"where",
+			"get",
+			"set",
+			"add",
+			"remove",
+			"yield",
+			"select",
+			"group",
+			"by",
+			"into",
+			"from",
+			"ascending",
+			"descending",
+			"orderby",
+			"let",
+			"join",
+			"on",
+			"equals"
+		});
+		
 		static CSharpAmbience ()
 		{
 			netToCSharpTypes["System.Void"]    = "void";
@@ -155,6 +255,13 @@ namespace MonoDevelop.CSharp.Dom
 			return "TODO";
 		}
 		
+		internal static string FilterName (string name)
+		{
+			if (keywords.Contains (name))
+				return "@" + name;
+			return name;
+		}
+		
 		public string Visit (IProperty property, OutputSettings settings)
 		{
 			StringBuilder result = new StringBuilder ();
@@ -168,7 +275,7 @@ namespace MonoDevelop.CSharp.Dom
 				result.Append (settings.Markup ("."));
 			}
 			AppendExplicitInterfaces(result, property, settings);
-			result.Append (settings.EmitName (property, Format (property.Name)));
+			result.Append (settings.EmitName (property, Format (FilterName (property.Name))));
 			if (settings.IncludeParameters && property.Parameters.Count > 0) {
 				result.Append (settings.Markup ("["));
 				AppendParameterList (result, settings, property.Parameters);
@@ -219,7 +326,7 @@ namespace MonoDevelop.CSharp.Dom
 				result.Append (GetString (field.DeclaringType, OutputFlags.UseFullName));
 				result.Append (settings.Markup ("."));
 			}
-			result.Append (settings.EmitName (field, Format (field.Name)));
+			result.Append (settings.EmitName (field, FilterName (Format (field.Name))));
 			
 			return result.ToString ();
 		}
@@ -293,11 +400,11 @@ namespace MonoDevelop.CSharp.Dom
 			}
 			AppendExplicitInterfaces (result, method, settings);
 			if (method.IsConstructor) {
-				result.Append (settings.EmitName (method, Format (method.DeclaringType.Name)));
+				result.Append (settings.EmitName (method, Format (FilterName (method.DeclaringType.Name))));
 			} else if (method.IsFinalizer) {
-				result.Append (settings.EmitName (method, settings.Markup ("~") + Format (method.DeclaringType.Name)));
+				result.Append (settings.EmitName (method, settings.Markup ("~") + Format (FilterName (method.DeclaringType.Name))));
 			} else {
-				result.Append (settings.EmitName (method, Format (method.Name)));
+				result.Append (settings.EmitName (method, Format (FilterName (method.Name))));
 			}
 			
 			if (settings.IncludeGenerics) {
@@ -330,8 +437,10 @@ namespace MonoDevelop.CSharp.Dom
 				bool first = true;
 				if (method.Parameters != null) {
 					foreach (IParameter parameter in method.Parameters) {
-						if (settings.HideExtensionsParameter && method.IsExtension && parameter == method.Parameters[0])
+						if (settings.HideExtensionsParameter && method.IsExtension && first)
 							continue;
+						if (method.IsExtension && first)
+							result.Append (settings.Markup ("this "));
 						if (!first)
 							result.Append (settings.Markup (", "));
 						AppendParameter (settings, result, parameter);
@@ -366,9 +475,9 @@ namespace MonoDevelop.CSharp.Dom
 				}
 				
 				if (settings.HighlightName) {
-					result.Append (settings.EmitName (parameter, settings.Highlight (Format (parameter.Name))));
+					result.Append (settings.EmitName (parameter, settings.Highlight (Format (FilterName (parameter.Name)))));
 				} else {
-					result.Append (settings.EmitName (parameter, Format (parameter.Name)));
+					result.Append (settings.EmitName (parameter, Format (FilterName (parameter.Name))));
 				}
 			} else {
 				result.Append (GetString (parameter.ReturnType, settings));
@@ -437,7 +546,7 @@ namespace MonoDevelop.CSharp.Dom
 				result.Append (settings.Markup (" "));
 			
 			
-			if (type.ClassType == ClassType.Delegate && settings.ReformatDelegates) {
+			if (type.ClassType == ClassType.Delegate && settings.ReformatDelegates && settings.IncludeReturnType) {
 				IMethod invoke = type.SearchMember ("Invoke", true).FirstOrDefault () as IMethod;
 				if (invoke != null) {
 					result.Append (this.GetString (invoke.ReturnType, settings));
@@ -455,7 +564,7 @@ namespace MonoDevelop.CSharp.Dom
 				result.Append (settings.Markup ("."));
 			}
 			
-			result.Append (settings.EmitName (type, name));
+			result.Append (settings.EmitName (type, FilterName (name)));
 			if (settings.IncludeGenerics && parameterCount > 0) {
 				result.Append (settings.Markup ("<"));
 				for (int i = 0; i < parameterCount; i++) {
@@ -485,7 +594,7 @@ namespace MonoDevelop.CSharp.Dom
 				IMethod invoke = type.SearchMember ("Invoke", true).FirstOrDefault () as IMethod;
 				if (invoke != null) 
 					AppendParameterList (result, settings, invoke.Parameters);
-				result.Append (settings.Markup (");"));
+				result.Append (settings.Markup (")"));
 				return result.ToString ();
 			}
 			
@@ -548,12 +657,12 @@ namespace MonoDevelop.CSharp.Dom
 		
 		public string Visit (Namespace ns, OutputSettings settings)
 		{
-			return settings.EmitKeyword ("namespace") + settings.EmitName (ns, ns.Name);
+			return settings.EmitKeyword ("namespace") + settings.EmitName (ns, FilterName (ns.Name));
 		}
 		
 		public string Visit (LocalVariable var, OutputSettings settings)
 		{
-			return settings.EmitName (var, var.Name);
+			return settings.EmitName (var, FilterName (var.Name));
 		}
 		
 		public string Visit (IEvent evt, OutputSettings settings)
@@ -572,7 +681,7 @@ namespace MonoDevelop.CSharp.Dom
 			}
 
 			AppendExplicitInterfaces(result, evt, settings);
-			result.Append (settings.EmitName (evt, Format (evt.Name)));
+			result.Append (settings.EmitName (evt, Format (FilterName (evt.Name))));
 			
 			return result.ToString ();
 		}

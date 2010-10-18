@@ -20,6 +20,7 @@ REFS =  \
 	$(GLIB_SHARP_LIBS) \
 	$(GTK_SHARP_LIBS) \
 	$(MONO_ADDINS_LIBS) \
+	-r:Mono.Cairo \
 	-r:Mono.Posix \
 	-r:System \
 	-r:System.Core \
@@ -29,8 +30,12 @@ REFS =  \
 FILES =  \
 	AssemblyInfo.cs \
 	gtk-gui/generated.cs \
+	gtk-gui/MonoDevelop.CSharp.Formatting.CSharpFormattingPolicyPanelWidget.cs \
+	gtk-gui/MonoDevelop.CSharp.Formatting.CSharpFormattingProfileDialog.cs \
+	gtk-gui/MonoDevelop.CSharp.Formatting.NewFormattingProfileDialog.cs \
 	gtk-gui/MonoDevelop.CSharp.Project.CodeGenerationPanelWidget.cs \
 	gtk-gui/MonoDevelop.CSharp.Project.CompilerOptionsPanelWidget.cs \
+	gtk-gui/MonoDevelop.CSharp.Refactoring.ExtractMethod.ExtractMethodDialog.cs \
 	MonoDevelop.CSharp.Completion/CompletionTextLinkMode.cs \
 	MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs \
 	MonoDevelop.CSharp.Completion/EventCreationCompletionData.cs \
@@ -42,6 +47,7 @@ FILES =  \
 	MonoDevelop.CSharp.Dom/AbstractCSharpNode.cs \
 	MonoDevelop.CSharp.Dom/AbtractCSharpDomVisitor.cs \
 	MonoDevelop.CSharp.Dom/CompilationUnit.cs \
+	MonoDevelop.CSharp.Dom/ComposedType.cs \
 	MonoDevelop.CSharp.Dom/CSharpAmbience.cs \
 	MonoDevelop.CSharp.Dom/CSharpModifierToken.cs \
 	MonoDevelop.CSharp.Dom/CSharpTokenNode.cs \
@@ -56,6 +62,7 @@ FILES =  \
 	MonoDevelop.CSharp.Dom/Expressions/CheckedExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/ConditionalExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/DefaultValueExpression.cs \
+	MonoDevelop.CSharp.Dom/Expressions/DirectionExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/IdentifierExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/IndexerExpression.cs \
 	MonoDevelop.CSharp.Dom/Expressions/InvocationExpression.cs \
@@ -126,28 +133,94 @@ FILES =  \
 	MonoDevelop.CSharp.Formatting/CSharpFormatter.cs \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicy.cs \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicyPanel.cs \
+	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicyPanelWidget.cs \
+	MonoDevelop.CSharp.Formatting/CSharpFormattingProfileDialog.cs \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingProperties.cs \
 	MonoDevelop.CSharp.Formatting/CSharpIndentEngine.cs \
 	MonoDevelop.CSharp.Formatting/CSharpIndentEngineStack.cs \
 	MonoDevelop.CSharp.Formatting/CSharpTextEditorIndentation.cs \
 	MonoDevelop.CSharp.Formatting/DomIndentationVisitor.cs \
 	MonoDevelop.CSharp.Formatting/DomSpacingVisitor.cs \
+	MonoDevelop.CSharp.Formatting/FormattingProfileService.cs \
 	MonoDevelop.CSharp.Formatting/Indent.cs \
+	MonoDevelop.CSharp.Formatting/NewFormattingProfileDialog.cs \
 	MonoDevelop.CSharp.Formatting/OnTheFlyFormatter.cs \
 	MonoDevelop.CSharp.Highlighting/CSharpSyntaxMode.cs \
 	MonoDevelop.CSharp.Highlighting/HighlightCSharpSemanticRule.cs \
 	MonoDevelop.CSharp.Highlighting/HighlightUsagesExtension.cs \
 	MonoDevelop.CSharp.Highlighting/MoveToUsagesHandler.cs \
 	MonoDevelop.CSharp.Parser/CSharpParser.cs \
+	MonoDevelop.CSharp.Parser/mcs/anonymous.cs \
+	MonoDevelop.CSharp.Parser/mcs/argument.cs \
+	MonoDevelop.CSharp.Parser/mcs/assign.cs \
+	MonoDevelop.CSharp.Parser/mcs/attribute.cs \
+	MonoDevelop.CSharp.Parser/mcs/cfold.cs \
+	MonoDevelop.CSharp.Parser/mcs/class.cs \
+	MonoDevelop.CSharp.Parser/mcs/codegen.cs \
+	MonoDevelop.CSharp.Parser/mcs/complete.cs \
+	MonoDevelop.CSharp.Parser/mcs/const.cs \
+	MonoDevelop.CSharp.Parser/mcs/constant.cs \
+	MonoDevelop.CSharp.Parser/mcs/context.cs \
+	MonoDevelop.CSharp.Parser/mcs/convert.cs \
+	MonoDevelop.CSharp.Parser/mcs/CryptoConvert.cs \
+	MonoDevelop.CSharp.Parser/mcs/cs-parser.cs \
+	MonoDevelop.CSharp.Parser/mcs/cs-tokenizer.cs \
+	MonoDevelop.CSharp.Parser/mcs/decl.cs \
+	MonoDevelop.CSharp.Parser/mcs/delegate.cs \
+	MonoDevelop.CSharp.Parser/mcs/doc.cs \
+	MonoDevelop.CSharp.Parser/mcs/driver.cs \
+	MonoDevelop.CSharp.Parser/mcs/dynamic.cs \
+	MonoDevelop.CSharp.Parser/mcs/ecore.cs \
+	MonoDevelop.CSharp.Parser/mcs/enum.cs \
+	MonoDevelop.CSharp.Parser/mcs/eval.cs \
+	MonoDevelop.CSharp.Parser/mcs/expression.cs \
+	MonoDevelop.CSharp.Parser/mcs/field.cs \
+	MonoDevelop.CSharp.Parser/mcs/flowanalysis.cs \
+	MonoDevelop.CSharp.Parser/mcs/generic.cs \
+	MonoDevelop.CSharp.Parser/mcs/import.cs \
+	MonoDevelop.CSharp.Parser/mcs/iterators.cs \
+	MonoDevelop.CSharp.Parser/mcs/lambda.cs \
+	MonoDevelop.CSharp.Parser/mcs/linq.cs \
+	MonoDevelop.CSharp.Parser/mcs/literal.cs \
+	MonoDevelop.CSharp.Parser/mcs/location.cs \
+	MonoDevelop.CSharp.Parser/mcs/membercache.cs \
+	MonoDevelop.CSharp.Parser/mcs/method.cs \
+	MonoDevelop.CSharp.Parser/mcs/modifiers.cs \
+	MonoDevelop.CSharp.Parser/mcs/MonoSymbolFile.cs \
+	MonoDevelop.CSharp.Parser/mcs/MonoSymbolTable.cs \
+	MonoDevelop.CSharp.Parser/mcs/MonoSymbolWriter.cs \
+	MonoDevelop.CSharp.Parser/mcs/namespace.cs \
+	MonoDevelop.CSharp.Parser/mcs/nullable.cs \
+	MonoDevelop.CSharp.Parser/mcs/outline.cs \
+	MonoDevelop.CSharp.Parser/mcs/parameter.cs \
+	MonoDevelop.CSharp.Parser/mcs/pending.cs \
+	MonoDevelop.CSharp.Parser/mcs/property.cs \
+	MonoDevelop.CSharp.Parser/mcs/report.cs \
+	MonoDevelop.CSharp.Parser/mcs/rootcontext.cs \
+	MonoDevelop.CSharp.Parser/mcs/roottypes.cs \
+	MonoDevelop.CSharp.Parser/mcs/statement.cs \
+	MonoDevelop.CSharp.Parser/mcs/support.cs \
+	MonoDevelop.CSharp.Parser/mcs/symbolwriter.cs \
+	MonoDevelop.CSharp.Parser/mcs/typemanager.cs \
+	MonoDevelop.CSharp.Parser/mcs/typespec.cs \
+	MonoDevelop.CSharp.Parser/mcs/visit.cs \
+	MonoDevelop.CSharp.Parser/McsParser.cs \
 	MonoDevelop.CSharp.Parser/NRefactoryParser.cs \
 	MonoDevelop.CSharp.Project/CodeGenerationPanel.cs \
 	MonoDevelop.CSharp.Project/CompilerOptionsPanelWidget.cs \
 	MonoDevelop.CSharp.Project/CSharpCompilerParameters.cs \
 	MonoDevelop.CSharp.Project/CSharpProjectParameters.cs \
 	MonoDevelop.CSharp.Project/CSharpResourceIdBuilder.cs \
+	MonoDevelop.CSharp.Refactoring/CreateMethod/CreateMethodCodeGenerator.cs \
+	MonoDevelop.CSharp.Refactoring/CreateMethod/CreateMethodHandler.cs \
 	MonoDevelop.CSharp.Refactoring/CSharpCodeGenerator.cs \
 	MonoDevelop.CSharp.Refactoring/CSharpNRefactoryASTProvider.cs \
 	MonoDevelop.CSharp.Refactoring/CSharpRefactorer.cs \
+	MonoDevelop.CSharp.Refactoring/ExtractMethod/ExtractMethodAstTransformer.cs \
+	MonoDevelop.CSharp.Refactoring/ExtractMethod/ExtractMethodDialog.cs \
+	MonoDevelop.CSharp.Refactoring/ExtractMethod/ExtractMethodHandler.cs \
+	MonoDevelop.CSharp.Refactoring/ExtractMethod/ExtractMethodRefactoring.cs \
+	MonoDevelop.CSharp.Refactoring/ExtractMethod/VariableLookupVisitor.cs \
 	MonoDevelop.CSharp.Refactoring/FindMemberAstVisitor.cs \
 	MonoDevelop.CSharp.Resolver/NewCSharpExpressionFinder.cs \
 	MonoDevelop.CSharp.Resolver/NRefactoryDocumentMetaInformation.cs \
@@ -168,12 +241,12 @@ RES =  \
 	md1format.xml \
 	MonoCSharpPolicy.xml \
 	MonoDevelop.CSharp.Formatting/CSharpFormattingPolicy.xml \
+	MonoDevelop.CSharp.Formatting/FormattingProfiles.xml \
 	templates/AssemblyInfo.xft.xml \
 	templates/ConsoleProject.xpt.xml \
 	templates/EmptyCSharpFile.xft.xml \
 	templates/EmptyProject.xpt.xml \
 	templates/GtkSharp2Project.xpt.xml \
-	templates/GtkSharp2ProjectMac.xpt.xml \
 	templates/Library.xpt.xml
 
 TESTFILES =  \
@@ -219,7 +292,7 @@ all: $(ASSEMBLY) $(ASSEMBLY).mdb
 
 $(ASSEMBLY): $(build_sources) $(build_resources) $(DEPS)
 	mkdir -p $(ADDIN_BUILD)
-	$(CSC) $(CSC_FLAGS) -define:GMCS_SOURCE -debug -out:$@ -target:library $(REFS) $(build_deps) \
+	$(CSC) $(CSC_FLAGS) "-define:GMCS_SOURCE;NET_2_0;MS_COMPATIBLE;FULL_AST;BOOTSTRAP_BASIC" -debug -out:$@ -target:library $(REFS) $(build_deps) \
 		$(build_resources:%=/resource:%) $(build_sources)
 
 $(ASSEMBLY).mdb: $(ASSEMBLY)
@@ -229,7 +302,7 @@ $(ASSEMBLY).mdb: $(ASSEMBLY)
 
 
 $(TESTASSEMBLY) : $(build_test_sources) $(build_resources)
-	$(CSC) $(CSC_FLAGS) -debug -define:GMCS_SOURCE -codepage:utf8 -out:$@ -target:library $(DLLS) $(TESTDLLS) $(REFS) /r:$(ASSEMBLY) \
+	$(CSC) $(CSC_FLAGS) -debug "-define:GMCS_SOURCE;NET_2_0;MS_COMPATIBLE;FULL_AST;BOOTSTRAP_BASIC" -codepage:utf8 -out:$@ -target:library $(DLLS) $(TESTDLLS) $(REFS) /r:$(ASSEMBLY) \
 	$(monodoc_libflags) $(build_resources:%=/resource:%) $(build_test_sources)
 
 parse: $(PARSE)

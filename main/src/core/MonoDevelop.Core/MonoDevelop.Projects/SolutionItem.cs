@@ -91,6 +91,18 @@ namespace MonoDevelop.Projects
 			return this.handler;
 		}
 		
+		/// <summary>
+		/// Gets the author information for this solution item, inherited from the solution and global settings.
+		/// </summary>
+		public AuthorInformation AuthorInformation {
+			get {
+				if (ParentSolution != null)
+					return ParentSolution.AuthorInformation;
+				else
+					return AuthorInformation.Default;
+			}
+		}
+		
 		public T GetService<T> () where T: class
 		{
 			return (T) GetService (typeof(T));
@@ -234,7 +246,7 @@ namespace MonoDevelop.Projects
 			return new SolutionItem [0];
 		}
 		
-		public virtual BuildResult RunTarget (IProgressMonitor monitor, string target, ConfigurationSelector configuration)
+		public BuildResult RunTarget (IProgressMonitor monitor, string target, ConfigurationSelector configuration)
 		{
 			return Services.ProjectService.GetExtensionChain (this).RunTarget (monitor, this, target, configuration);
 		}
@@ -488,9 +500,19 @@ namespace MonoDevelop.Projects
 		{
 		}
 		
+		internal protected virtual BuildResult OnRunTarget (IProgressMonitor monitor, string target, ConfigurationSelector configuration)
+		{
+			if (target == ProjectService.BuildTarget)
+				return OnBuild (monitor, configuration);
+			else if (target == ProjectService.CleanTarget) {
+				OnClean (monitor, configuration);
+				return new BuildResult ();
+			}
+			return ItemHandler.RunTarget (monitor, target, configuration) ?? new BuildResult ();
+		}
 		
-		internal protected abstract void OnClean (IProgressMonitor monitor, ConfigurationSelector configuration);
-		internal protected abstract BuildResult OnBuild (IProgressMonitor monitor, ConfigurationSelector configuration);
+		protected abstract void OnClean (IProgressMonitor monitor, ConfigurationSelector configuration);
+		protected abstract BuildResult OnBuild (IProgressMonitor monitor, ConfigurationSelector configuration);
 		internal protected abstract void OnExecute (IProgressMonitor monitor, ExecutionContext context, ConfigurationSelector configuration);
 		internal protected abstract bool OnGetNeedsBuilding (ConfigurationSelector configuration);
 		internal protected abstract void OnSetNeedsBuilding (bool val, ConfigurationSelector configuration);

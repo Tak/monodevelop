@@ -31,6 +31,12 @@ namespace MonoDevelop.CSharp.Dom
 {
 	public class EmptyStatement : AbstractCSharpNode
 	{
+		public override NodeType NodeType {
+			get {
+				return NodeType.Statement;
+			}
+		}
+
 		public DomLocation Location {
 			get;
 			set;
@@ -43,7 +49,7 @@ namespace MonoDevelop.CSharp.Dom
 		}
 		public override DomLocation EndLocation {
 			get {
-				return new DomLocation (Location.Line, Location.Column + 1);
+				return new DomLocation (Location.Line, Location.Column);
 			}
 		}
 		

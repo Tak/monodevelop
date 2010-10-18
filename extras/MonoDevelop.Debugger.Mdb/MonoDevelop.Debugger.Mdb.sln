@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mono.Debugging.Backend.Mdb", "Mono.Debugging.Backend.Mdb\Mono.Debugging.Backend.Mdb.csproj", "{932ACD9F-AAEC-4A86-AC73-D0C9E1137A60}"
@@ -42,7 +42,8 @@ Global
 		$0.VersionControlPolicy = $4
 		$4.inheritsSet = Mono
 		$0.ChangeLogPolicy = $5
-		$5.UpdateMode = ProjectRoot
+		$5.UpdateMode = None
+		$5.VcsIntegration = None
 		$5.inheritsSet = Mono
 		$0.TextStylePolicy = $6
 		$6.TabWidth = 4

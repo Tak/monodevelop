@@ -48,6 +48,7 @@ using MonoDevelop.Ide.Gui;
 using MonoDevelop.Ide.Projects;
 using MonoDevelop.Core.Assemblies;
 using MonoDevelop.Core.Instrumentation;
+using Mono.TextEditor;
 
 namespace MonoDevelop.Ide
 {
@@ -262,7 +263,7 @@ namespace MonoDevelop.Ide
 				IType declaringType = SearchContainingPart (member);
 				fileName = declaringType.CompilationUnit.FileName;
 			}
-			Document doc = IdeApp.Workbench.OpenDocument (fileName, member.Location.Line, member.Location.Column, true);
+			var doc = IdeApp.Workbench.OpenDocument (fileName, member.Location.Line, member.Location.Column, true);
 			if (doc != null) {
 				MonoDevelop.Ide.Gui.Content.IUrlHandler handler = doc.ActiveView as MonoDevelop.Ide.Gui.Content.IUrlHandler;
 				if (handler != null)
@@ -1029,7 +1030,7 @@ namespace MonoDevelop.Ide
 				case BeforeCompileAction.Nothing:
 					break;
 				case BeforeCompileAction.PromptForSave:
-					foreach (Document doc in IdeApp.Workbench.Documents) {
+					foreach (var doc in IdeApp.Workbench.Documents) {
 						if (doc.IsDirty && doc.Project != null) {
 							if (MessageService.AskQuestion (
 						            GettextCatalog.GetString ("Save changed documents before building?"),
@@ -1044,7 +1045,7 @@ namespace MonoDevelop.Ide
 					}
 					break;
 				case BeforeCompileAction.SaveAllFiles:
-					foreach (Document doc in new List<Document> (IdeApp.Workbench.Documents))
+					foreach (var doc in new List<MonoDevelop.Ide.Gui.Document> (IdeApp.Workbench.Documents))
 						if (doc.IsDirty && doc.Project != null)
 							doc.Save ();
 					break;
@@ -1379,11 +1380,13 @@ namespace MonoDevelop.Ide
 			}
 			
 			// If copying a single file, bring any grouped children along
+			ProjectFile sourceParent = null;
 			if (filesToMove.Count == 1 && sourceProject != null) {
 				var pf = filesToMove[0];
 				if (pf != null && pf.HasChildren)
 					foreach (ProjectFile child in pf.DependentChildren)
 						filesToMove.Add (child);
+				sourceParent = pf;
 			}
 			
 			// Ensure that the destination folder is created, even if no files
@@ -1408,16 +1411,26 @@ namespace MonoDevelop.Ide
 					return;
 				}
 			}
-
+			
 			monitor.BeginTask (GettextCatalog.GetString ("Copying files..."), filesToMove.Count);
 			
+			ProjectFile targetParent = null;
 			foreach (ProjectFile file in filesToMove) {
 				bool fileIsLink = file.Project != null && file.IsLink;
 				
 				var sourceFile = fileIsLink
 					? file.Project.BaseDirectory.Combine (file.ProjectVirtualPath)
 					: file.FilePath;
-				var newFile = sourceIsFolder ? targetPath.Combine (sourceFile.ToRelative (sourcePath)) : targetPath;
+				
+				FilePath newFile;
+				if (sourceIsFolder)
+					newFile = targetPath.Combine (sourceFile.ToRelative (sourcePath));
+				else if (sourceFile == sourcePath)
+					newFile = targetPath;
+				else if (sourceFile.ParentDirectory != targetPath.ParentDirectory)
+					newFile = targetPath.ParentDirectory.Combine (sourceFile.ToRelative (sourcePath.ParentDirectory));
+				else
+					newFile = GetTargetCopyName (sourceFile, false);
 				
 				if (!movingFolder && !fileIsLink) {
 					try {
@@ -1452,6 +1465,13 @@ namespace MonoDevelop.Ide
 					} else if (targetProject.Files.GetFile (newFile) == null) {
 						ProjectFile projectFile = (ProjectFile) file.Clone ();
 						projectFile.Name = newFile;
+						if (targetParent == null) {
+							if (file == sourceParent)
+								targetParent = projectFile;
+						} else if (sourceParent != null) {
+							if (projectFile.DependsOn == sourceParent.Name)
+								projectFile.DependsOn = targetParent.Name;
+						}
 						targetProject.Files.Add (projectFile);
 					}
 				}
@@ -1471,6 +1491,49 @@ namespace MonoDevelop.Ide
 			}
 			
 			monitor.EndTask ();
+		}
+		
+		internal static FilePath GetTargetCopyName (FilePath path, bool isFolder)
+		{
+			int n=1;
+			// First of all try to find an existing copy tag
+			string fn = path.FileNameWithoutExtension;
+			for (int i=1; i<100; i++) {
+				string copyTag = GetCopyTag (i); 
+				if (fn.EndsWith (copyTag)) {
+					string newfn = fn.Substring (0, fn.Length - copyTag.Length);
+					if (newfn.Trim ().Length > 0) {
+						n = i + 1;
+						path = path.ParentDirectory.Combine (newfn + path.Extension);
+						break;
+					}
+				}
+			}
+			FilePath basePath = path;
+			while ((!isFolder && File.Exists (path)) || (isFolder && Directory.Exists (path))) {
+				string copyTag = GetCopyTag (n);
+				path = basePath.ParentDirectory.Combine (basePath.FileNameWithoutExtension + copyTag + basePath.Extension);
+				n++;
+			}
+			return path;
+		}
+		
+		static string GetCopyTag (int n)
+		{
+			string sc;
+			switch (n) {
+				case 1: sc = GettextCatalog.GetString ("copy"); break;
+				case 2: sc = GettextCatalog.GetString ("another copy"); break;
+				case 3: sc = GettextCatalog.GetString ("3rd copy"); break;
+				case 4: sc = GettextCatalog.GetString ("4th copy"); break;
+				case 5: sc = GettextCatalog.GetString ("5th copy"); break;
+				case 6: sc = GettextCatalog.GetString ("6th copy"); break;
+				case 7: sc = GettextCatalog.GetString ("7th copy"); break;
+				case 8: sc = GettextCatalog.GetString ("8th copy"); break;
+				case 9: sc = GettextCatalog.GetString ("9th copy"); break;
+				default: sc = GettextCatalog.GetString ("copy {0}"); break;
+			}
+			return " (" + string.Format (sc, n) + ")";
 		}
 		
 		void GetAllFilesRecursive (string path, List<ProjectFile> files)
@@ -1572,17 +1635,98 @@ namespace MonoDevelop.Ide
 		}
 	}
 	
-	class OpenDocumentFileProvider: ITextFileProvider
+	public class TextFileProvider : ITextFileProvider
 	{
+		static TextFileProvider instance = new TextFileProvider ();
+		public static TextFileProvider Instance {
+			get {
+				return instance;
+			}
+		}
+		
+		TextFileProvider ()
+		{
+		}
+		
+		class ProviderProxy : ITextEditorDataProvider, IEditableTextFile
+		{
+			TextEditorData data;
+			public ProviderProxy (TextEditorData data)
+			{
+				this.data = data;
+			}
+
+			public TextEditorData GetTextEditorData ()
+			{
+				return data;
+			}
+			
+			#region IEditableTextFile implementation
+			public FilePath Name { get { return data.Document.FileName; } }
+
+			public int Length { get { return data.Length; } }
+		
+			public string GetText (int startPosition, int endPosition)
+			{
+				return data.GetTextBetween (startPosition, endPosition);
+			}
+			public char GetCharAt (int position)
+			{
+				return data.GetCharAt (position);
+			}
+			
+			public int GetPositionFromLineColumn (int line, int column)
+			{
+				return data.Document.LocationToOffset (line, column);
+			}
+			
+			public void GetLineColumnFromPosition (int position, out int line, out int column)
+			{
+				var loc = data.Document.OffsetToLocation (position);
+				line = loc.Line;
+				column = loc.Column;
+			}
+			
+			public int InsertText (int position, string text)
+			{
+				int result = data.Insert (position, text);
+				File.WriteAllText (Name, Text);
+				return result;
+			}
+			
+			
+			public void DeleteText (int position, int length)
+			{
+				data.Remove (position, length);
+				File.WriteAllText (Name, Text);
+			}
+			
+			public string Text {
+				get {
+					return data.Text;
+				}
+				set {
+					data.Text = value;
+				}
+			}
+			
+			#endregion
+		}
+		
 		public IEditableTextFile GetEditableTextFile (FilePath filePath)
 		{
-			foreach (Document doc in IdeApp.Workbench.Documents) {
+			foreach (var doc in IdeApp.Workbench.Documents) {
 				if (doc.FileName == filePath) {
 					IEditableTextFile ef = doc.GetContent<IEditableTextFile> ();
 					if (ef != null) return ef;
 				}
 			}
-			return null;
+			
+			TextEditorData data = new TextEditorData ();
+			data.Document.FileName = filePath;
+			data.Text = File.ReadAllText (filePath);
+			return new ProviderProxy (data);
 		}
+		
 	}
 }

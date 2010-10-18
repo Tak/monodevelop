@@ -81,11 +81,15 @@ namespace MonoDevelop.Ide.Gui
 		public void SwitchView (int viewNumber)
 		{
 		}
+		public void SwitchView (MonoDevelop.Ide.Gui.IAttachableViewContent subViewContent)
+		{
+		}
 		public void AttachViewContent (MonoDevelop.Ide.Gui.IAttachableViewContent subViewContent)
 		{
 			
 		}
 		public event EventHandler TitleChanged { add {} remove {} }
+		public event EventHandler DocumentChanged;
 		public event MonoDevelop.Ide.Gui.WorkbenchWindowEventHandler Closing;
 		public event MonoDevelop.Ide.Gui.WorkbenchWindowEventHandler Closed;
 		public event MonoDevelop.Ide.Gui.ActiveViewContentEventHandler ActiveViewContentChanged;

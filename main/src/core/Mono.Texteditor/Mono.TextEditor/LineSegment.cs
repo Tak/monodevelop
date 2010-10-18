@@ -26,28 +26,19 @@
 //
 
 using System;
-using System.Linq;
 using System.Text;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
+using Mono.TextEditor.Highlighting;
 
 namespace Mono.TextEditor
-{	
-	public class LineSegment : ISegment
+{
+	public abstract class LineSegment : ISegment
 	{
-		RedBlackTree<LineSegmentTree.TreeNode>.RedBlackTreeNode treeNode;
-		
-		public RedBlackTree<LineSegmentTree.TreeNode>.RedBlackTreeIterator Iter {
-			get {
-				return new RedBlackTree<LineSegmentTree.TreeNode>.RedBlackTreeIterator (treeNode);
-			}
-		}
-		
-		static IEnumerable<TextMarker> nullMarkers = new TextMarker[0];
-		List<TextMarker> markers = null;
+		static readonly IEnumerable<TextMarker> NullMarkers = new TextMarker[0];
+		List<TextMarker> markers;
 		public IEnumerable<TextMarker> Markers {
 			get {
-				return markers ?? nullMarkers;
+				return markers ?? NullMarkers;
 			}
 		}
 		public int MarkerCount {
@@ -55,59 +46,46 @@ namespace Mono.TextEditor
 				return markers != null ? markers.Count : 0;
 			}
 		}
-				
+
 		public int EditableLength {
 			get {
 				return Length - DelimiterLength;
 			}
 		}
-		
+
 		public int DelimiterLength {
 			get;
 			set;
 		}
-		
-		public int Offset {
-			get {
-				return treeNode != null ? LineSegmentTree.GetOffsetFromNode (treeNode) : -1;
-			}
-			set {
-				throw new NotSupportedException ();
-			}
-		}
-		
+
+
 		public bool WasChanged {
 			get;
 			set;
 		}
-		
-		Mono.TextEditor.Highlighting.Span[] startSpan = null;
-		public Highlighting.Span[] StartSpan {
+
+		CloneableStack<Span> startSpan;
+		static readonly CloneableStack<Span> EmptySpan = new CloneableStack<Span> ();
+
+		public CloneableStack<Span> StartSpan {
 			get {
-				return startSpan;
+				return startSpan ?? EmptySpan;
 			}
 			set {
-				startSpan = value != null && value.Length == 0 ? null : value;
+				startSpan = value != null && value.Count == 0 ? null : value;
 			}
 		}
+
+		public abstract int Offset { get; set; }
 
 		public int Length {
 			get;
 			set;
 		}
-		
+
 		public int EndOffset {
 			get {
 				return Offset + Length;
-			}
-		}
-
-		internal RedBlackTree<LineSegmentTree.TreeNode>.RedBlackTreeNode TreeNode {
-			get {
-				return treeNode;
-			}
-			set {
-				treeNode = value;
 			}
 		}
 
@@ -127,13 +105,13 @@ namespace Mono.TextEditor
 				}
 			}
 		}
-		
-		public LineSegment (int length, int delimiterLength)
+
+		protected LineSegment (int length, int delimiterLength)
 		{
-			this.Length          = length;
-			this.DelimiterLength = delimiterLength;
+			Length          = length;
+			DelimiterLength = delimiterLength;
 		}
-		
+
 		internal void AddMarker (TextMarker marker)
 		{
 			if (markers == null)
@@ -141,7 +119,7 @@ namespace Mono.TextEditor
 			marker.LineSegment = this;
 			markers.Add (marker);
 		}
-		
+
 		public void ClearMarker ()
 		{
 			if (markers != null) {
@@ -149,7 +127,7 @@ namespace Mono.TextEditor
 				markers = null;
 			}
 		}
-		
+
 		internal void RemoveMarker (TextMarker marker)
 		{
 			marker.LineSegment = null;
@@ -159,28 +137,24 @@ namespace Mono.TextEditor
 			if (markers.Count == 0)
 				markers = null;
 		}
-		
+
 		internal TextMarker GetMarker (Type type)
 		{
 			if (markers == null)
 				return null;
 			return markers.Find (m => m.GetType () == type);
 		}
-		
+
 		internal void RemoveMarker (Type type)
 		{
-			if (markers == null)
-				return;
-			for (int i = 0; i < markers.Count; i++) {
+			for (int i = 0; markers != null && i < markers.Count; i++) {
 				if (markers[i].GetType () == type) {
 					RemoveMarker (markers[i]);
-					if (markers == null)
-						return;
 					i--;
 				}
 			}
 		}
-		
+
 		/// <summary>
 		/// This method gets the line indentation.
 		/// </summary>
@@ -192,9 +166,10 @@ namespace Mono.TextEditor
 		/// </returns>
 		public string GetIndentation (Document doc)
 		{
-			StringBuilder result = new StringBuilder ();
-			int endOffset = this.Offset + this.EditableLength;
-			for (int i = Offset; i < endOffset; i++) {
+			var result = new StringBuilder ();
+			int offset = Offset;
+			int max = System.Math.Min (offset + Length, doc.Length);
+			for (int i = offset; i < max; i++) {
 				char ch = doc.GetCharAt (i);
 				if (ch != ' ' && ch != '\t')
 					break;
@@ -202,28 +177,30 @@ namespace Mono.TextEditor
 			}
 			return result.ToString ();
 		}
-		
+
 		public int GetLogicalColumn (TextEditorData editor, int visualColumn)
 		{
-			int curVisualColumn = 0;
-			for (int i = 0; i < EditableLength; i++) {
-				int curOffset = Offset + i;
-				if (curOffset < editor.Document.Length && editor.Document.GetCharAt (curOffset) == '\t') {
+			int curVisualColumn = 1;
+			int offset = Offset;
+			int max = offset + EditableLength;
+			for (int i = offset; i < max; i++) {
+				if (i < editor.Document.Length && editor.Document.GetCharAt (i) == '\t') {
 					curVisualColumn = TextViewMargin.GetNextTabstop (editor, curVisualColumn);
 				} else {
 					curVisualColumn++;
 				}
 				if (curVisualColumn > visualColumn)
-					return i;
+					return i - offset + 1;
 			}
-			return EditableLength + (visualColumn - curVisualColumn);
+			return EditableLength + (visualColumn - curVisualColumn) + 1;
 		}
-		
+
 		public int GetVisualColumn (TextEditorData editor, int logicalColumn)
 		{
-			int result = 0;
-			for (int i = 0; i < logicalColumn; i++) {
-				if (i < EditableLength && editor.Document.GetCharAt (Offset + i) == '\t') {
+			int result = 1;
+			int offset = Offset;
+			for (int i = 0; i < logicalColumn - 1; i++) {
+				if (i < EditableLength && editor.Document.GetCharAt (offset + i) == '\t') {
 					result = TextViewMargin.GetNextTabstop (editor, result);
 				} else {
 					result++;
@@ -231,20 +208,21 @@ namespace Mono.TextEditor
 			}
 			return result;
 		}
-		
+
 		public bool Contains (int offset)
 		{
-			return Offset <= offset && offset < EndOffset;
+			int o = Offset;
+			return o <= offset && offset < o + Length;
 		}
-		
+
 		public bool Contains (ISegment segment)
 		{
 			return segment != null && Offset <= segment.Offset && segment.EndOffset <= EndOffset;
 		}
-		
+
 		public override string ToString ()
 		{
-			return String.Format ("[LineSegment: Offset={0}, Length={1}, DelimiterLength={2}, StartSpan={3}]", this.Offset, this.Length, this.DelimiterLength, StartSpan == null ? "null" : StartSpan.Length.ToString());
+			return String.Format ("[LineSegment: Offset={0}, Length={1}, DelimiterLength={2}, StartSpan={3}]", Offset, Length, DelimiterLength, StartSpan == null ? "null" : StartSpan.Count.ToString());
 		}
 	}
 }

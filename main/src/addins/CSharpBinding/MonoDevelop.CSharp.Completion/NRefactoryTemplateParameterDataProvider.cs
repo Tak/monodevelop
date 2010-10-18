@@ -34,16 +34,17 @@ using MonoDevelop.Projects.Dom;
 using MonoDevelop.Projects.Dom.Output;
 using MonoDevelop.CSharp.Dom;
 using MonoDevelop.CSharp.Resolver;
+using Mono.TextEditor;
 
 namespace MonoDevelop.CSharp.Completion
 {
 	public class NRefactoryTemplateParameterDataProvider : IParameterDataProvider
 	{
-		MonoDevelop.Ide.Gui.TextEditor editor;
+		TextEditorData editor;
 		List<ITypeParameterMember> types = new List<ITypeParameterMember> ();
 		static CSharpAmbience ambience = new CSharpAmbience ();
 		
-		public NRefactoryTemplateParameterDataProvider (MonoDevelop.Ide.Gui.TextEditor editor, NRefactoryResolver resolver, IEnumerable<string> namespaces, ExpressionResult expressionResult, DomLocation loc)
+		public NRefactoryTemplateParameterDataProvider (TextEditorData editor, NRefactoryResolver resolver, IEnumerable<string> namespaces, ExpressionResult expressionResult, DomLocation loc)
 		{
 			this.editor = editor;
 			ResolveResult plainResolveResult = resolver.Resolve (expressionResult, loc);
@@ -82,14 +83,14 @@ namespace MonoDevelop.CSharp.Completion
 		}
 		
 		#region IParameterDataProvider implementation
-		public int GetCurrentParameterIndex (CodeCompletionContext ctx)
+		public int GetCurrentParameterIndex (ICompletionWidget widget, CodeCompletionContext ctx)
 		{
-			return GetCurrentParameterIndex (editor, ctx.TriggerOffset, 0);
+			return GetCurrentParameterIndex (widget, ctx.TriggerOffset, 0);
 		}
 	
-		internal static int GetCurrentParameterIndex (MonoDevelop.Ide.Gui.TextEditor editor, int offset, int memberStart)
+		internal static int GetCurrentParameterIndex (ICompletionWidget widget, int offset, int memberStart)
 		{
-			int cursor = editor.CursorPosition;
+			int cursor = widget.CurrentCodeCompletionContext.TriggerOffset;
 			int i = offset;
 			
 			if (i > cursor)
@@ -100,7 +101,7 @@ namespace MonoDevelop.CSharp.Completion
 			int index = memberStart + 1;
 			int depth = 0;
 			do {
-				char c = editor.GetCharAt (i - 1);
+				char c = widget.GetChar (i - 1);
 				
 				if (c == ',' && depth == 1)
 					index++;

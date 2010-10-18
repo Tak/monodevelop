@@ -30,8 +30,13 @@ namespace MonoDevelop.CSharp.Dom
 {
 	public class UsingAliasDeclaration : UsingDeclaration
 	{
-		public const int Assignment      = 103;
-		public const int AliasRole       = 104;
+		public const int AliasRole       = 100;
+		
+		public override NodeType NodeType {
+			get {
+				return NodeType.Unknown;
+			}
+		}
 		
 		public string Alias {
 			get {

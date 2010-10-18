@@ -3,6 +3,7 @@ ASSEMBLY = $(ADDIN_BUILD)/MonoDevelop.DesignerSupport.dll
 
 DEPS =  \
 	$(top_builddir)/build/bin/Mono.Cecil.dll \
+	$(top_builddir)/build/bin/Mono.TextEditor.dll \
 	$(top_builddir)/build/bin/MonoDevelop.Core.dll \
 	$(top_builddir)/build/bin/MonoDevelop.Ide.dll
 
@@ -65,7 +66,6 @@ FILES =  \
 	MonoDevelop.DesignerSupport/IPropertyPadProvider.cs \
 	MonoDevelop.DesignerSupport/IPropertyProvider.cs \
 	MonoDevelop.DesignerSupport/MemberExistsException.cs \
-	MonoDevelop.DesignerSupport/OpenDocumentFileProvider.cs \
 	MonoDevelop.DesignerSupport/PropertyPad.cs \
 	MonoDevelop.DesignerSupport/PropertyPadVisitor.cs \
 	MonoDevelop.DesignerSupport/RemoteDesignerProcess.cs \

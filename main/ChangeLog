@@ -1,3 +1,17 @@
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* configure.in: Enable git by default.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* Main.sln: Updated projects to build.
+
+2010-06-28  Dale Ragan  <dale.ragan@sinesignal.com>
+
+       * Main.sln:
+       * configure.in: Adding MonoDevelop.VersionControl.Git to the solution/build 
+         system.  It is disabled by default, to enable pass --enable-git=yes.
+
 2010-06-25  Levi Bard  <levi@unity3d.com>
 
 	* *.csproj: Clean up Copy Local for project references.

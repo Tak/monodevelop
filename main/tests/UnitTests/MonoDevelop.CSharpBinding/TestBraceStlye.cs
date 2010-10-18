@@ -23,7 +23,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
-/*
+
 using System;
 using NUnit.Framework;
 using MonoDevelop.Ide.Gui;
@@ -44,7 +44,6 @@ namespace MonoDevelop.CSharpBinding.FormattingTests
 	public class TestBraceStyle : UnitTests.TestBase
 	{
 		[Test()]
-		[Ignore("currently failing because namespaces are not inserted")]
 		public void TestNamespaceBraceStyle ()
 		{
 			TextEditorData data = new TextEditorData ();
@@ -71,7 +70,7 @@ namespace B {
 			policy.NamespaceBraceStyle = BraceStyle.NextLineShifted;
 			compilationUnit = new CSharpParser ().Parse (data);
 			compilationUnit.AcceptVisitor (new DomIndentationVisitor (policy, data), null);
-			Assert.AreEqual (@"namespace A 
+			Assert.AreEqual (@"namespace A
 	{
 	namespace B
 		{
@@ -527,4 +526,4 @@ namespace B {
 		
 		
 	}
-}*/
+}

@@ -43,12 +43,19 @@ namespace Mono.TextEditor
 			get;
 			set;
 		}
-		
+
 		public string Style {
 			get;
 			set;
 		}
-		
+
+		CloneableStack<Span> spanStack;
+		static CloneableStack<Span> emptySpan = new CloneableStack<Span> ();
+		public CloneableStack<Span> SpanStack {
+			get { return spanStack ?? emptySpan; }
+			set { spanStack = value; }
+		}
+
 		public Chunk ()
 		{
 			Next = null;

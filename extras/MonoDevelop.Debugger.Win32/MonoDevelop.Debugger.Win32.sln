@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoDevelop.Debugger.Win32", "MonoDevelop.Debugger.Win32\MonoDevelop.Debugger.Win32.csproj", "{7E4B15FB-E8C4-419A-A31C-9310FD9062BD}"
@@ -32,7 +32,8 @@ Global
 		$0.VersionControlPolicy = $1
 		$1.inheritsSet = Mono
 		$0.ChangeLogPolicy = $2
-		$2.UpdateMode = ProjectRoot
+		$2.UpdateMode = None
+		$2.VcsIntegration = None
 		$2.MessageStyle = $3
 		$3.LineAlign = 0
 		$2.inheritsSet = Mono

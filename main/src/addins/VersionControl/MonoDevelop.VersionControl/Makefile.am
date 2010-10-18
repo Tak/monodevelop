@@ -7,7 +7,8 @@ FILES =  \
 	gtk-gui/MonoDevelop.VersionControl.Dialogs.EditRepositoryDialog.cs \
 	gtk-gui/MonoDevelop.VersionControl.Dialogs.SelectRepositoryDialog.cs \
 	gtk-gui/MonoDevelop.VersionControl.UrlBasedRepositoryEditor.cs \
-	gtk-gui/MonoDevelop.VersionControl.Views.PatchWidget.cs \
+	gtk-gui/MonoDevelop.VersionControl.Views.DiffWidget.cs \
+	gtk-gui/MonoDevelop.VersionControl.Views.LogWidget.cs \
 	MonoDevelop.VersionControl.Dialogs/CommitDialog.cs \
 	MonoDevelop.VersionControl.Dialogs/CommitMessageStylePanelWidget.cs \
 	MonoDevelop.VersionControl.Dialogs/EditRepositoryDialog.cs \
@@ -17,15 +18,19 @@ FILES =  \
 	MonoDevelop.VersionControl.Views/BlameView.cs \
 	MonoDevelop.VersionControl.Views/BlameWidget.cs \
 	MonoDevelop.VersionControl.Views/CellRendererDiff.cs \
-	MonoDevelop.VersionControl.Views/ComparisonView.cs \
+	MonoDevelop.VersionControl.Views/ChangeSetView.cs \
 	MonoDevelop.VersionControl.Views/ComparisonWidget.cs \
 	MonoDevelop.VersionControl.Views/DiffParser.cs \
 	MonoDevelop.VersionControl.Views/DiffView.cs \
+	MonoDevelop.VersionControl.Views/DiffWidget.cs \
 	MonoDevelop.VersionControl.Views/DropDownBox.cs \
+	MonoDevelop.VersionControl.Views/EditorCompareWidgetBase.cs \
 	MonoDevelop.VersionControl.Views/LogView.cs \
-	MonoDevelop.VersionControl.Views/PatchView.cs \
-	MonoDevelop.VersionControl.Views/PatchWidget.cs \
+	MonoDevelop.VersionControl.Views/LogWidget.cs \
+	MonoDevelop.VersionControl.Views/MergeView.cs \
+	MonoDevelop.VersionControl.Views/MergeWidget.cs \
 	MonoDevelop.VersionControl.Views/StatusView.cs \
+	MonoDevelop.VersionControl.Views/SubviewAttachmentHandler.cs \
 	MonoDevelop.VersionControl/AddRemoveMoveCommand.cs \
 	MonoDevelop.VersionControl/AnnotateCommand.cs \
 	MonoDevelop.VersionControl/BaseView.cs \

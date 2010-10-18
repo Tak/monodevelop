@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{B3672514-7503-4B01-B4B4-B44E87061EA2}") = "BooBinding", "BooBinding.booproj", "{70CCB542-ED79-4759-B6F3-8B9B3A21194E}"
@@ -40,7 +40,8 @@ Global
 		$0.VersionControlPolicy = $4
 		$4.inheritsSet = Mono
 		$0.ChangeLogPolicy = $5
-		$5.UpdateMode = ProjectRoot
+		$5.UpdateMode = None
+		$5.VcsIntegration = None
 		$5.inheritsSet = Mono
 	EndGlobalSection
 EndGlobal

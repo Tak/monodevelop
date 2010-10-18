@@ -42,6 +42,7 @@ using System.Threading;
 using MonoDevelop.Ide;
 using MonoDevelop.Components;
 using Mono.TextEditor.Theatrics;
+using System.ComponentModel;
 
 namespace MonoDevelop.SourceEditor
 {
@@ -61,7 +62,6 @@ namespace MonoDevelop.SourceEditor
 		
 		bool shouldShowclassBrowser;
 		bool canShowClassBrowser;
-		NavigationBar classBrowser;
 		ISourceEditorOptions options;
 		
 		bool isDisposed = false;
@@ -94,55 +94,6 @@ namespace MonoDevelop.SourceEditor
 			if (this.textEditor != null && this.textEditor.Parent != null && this.textEditor.HasFocus) {
 				lastActiveEditor = this.textEditor;
 			}
-		}
-		
-		
-		public bool ShowClassBrowser {
-			get { return shouldShowclassBrowser; }
-			set {
-				if (shouldShowclassBrowser == value)
-					return;
-				shouldShowclassBrowser = value;
-				UpdateClassBrowserVisibility (false);
-			}
-		}
-		
-		bool CanShowClassBrowser {
-			get { return canShowClassBrowser; }
-			set {
-				if (canShowClassBrowser == value)
-					return;
-				canShowClassBrowser = value;
-				UpdateClassBrowserVisibility (false);
-			}
-		}
-		
-		void UpdateClassBrowserVisibility (bool threaded)
-		{
-			if (shouldShowclassBrowser && canShowClassBrowser) {
-				if (classBrowser == null) {
-					classBrowser = new NavigationBar (this);
-					classBrowser.StatusBox.UpdateWidth ();
-					this.UpdateLineCol ();
-					vbox.PackStart (classBrowser, false, false, CHILD_PADDING);
-					vbox.ReorderChild (classBrowser, 0);
-					PopulateClassCombo (threaded);
-				}
-			} else {
-				if (classBrowser != null) {
-					vbox.Remove (classBrowser);
-					classBrowser.Destroy ();
-					classBrowser = null;
-				}
-			}
-		}
-		
-		public void PopulateClassCombo (bool runInThread)
-		{
-			if (classBrowser == null || !CanShowClassBrowser)
-				return;
-			
-			classBrowser.UpdateCompilationUnit (this.parsedDocument, runInThread);
 		}
 		
 		public Ambience Ambience {
@@ -255,6 +206,7 @@ namespace MonoDevelop.SourceEditor
 			{
 				if (scrolledWindow.Child != null)
 					RemoveEvents ();
+				
 				scrolledWindow.ButtonPressEvent -= PrepareEvent;
 				base.OnDestroyed ();
 			}
@@ -322,7 +274,6 @@ namespace MonoDevelop.SourceEditor
 			ResetFocusChain ();
 			
 			UpdateLineCol ();
-			ProjectDomService.ParsedDocumentUpdated += OnParseInformationChanged;
 			//			this.IsClassBrowserVisible = this.widget.TextEditor.Options.EnableQuickFinder;
 			vbox.BorderWidth = 0;
 			vbox.Spacing = 0;
@@ -339,10 +290,16 @@ namespace MonoDevelop.SourceEditor
 				this.splittedTextEditor = null;
 				view = null;
 				
-				ProjectDomService.ParsedDocumentUpdated -= OnParseInformationChanged;
 				IdeApp.Workbench.StatusBar.ClearCaretState ();
+				if (parseInformationUpdaterWorkerThread != null) {
+					parseInformationUpdaterWorkerThread.Dispose ();
+					parseInformationUpdaterWorkerThread = null;
+				}
 			};
 			vbox.ShowAll ();
+			parseInformationUpdaterWorkerThread = new BackgroundWorker ();
+			parseInformationUpdaterWorkerThread.WorkerSupportsCancellation = true;
+			parseInformationUpdaterWorkerThread.DoWork += HandleParseInformationUpdaterWorkerThreadDoWork;
 		}
 
 		void UpdateLineColOnEventHandler (object sender, EventArgs e)
@@ -361,16 +318,12 @@ namespace MonoDevelop.SourceEditor
 			if (this.gotoLineNumberWidget != null) {
 				focusChain.Add (this.gotoLineNumberWidget);
 			}
-			if (this.classBrowser != null) {
-				focusChain.Add (this.classBrowser);
-			}
 			vbox.FocusChain = focusChain.ToArray ();
 		}
 		
 		public void Dispose ()
 		{
-			if (null != parseInformationUpdaterWorkerThread)
-				parseInformationUpdaterWorkerThread.Stop ();
+			// nothing
 		}
 		
 		#region Error underlining
@@ -381,139 +334,114 @@ namespace MonoDevelop.SourceEditor
 		{
 			Document document = textEditorData.Document;
 			if (document == null || region.Start.Line <= 0 || region.End.Line <= 0
-			    || region.Start.Line >= document.LineCount || region.End.Line >= document.LineCount)
+			    || region.Start.Line > document.LineCount || region.End.Line > document.LineCount)
 			{
 				return null;
 			}
 			
-			int startOffset = document.LocationToOffset (region.Start.Line - 1,  region.Start.Column - 1);
-			int endOffset   = document.LocationToOffset (region.End.Line - 1,  region.End.Column - 1);
-			FoldSegment result = new FoldSegment (text, startOffset, endOffset - startOffset, type);
+			int startOffset = document.LocationToOffset (region.Start.Line, region.Start.Column);
+			int endOffset   = document.LocationToOffset (region.End.Line, region.End.Column );
+			FoldSegment result = new FoldSegment (document, text, startOffset, endOffset - startOffset, type);
 			
 			foldSegments.Add (result);
 			return result;
 		}
 		HashSet<string> symbols = new HashSet<string> ();
-		class ParseInformationUpdaterWorkerThread : WorkerThread
+		
+		
+		void HandleParseInformationUpdaterWorkerThreadDoWork (object sender, DoWorkEventArgs e)
 		{
-			SourceEditorWidget widget;
-			//ParseInformationEventArgs args;
-			
-			public ParseInformationUpdaterWorkerThread (SourceEditorWidget widget)
-			{
-				this.widget = widget;
-			}
-			protected override void InnerRun ()
-			{
-				Run (true);
-			}
-			
-			public void Run (bool runInThread)
-			{
-				try {
-					if (null == widget || null == widget.Document || null == widget.parsedDocument)
-						return;
-					if (this.widget.options.ShowFoldMargin && widget.parsedDocument != null) {
-						List<FoldSegment> foldSegments = new List<FoldSegment> ();
-						bool updateSymbols = widget.parsedDocument.Defines.Count != widget.symbols.Count;
-						if (!updateSymbols) {
-							foreach (PreProcessorDefine define in widget.parsedDocument.Defines) {
-								if (!widget.symbols.Contains (define.Define)) {
-									updateSymbols = true;
-									break;
-								}
-							}
+			BackgroundWorker worker = sender as BackgroundWorker;
+			ParsedDocument parsedDocument = (ParsedDocument)e.Argument;
+			var doc = Document;
+			if (doc == null || parsedDocument == null || !options.ShowFoldMargin)
+				return;
+			try {
+				List<FoldSegment> foldSegments = new List<FoldSegment> ();
+				bool updateSymbols = parsedDocument.Defines.Count != symbols.Count;
+				if (!updateSymbols) {
+					foreach (PreProcessorDefine define in parsedDocument.Defines) {
+						if (!symbols.Contains (define.Define)) {
+							updateSymbols = true;
+							break;
 						}
-						if (updateSymbols) {
-							widget.symbols.Clear ();
-							foreach (PreProcessorDefine define in widget.parsedDocument.Defines) {
-								widget.symbols.Add (define.Define);
-							}
-							widget.Document.UpdateHighlighting ();
-						}
-						foreach (FoldingRegion region in widget.parsedDocument.GenerateFolds ()) {
-							if (runInThread && IsStopping)
-								return;
-							FoldingType type = FoldingType.None;
-							bool setFolded = false;
-							bool folded = false;
-							
-							//decide whether the regions should be folded by default
-							switch (region.Type) {
-							case FoldType.Member:
-								type = FoldingType.TypeMember;
-								break;
-							case FoldType.Type:
-								type = FoldingType.TypeDefinition;
-								break;
-							case FoldType.UserRegion:
-								type = FoldingType.Region;
-								setFolded = this.widget.options.DefaultRegionsFolding;
-								folded = true;
-								break;
-							case FoldType.Comment:
-								setFolded = this.widget.options.DefaultCommentFolding;
-								folded = true;
-								break;
-							case FoldType.CommentInsideMember:
-								setFolded = this.widget.options.DefaultCommentFolding;
-								folded = false;
-								break;
-							case FoldType.Undefined:
-								setFolded = true;
-								folded = region.IsFoldedByDefault;
-								break;
-							}
-							
-							//add the region
-							FoldSegment marker = widget.AddMarker (foldSegments, region.Name, 
-							                                       region.Region, type);
-							
-							//and, if necessary, set its fold state
-							if (marker != null && setFolded && widget.firstUpdate) {
-								// only fold on document open, later added folds are NOT folded by default.
-								marker.IsFolded = folded;
-							}
-							if (marker != null && region.Region.Contains (widget.textEditorData.Caret.Line, widget.textEditorData.Caret.Column))
-								marker.IsFolded = false;
-							
-						}
-						widget.textEditorData.Document.UpdateFoldSegments (foldSegments, runInThread);
-						widget.firstUpdate = false;
 					}
-					widget.UpdateAutocorTimer ();
-					widget.PopulateClassCombo (runInThread);
-				} catch (Exception ex) {
-					LoggingService.LogError ("Unhandled exception in ParseInformationUpdaterWorkerThread", ex);
 				}
-				base.Stop ();
+				if (updateSymbols) {
+					symbols.Clear ();
+					foreach (PreProcessorDefine define in parsedDocument.Defines) {
+						symbols.Add (define.Define);
+					}
+					doc.UpdateHighlighting ();
+				}
+				foreach (FoldingRegion region in parsedDocument.GenerateFolds ()) {
+					if (worker != null && worker.CancellationPending)
+						return;
+					FoldingType type = FoldingType.None;
+					bool setFolded = false;
+					bool folded = false;
+					
+					//decide whether the regions should be folded by default
+					switch (region.Type) {
+					case FoldType.Member:
+						type = FoldingType.TypeMember;
+						break;
+					case FoldType.Type:
+						type = FoldingType.TypeDefinition;
+						break;
+					case FoldType.UserRegion:
+						type = FoldingType.Region;
+						setFolded = options.DefaultRegionsFolding;
+						folded = true;
+						break;
+					case FoldType.Comment:
+						setFolded = options.DefaultCommentFolding;
+						folded = true;
+						break;
+					case FoldType.CommentInsideMember:
+						setFolded = options.DefaultCommentFolding;
+						folded = false;
+						break;
+					case FoldType.Undefined:
+						setFolded = true;
+						folded = region.IsFoldedByDefault;
+						break;
+					}
+					
+					//add the region
+					FoldSegment marker = AddMarker (foldSegments, region.Name, 
+					                                       region.Region, type);
+					
+					//and, if necessary, set its fold state
+					if (marker != null && setFolded && worker == null) {
+						// only fold on document open, later added folds are NOT folded by default.
+						marker.IsFolded = folded;
+						continue;
+					}
+					if (marker != null && region.Region.Contains (textEditorData.Caret.Line, textEditorData.Caret.Column))
+						marker.IsFolded = false;
+					
+				}
+				doc.UpdateFoldSegments (foldSegments, false);
+				UpdateAutocorTimer ();
+			} catch (Exception ex) {
+				LoggingService.LogError ("Unhandled exception in ParseInformationUpdaterWorkerThread", ex);
 			}
 		}
 		
-		readonly object syncObject = new object();
-		bool firstUpdate = true;
-		ParseInformationUpdaterWorkerThread parseInformationUpdaterWorkerThread = null;
+		BackgroundWorker parseInformationUpdaterWorkerThread;
 		
-		void OnParseInformationChanged (object sender, ParsedDocumentEventArgs args)
+		internal void UpdateParsedDocument (ParsedDocument document)
 		{
-			if (this.isDisposed || args == null || args.ParsedDocument == null || this.view == null)
-				return;
-			string fileName = this.view.IsUntitled ? this.view.UntitledName : this.view.ContentName;
-			if (fileName != args.FileName)
+			if (this.isDisposed || document == null || this.view == null)
 				return;
 			
-			Gtk.Application.Invoke (delegate {
-				try {
-					if (MonoDevelop.Core.PropertyService.Get ("EnableSemanticHighlighting", false)) 
-						TextEditor.TextViewMargin.PurgeLayoutCache ();
-					ParsedDocument = args.ParsedDocument;
-					bool canShowBrowser = ParsedDocument != null && ParsedDocument.CompilationUnit != null;
-					if (canShowBrowser)
-						this.CanShowClassBrowser = canShowBrowser; 
-				} catch (Exception ex) {
-					LoggingService.LogError ("Error updating parse information", ex);
-				}
-			});
+			if (MonoDevelop.Core.PropertyService.Get ("EnableSemanticHighlighting", false) && TextEditor != null) {
+				var margin = TextEditor.TextViewMargin;
+				if (margin != null)
+					Gtk.Application.Invoke (delegate { margin.PurgeLayoutCache (); });
+			}
+			SetParsedDocument (document, parsedDocument != null);
 		}
 		
 		public ParsedDocument ParsedDocument {
@@ -528,32 +456,27 @@ namespace MonoDevelop.SourceEditor
 		internal void SetParsedDocument (ParsedDocument newDocument, bool runInThread)
 		{
 			this.parsedDocument = newDocument;
-			CanShowClassBrowser = newDocument != null && newDocument.CompilationUnit != null;
+			if (parsedDocument == null || parseInformationUpdaterWorkerThread == null)
+				return;
+			StopParseInfoThread ();
 			if (runInThread) {
-				lock (syncObject) {
-					StopParseInfoThread ();
-					if (parsedDocument != null) {
-						parseInformationUpdaterWorkerThread = new ParseInformationUpdaterWorkerThread (this);
-						parseInformationUpdaterWorkerThread.Start ();
-					}
-				}
+				parseInformationUpdaterWorkerThread.RunWorkerAsync (parsedDocument);
 			} else {
-				new ParseInformationUpdaterWorkerThread (this).Run (false);
+				HandleParseInformationUpdaterWorkerThreadDoWork (null, new DoWorkEventArgs (parsedDocument));
 			}
 		}
 		
 		void StopParseInfoThread ()
 		{
-			if (parseInformationUpdaterWorkerThread != null) {
-				parseInformationUpdaterWorkerThread.Stop ();
-				parseInformationUpdaterWorkerThread = null;
-			}
+			if (!parseInformationUpdaterWorkerThread.IsBusy)
+				return;
+			parseInformationUpdaterWorkerThread.CancelAsync ();
+			WaitForParseInformationUpdaterWorkerThread ();
 		}
 		public void WaitForParseInformationUpdaterWorkerThread ()
 		{
-			while (parseInformationUpdaterWorkerThread != null && !parseInformationUpdaterWorkerThread.IsStopped) {
-				Thread.Sleep (50);
-			}
+			while (parseInformationUpdaterWorkerThread.IsBusy)
+				Thread.Sleep (20);
 		}
 		
 		void UpdateAutocorTimer ()
@@ -567,7 +490,7 @@ namespace MonoDevelop.SourceEditor
 					GLib.Source.Remove (resetTimerId);
 					resetTimerId = 0;
 				}
-				const uint timeout = 900;
+				const uint timeout = 500;
 				resetTimerId = GLib.Timeout.Add (timeout, delegate {
 					lock (this) { // this runs in the gtk main loop.
 						ResetUnderlineChangement ();
@@ -589,8 +512,8 @@ namespace MonoDevelop.SourceEditor
 						error.RemoveFromLine (doc);
 					}
 				}
-				errors.Clear ();
 			}
+			errors.Clear ();
 		}
 		
 		void ParseCompilationUnit (ParsedDocument cu)
@@ -612,12 +535,12 @@ namespace MonoDevelop.SourceEditor
 //			info.Line -= 1;
 			
 			// If the line is already underlined
-			if (errors.ContainsKey (info.Region.Start.Line - 1))
+			if (errors.ContainsKey (info.Region.Start.Line))
 				return;
 			
-			LineSegment line = this.TextEditor.Document.GetLine (info.Region.Start.Line - 1);
+			LineSegment line = this.TextEditor.Document.GetLine (info.Region.Start.Line);
 			ErrorMarker error = new ErrorMarker (info, line);
-			errors [info.Region.Start.Line - 1] = error;
+			errors [info.Region.Start.Line] = error;
 			error.AddToLine (this.TextEditor.Document);
 		}
 		#endregion
@@ -797,7 +720,7 @@ namespace MonoDevelop.SourceEditor
 			
 			view.WarnOverwrite = true;
 			vbox.PackStart (messageBar, false, false, CHILD_PADDING);
-			vbox.ReorderChild (messageBar, classBrowser != null ? 1 : 0);
+			vbox.ReorderChild (messageBar, 0);
 			messageBar.ShowAll ();
 
 			messageBar.QueueDraw ();
@@ -822,8 +745,7 @@ namespace MonoDevelop.SourceEditor
 				b1.Image = ImageService.GetImage (Gtk.Stock.Refresh, IconSize.Button);
 				b1.Clicked += delegate {
 					try {
-						view.AutoSave.FileName = fileName;
-						view.AutoSave.RemoveAutoSaveFile ();
+						AutoSave.RemoveAutoSaveFile (fileName);
 						view.Load (fileName);
 					} catch (Exception ex) {
 						MessageService.ShowException (ex, "Could not remove the autosave file.");
@@ -837,9 +759,8 @@ namespace MonoDevelop.SourceEditor
 				b2.Image = ImageService.GetImage (Gtk.Stock.RevertToSaved, IconSize.Button);
 				b2.Clicked += delegate {
 					try {
-						view.AutoSave.FileName = fileName;
-						string content = view.AutoSave.LoadAutoSave ();
-						view.AutoSave.RemoveAutoSaveFile ();
+						string content = AutoSave.LoadAutoSave (fileName);
+						AutoSave.RemoveAutoSaveFile (fileName);
 						view.Load (fileName, content, null);
 						view.IsDirty = true;
 					} catch (Exception ex) {
@@ -854,7 +775,7 @@ namespace MonoDevelop.SourceEditor
 			
 			view.WarnOverwrite = true;
 			vbox.PackStart (messageBar, false, false, CHILD_PADDING);
-			vbox.ReorderChild (messageBar, classBrowser != null ? 1 : 0);
+			vbox.ReorderChild (messageBar, 0);
 			messageBar.ShowAll ();
 
 			messageBar.QueueDraw ();
@@ -877,10 +798,21 @@ namespace MonoDevelop.SourceEditor
 		
 		void ClickedReload (object sender, EventArgs args)
 		{
+			Reload ();
+			view.TextEditor.GrabFocus ();
+		}
+		
+		public void Reload ()
+		{
 			try {
-//				double vscroll = view.VScroll;
+				double vscroll = view.TextEditor.VAdjustment.Value;
+				var loc = view.TextEditor.Caret.Location;
+				
 				view.Load (view.ContentName);
-//				view.VScroll = vscroll;
+				
+				view.TextEditor.Caret.Location = loc;
+				view.TextEditor.VAdjustment.Value = vscroll;
+				
 				view.WorkbenchWindow.ShowNotification = false;
 			} catch (Exception ex) {
 				MessageService.ShowException (ex, "Could not reload the file.");
@@ -900,10 +832,6 @@ namespace MonoDevelop.SourceEditor
 		void CaretPositionChanged (object o, DocumentLocationEventArgs args)
 		{
 			UpdateLineCol ();
-			
-			if (classBrowser != null) 
-				classBrowser.UpdatePosition (TextEditor.Caret.Line + 1, TextEditor.Caret.Column + 1);
-			
 			LineSegment curLine = TextEditor.Document.GetLine (TextEditor.Caret.Line);
 			MonoDevelop.SourceEditor.MessageBubbleTextMarker marker = null;
 			if (curLine != null && curLine.Markers.Any (m => m is MonoDevelop.SourceEditor.MessageBubbleTextMarker)) {
@@ -934,16 +862,11 @@ namespace MonoDevelop.SourceEditor
 			int offset = TextEditor.Caret.Offset;
 			if (offset < 0 || offset > TextEditor.Document.Length)
 				return;
-			if (classBrowser == null || NavigationBar.HideStatusBox) {
-				DocumentLocation location = TextEditor.LogicalToVisualLocation (TextEditor.Caret.Location);
-				IdeApp.Workbench.StatusBar.ShowCaretState (TextEditor.Caret.Line + 1,
-				                                           location.Column + 1,
-				                                           TextEditor.IsSomethingSelected ? TextEditor.SelectionRange.Length : 0,
-				                                           TextEditor.Caret.IsInInsertMode);
-			} else {
-				IdeApp.Workbench.StatusBar.ClearCaretState ();
-				classBrowser.StatusBox.ShowCaretState ();
-			}
+			DocumentLocation location = TextEditor.LogicalToVisualLocation (TextEditor.Caret.Location);
+			IdeApp.Workbench.StatusBar.ShowCaretState (TextEditor.Caret.Line,
+			                                           location.Column,
+			                                           TextEditor.IsSomethingSelected ? TextEditor.SelectionRange.Length : 0,
+			                                           TextEditor.Caret.IsInInsertMode);
 		}
 		
 		#endregion
@@ -1287,7 +1210,10 @@ namespace MonoDevelop.SourceEditor
 	
 		public Mono.TextEditor.Document Document {
 			get {
-				return TextEditor.Document;
+				var editor = TextEditor;
+				if (editor == null)
+					return null;
+				return editor.Document;
 			}
 		}
 		
@@ -1525,9 +1451,9 @@ namespace MonoDevelop.SourceEditor
 				underlineColor = Mono.TextEditor.Highlighting.Style.ErrorUnderlineString;
 			
 			if (Info.Region.Start.Line == info.Region.End.Line)
-				marker = new UnderlineMarker (underlineColor, Info.Region.Start.Column - 1, info.Region.End.Column - 1);
+				marker = new UnderlineMarker (underlineColor, Info.Region.Start.Column, info.Region.End.Column);
 			else
-				marker = new UnderlineMarker (underlineColor, - 1, - 1);
+				marker = new UnderlineMarker (underlineColor, 0, 0);
 		}
 		
 		public void AddToLine (Mono.TextEditor.Document doc)

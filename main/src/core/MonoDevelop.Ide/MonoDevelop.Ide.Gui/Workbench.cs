@@ -59,7 +59,6 @@ namespace MonoDevelop.Ide.Gui
 		List<Pad> pads;
 		ProgressMonitorManager monitors = new ProgressMonitorManager ();
 		DefaultWorkbench workbench;
-		RecentOpen recentOpen = null;
 		
 		public event EventHandler ActiveDocumentChanged;
 		public event EventHandler LayoutChanged;
@@ -84,8 +83,6 @@ namespace MonoDevelop.Ide.Gui
 				
 				((Gtk.Window)workbench).Visible = false;
 				workbench.ActiveWorkbenchWindowChanged += new EventHandler (OnDocumentChanged);
-				FileService.FileRemoved += (EventHandler<FileEventArgs>) DispatchService.GuiDispatch (new EventHandler<FileEventArgs> (IdeApp.Workbench.RecentOpen.InformFileRemoved));
-				FileService.FileRenamed += (EventHandler<FileCopyEventArgs>) DispatchService.GuiDispatch (new EventHandler<FileCopyEventArgs> (IdeApp.Workbench.RecentOpen.InformFileRenamed));
 				IdeApp.Workspace.StoringUserPreferences += OnStoringWorkspaceUserPreferences;
 				IdeApp.Workspace.LoadingUserPreferences += OnLoadingWorkspaceUserPreferences;
 				
@@ -131,14 +128,6 @@ namespace MonoDevelop.Ide.Gui
 			return workbench.Close();
 		}
 		
-		public RecentOpen RecentOpen {
-			get {
-				if (recentOpen == null)
-					recentOpen = new RecentOpen ();
-				return recentOpen;
-			}
-		}
-		
 		public ReadOnlyCollection<Document> Documents {
 			get { return documents.AsReadOnly (); }
 		}
@@ -175,6 +164,13 @@ namespace MonoDevelop.Ide.Gui
 		public WorkbenchWindow RootWindow {
 			get { return workbench; }
 		}
+		
+		/// <summary>
+		/// When set to <c>true</c>, opened documents will automatically be reloaded when a change in the underlying
+		/// file is detected (unless the document has unsaved changes)
+		/// </summary>
+		/// </value>
+		public bool AutoReloadDocuments { get; set; }
 		
 		/// <summary>
 		/// Whether the root window or any undocked part of it has toplevel focus. 
@@ -392,7 +388,7 @@ namespace MonoDevelop.Ide.Gui
 							Present ();
 						}
 						
-						IEditableTextBuffer ipos = (IEditableTextBuffer) vcFound.GetContent (typeof(IEditableTextBuffer));
+						IEditableTextBuffer ipos = vcFound.GetContent<IEditableTextBuffer> ();
 						if (line >= 1 && ipos != null) {
 							ipos.SetCaretTo (line, column >= 1 ? column : 1, highlightCaretLine);
 						}
@@ -603,7 +599,7 @@ namespace MonoDevelop.Ide.Gui
 			documents.Add (doc);
 			
 			doc.OnDocumentAttached ();
-			
+			OnDocumentOpened (new DocumentEventArgs (doc));
 			return doc;
 		}
 		
@@ -758,7 +754,7 @@ namespace MonoDevelop.Ide.Gui
 					fw.Invoke (fileName);
 					
 					Counters.OpenDocumentTimer.Trace ("Adding to recent files");
-					RecentOpen.AddLastFile (fileName, project != null ? project.Name : null);
+					DesktopService.RecentFiles.AddFile (fileName, project);
 				} else {
 					try {
 						Counters.OpenDocumentTimer.Trace ("Showing in browser");
@@ -785,9 +781,9 @@ namespace MonoDevelop.Ide.Gui
 				if (!String.IsNullOrEmpty (document.FileName)) {
 					DocumentUserPrefs dp = new DocumentUserPrefs ();
 					dp.FileName = FileService.AbsoluteToRelativePath (args.Item.BaseDirectory, document.FileName);
-					if (document.TextEditor != null) {
-						dp.Line = document.TextEditor.CursorLine;
-						dp.Column = document.TextEditor.CursorColumn;
+					if (document.Editor != null) {
+						dp.Line = document.Editor.Caret.Line;
+						dp.Column = document.Editor.Caret.Column;
 					}
 					prefs.Files.Add (dp);
 				}
@@ -959,6 +955,15 @@ namespace MonoDevelop.Ide.Gui
 			public FilePath File;
 			public DateTime Time;
 		}
+		
+		protected virtual void OnDocumentOpened (DocumentEventArgs e)
+		{
+			EventHandler<DocumentEventArgs> handler = this.DocumentOpened;
+			if (handler != null)
+				handler (this, e);
+		}
+
+		public event EventHandler<DocumentEventArgs> DocumentOpened;
 	}
 	
 
@@ -1032,7 +1037,7 @@ namespace MonoDevelop.Ide.Gui
 				
 				Counters.OpenDocumentTimer.Trace ("Loading file");
 				
-				IEncodedTextContent etc = (IEncodedTextContent) newContent.GetContent (typeof(IEncodedTextContent));
+				IEncodedTextContent etc = newContent.GetContent<IEncodedTextContent> ();
 				if (fileInfo.Encoding != null && etc != null)
 					etc.Load (fileName, fileInfo.Encoding);
 				else
@@ -1055,7 +1060,7 @@ namespace MonoDevelop.Ide.Gui
 			
 			newContent.WorkbenchWindow.DocumentType = binding.Name;
 			
-			IEditableTextBuffer ipos = (IEditableTextBuffer) newContent.GetContent (typeof(IEditableTextBuffer));
+			IEditableTextBuffer ipos = newContent.GetContent<IEditableTextBuffer> ();
 			if (fileInfo.Line != -1 && ipos != null) {
 				GLib.Timeout.Add (10, new GLib.TimeoutHandler (JumpToLine));
 			}
@@ -1064,9 +1069,10 @@ namespace MonoDevelop.Ide.Gui
 		
 		public bool JumpToLine ()
 		{
-			IEditableTextBuffer ipos = (IEditableTextBuffer) newContent.GetContent (typeof(IEditableTextBuffer));
+			IEditableTextBuffer ipos = newContent.GetContent<IEditableTextBuffer> ();
 			ipos.SetCaretTo (Math.Max(1, fileInfo.Line), Math.Max(1, fileInfo.Column), fileInfo.HighlightCaretLine);
 			return false;
 		}
+		
 	}
 }

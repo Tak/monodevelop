@@ -23,6 +23,7 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 using System;
 using MonoDevelop.Projects.Dom.Parser;
 using MonoDevelop.Projects.Dom;
@@ -37,13 +38,53 @@ namespace MonoDevelop.Projects.CodeGeneration
 	{
 		static Dictionary<string, MimeTypeExtensionNode> generators = new Dictionary<string, MimeTypeExtensionNode> ();
 		
-		public static CodeGenerator CreateGenerator (string mimeType)
+		public bool UseSpaceIndent {
+			get;
+			set;
+		}
+		
+		public string EolMarker {
+			get;
+			set;
+		}
+		
+		public int TabSize {
+			get;
+			set;
+		}
+		
+		public static CodeGenerator CreateGenerator (string mimeType, bool useSpaceIndent, int tabSize, string eolMarker)
 		{
 			MimeTypeExtensionNode node;
 			if (!generators.TryGetValue (mimeType, out node))
 				return null;
-			return (CodeGenerator)node.CreateInstance ();
+			if (eolMarker == null)
+				throw new ArgumentNullException ("eolMarker");
+			if (eolMarker.Length == 0 || eolMarker.Length > 2)
+				throw new ArgumentException ("invalid eolMarker");
+			if (tabSize <= 0)
+				throw new ArgumentException ("tabSize <= 0");
+			
+			var result = (CodeGenerator)node.CreateInstance ();
+			result.UseSpaceIndent = useSpaceIndent;
+			result.EolMarker = eolMarker;
+			result.TabSize = tabSize;
+			return result;
 		}
+		
+		protected void AppendLine (StringBuilder sb)
+		{
+			sb.Append (EolMarker);
+		}
+		
+		protected string GetIndent (int indentLevel)
+		{
+			if (UseSpaceIndent) 
+				return new string (' ', indentLevel * TabSize);
+				
+			return new string ('\t', indentLevel);
+		}
+		
 		
 		public static bool HasGenerator (string mimeType)
 		{
@@ -56,10 +97,10 @@ namespace MonoDevelop.Projects.CodeGeneration
 				var node = (MimeTypeExtensionNode)args.ExtensionNode;
 				switch (args.Change) {
 				case ExtensionChange.Add:
-					generators[node.MimeType] = node;
+					AddGenerator (node);
 					break;
 				case ExtensionChange.Remove:
-					generators.Remove (node.MimeType);
+					RemoveGenerator (node);
 					break;
 				}
 			});
@@ -73,6 +114,16 @@ namespace MonoDevelop.Projects.CodeGeneration
 		public CodeGenerator ()
 		{
 			IndentLevel = -1;
+		}
+		
+		public static void AddGenerator (MimeTypeExtensionNode node)
+		{
+			generators[node.MimeType] = node;
+		}
+		
+		public static void RemoveGenerator (MimeTypeExtensionNode node)
+		{
+			generators.Remove (node.MimeType);
 		}
 		
 		static int CalculateBodyIndentLevel (IType declaringType)
@@ -103,20 +154,21 @@ namespace MonoDevelop.Projects.CodeGeneration
 		{
 			SetIndentTo (implementingType);
 			StringBuilder result = new StringBuilder ();
+			List<IMember> implementedMembers = new List<IMember> ();
 			foreach (IType baseInterface in interfaceType.SourceProjectDom.GetInheritanceTree (interfaceType)) {
-				if (baseInterface.FullName == DomReturnType.Object.FullName)
-					break;
+				if (baseInterface.ClassType != ClassType.Interface)
+					continue;
 				if (result.Length > 0) {
-					result.AppendLine ();
-					result.AppendLine ();
+					AppendLine (result);
+					AppendLine (result);
 				}
-				string implementation = InternalCreateInterfaceImplementation (implementingType, baseInterface, explicitly);
+				string implementation = InternalCreateInterfaceImplementation (implementingType, baseInterface, explicitly, implementedMembers);
 				result.Append (WrapInRegions (baseInterface.Name + " implementation", implementation));
 			}
 			return result.ToString ();
 		}
 		
-		protected string InternalCreateInterfaceImplementation (IType implementingType, IType interfaceType, bool explicitly)
+		protected string InternalCreateInterfaceImplementation (IType implementingType, IType interfaceType, bool explicitly, List<IMember> implementedMembers)
 		{
 			StringBuilder result = new StringBuilder ();
 			
@@ -184,12 +236,33 @@ namespace MonoDevelop.Projects.CodeGeneration
 			bool first = true;
 			foreach (var pair in toImplement) {
 				if (!first) {
-					result.AppendLine ();
-					result.AppendLine ();
+					AppendLine (result);
+					AppendLine (result);
 				} else {
 					first = false;
 				}
-				result.Append (CreateMemberImplementation (implementingType, pair.Key, pair.Value).Code);
+				bool isExplicit = pair.Value;
+				foreach (IMember member in implementedMembers.Where (m => m.Name == pair.Key.Name && m.MemberType == pair.Key.MemberType)) {
+					if (member.MemberType == MemberType.Method) {
+						isExplicit = member.ReturnType.ToInvariantString () != pair.Key.ReturnType.ToInvariantString ();
+						
+						if (member.Parameters.Count == pair.Key.Parameters.Count && pair.Key.Parameters.Count > 0) {
+							for (int i = 0; i < member.Parameters.Count; i++) {
+								if (member.Parameters[i].ReturnType.ToInvariantString () != pair.Key.Parameters[i].ReturnType.ToInvariantString ()) {
+									isExplicit = true;
+									break;
+								}
+							}
+						} else {
+							isExplicit = true;
+						}
+					} else {
+						isExplicit = true;
+					}
+				}
+				
+				result.Append (CreateMemberImplementation (implementingType, pair.Key, isExplicit).Code);
+				implementedMembers.Add (pair.Key);
 			}
 			
 			return result.ToString ();

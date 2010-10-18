@@ -5,6 +5,7 @@ DEPS =  \
 	$(top_builddir)/build/AddIns/MonoDevelop.DesignerSupport/MonoDevelop.DesignerSupport.dll \
 	$(top_builddir)/build/AddIns/MonoDevelop.SourceEditor2.dll \
 	$(top_builddir)/build/AddIns/MonoDevelop.TextTemplating/Mono.TextTemplating.dll \
+	$(top_builddir)/build/bin/Mono.TextEditor.dll \
 	$(top_builddir)/build/bin/MonoDevelop.Core.dll \
 	$(top_builddir)/build/bin/MonoDevelop.Ide.dll
 
@@ -17,17 +18,21 @@ REFS =  \
 FILES =  \
 	AssemblyInfo.cs \
 	Gui/T4EditorExtension.cs \
+	MonoDevelopTemplatingHost.cs \
 	Parser/T4ParsedDocument.cs \
 	Parser/T4Parser.cs \
+	TextTemplatingFileGenerator.cs \
+	TextTemplatingFilePreprocessor.cs \
 	TextTemplatingService.cs \
-	TextTemplatingTool.cs
+	ThreadAsyncOperation.cs
 
 RES =  \
 	MonoDevelop.TextTemplating.addin.xml \
 	T4SyntaxMode.xml
 
 DATA_FILES = \
-	Templates/T4TemplateCSharp.xft.xml
+	Templates/T4TemplateCSharp.xft.xml \
+	Templates/T4PreprocessedTemplateCSharp.xft.xml
 
 DATA_FILE_BUILD = $(addprefix $(ADDIN_BUILD)/, $(DATA_FILES))
 

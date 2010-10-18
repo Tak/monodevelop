@@ -1,4 +1,4 @@
-﻿// IWorkbenchWindow.cs
+// IWorkbenchWindow.cs
 //
 // Author:
 //   Viktoria Dudka (viktoriad@remobjects.com)
@@ -45,10 +45,12 @@ namespace MonoDevelop.Ide.Gui
 
 		void AttachViewContent (IAttachableViewContent subViewContent);
 		void SwitchView (int index);
+		void SwitchView (IAttachableViewContent subViewContent);
 
 		bool CloseWindow (bool force, bool fromMenu, int pageNum);
 		void SelectWindow ();
-
+		
+		event EventHandler DocumentChanged;
 		event WorkbenchWindowEventHandler Closed;
 		event WorkbenchWindowEventHandler Closing;
 		event ActiveViewContentEventHandler ActiveViewContentChanged;

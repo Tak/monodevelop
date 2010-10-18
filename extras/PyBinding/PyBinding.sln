@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PyBinding", "PyBinding\PyBinding.csproj", "{EE5BA96B-4FA5-41ED-88BC-E8FD07EB62FE}"
@@ -30,7 +30,8 @@ Global
 		$0.VersionControlPolicy = $4
 		$4.inheritsSet = Mono
 		$0.ChangeLogPolicy = $5
-		$5.UpdateMode = ProjectRoot
+		$5.UpdateMode = None
+		$5.VcsIntegration = None
 		$5.inheritsSet = Mono
 	EndGlobalSection
 EndGlobal

@@ -175,14 +175,19 @@ namespace MonoDevelop.Projects.Dom.Parser
 					// There is no need to resolve baseType here, since 'cur' is an already resolved
 					// type, so all types it references are already resolved too
 					IType resolvedType = GetType (baseType);
-					
 					if (resolvedType != null) {
 						types.Push (resolvedType);
 					}
 				}
-
-				if (cur.BaseType == null && cur.FullName != "System.Object") 
-					types.Push (this.GetType (DomReturnType.Object));
+				if (cur.BaseType == null && cur.FullName != "System.Object") {
+					if (cur.ClassType == ClassType.Enum) {
+						types.Push (this.GetType (DomReturnType.Enum));
+					} else if (cur.ClassType == ClassType.Struct) {
+						types.Push (this.GetType (DomReturnType.ValueType));
+					} else {
+						types.Push (this.GetType (DomReturnType.Object));
+					}
+				}
 			}
 		}
 
@@ -259,7 +264,7 @@ namespace MonoDevelop.Projects.Dom.Parser
 		internal IType SearchType (string name, IType callingClass, IMember callingMember, ICompilationUnit unit, IList<IReturnType> genericParameters)
 		{
 			// TODO dom check generic parameter count
-			if (name == null || name == String.Empty)
+			if (string.IsNullOrEmpty (name))
 				return null;
 			
 			IType result = null;
@@ -282,12 +287,13 @@ namespace MonoDevelop.Projects.Dom.Parser
 			result = GetType (name, genericParameters, false, true);
 			if (result != null)
 				return result;
-			// Maybe an inner type?
+
+			// Maybe an inner type that isn't fully qualified?
 			if (callingClass != null) {
 				IType t = ResolveType (callingClass);
 				result = SearchInnerType (t, name.Split ('.'), 0, genericParameters != null ? genericParameters.Count : 0, true);
 				if (result != null) {
-					if (genericParameters != null && genericParameters.Count > 0)
+					if (genericParameters != null && genericParameters.Count > 0) 
 						return CreateInstantiatedGenericType (result, genericParameters);
 					return result;
 				}
@@ -306,12 +312,18 @@ namespace MonoDevelop.Projects.Dom.Parser
 			
 			// The enclosing namespace has preference over the using directives.
 			// Check it now.
-
 			if (callingClass != null) {
-				string[] namespaces = callingClass.FullName.Split ('.');
-				for (int n = namespaces.Length - 1; n >= 0; n--) {
-					string curnamespace = string.Join (".", namespaces, 0, n);
-					result = GetType (curnamespace + "." + name, genericParameters, false, true);
+				List<int> indices = new List<int> ();
+				string str = callingClass.FullName;
+				for (int i = 0; i < str.Length; i++) {
+					if (str[i] == '.')
+						indices.Add (i);
+				}
+				for (int n = indices.Count - 1; n >= 0; n--) {
+					if (n < 1)
+						continue;
+					string curnamespace = str.Substring (0, indices[n] + 1);
+					result = GetType (curnamespace + name, genericParameters, false, true);
 					if (result != null)
 						return result;
 				}
@@ -444,8 +456,9 @@ namespace MonoDevelop.Projects.Dom.Parser
 			HashSet<string> uniqueNamespaces = new HashSet<string> (subNamespaces);
 			GetNamespaceContentsInternal (result, uniqueNamespaces, caseSensitive);
 			if (includeReferences) {
-				foreach (ProjectDom reference in References)
+				foreach (ProjectDom reference in References) {
 					reference.GetNamespaceContentsInternal (result, uniqueNamespaces, caseSensitive);
+				}
 			}
 			return result;
 		}
@@ -554,10 +567,8 @@ namespace MonoDevelop.Projects.Dom.Parser
 			
 			if (returnType.ArrayDimensions > 0) {
 				DomReturnType newType = new DomReturnType (returnType.FullName);
+				// dimensions are correctly updated when cropped
 				newType.ArrayDimensions = returnType.ArrayDimensions - 1;
-				for (int i = 0; i < newType.ArrayDimensions; i++) {
-					newType.SetDimension (i, returnType.ArrayDimensions - 1);
-				}
 				newType.PointerNestingLevel = returnType.PointerNestingLevel;
 				return GetArrayType (newType);
 			}
@@ -747,6 +758,43 @@ namespace MonoDevelop.Projects.Dom.Parser
 		public virtual void UpdateTemporaryCompilationUnit (ICompilationUnit unit)
 		{
 			temporaryCompilationUnits[unit.FileName] = unit;
+		}
+		
+		protected IType GetTemporaryType (string typeName, IList<IReturnType> genericArguments, bool deepSearchReferences, bool caseSensitive)
+		{
+			foreach (var unit in temporaryCompilationUnits.Values) {
+				var result = unit.GetType (typeName, genericArguments != null ? genericArguments.Count : 0);
+				if (result == null)
+					continue;
+				return genericArguments == null || genericArguments.Count == 0 ? result : CreateInstantiatedGenericType (result, genericArguments);
+			}
+			if (deepSearchReferences) {
+				foreach (var r in References) {
+					var result = r.GetTemporaryType (typeName, genericArguments, false, caseSensitive);
+					if (result != null)
+						return result;
+				}
+			}
+			return null;
+		}
+		
+		protected IType GetTemporaryType (string typeName, int genericArgumentsCount, bool deepSearchReferences, bool caseSensitive)
+		{
+			foreach (var unit in temporaryCompilationUnits.Values) {
+				var result = unit.GetType (typeName, genericArgumentsCount);
+				if (result == null)
+					continue;
+				return result;
+			}
+			
+			if (deepSearchReferences) {
+				foreach (var r in References) {
+					var result = r.GetTemporaryType (typeName, genericArgumentsCount, false, caseSensitive);
+					if (result != null)
+						return result;
+				}
+			}
+			return null;
 		}
 		
 		public IType MergeTypeWithTemporary (IType type)

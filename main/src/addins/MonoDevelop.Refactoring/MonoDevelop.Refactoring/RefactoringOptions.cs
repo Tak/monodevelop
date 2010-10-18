@@ -71,7 +71,7 @@ namespace MonoDevelop.Refactoring
 		
 		public Mono.TextEditor.TextEditorData GetTextEditorData ()
 		{
-			return Document.TextEditorData;
+			return Document.Editor;
 		}
 		
 		public INRefactoryASTProvider GetASTProvider ()
@@ -89,7 +89,7 @@ namespace MonoDevelop.Refactoring
 		
 		public MonoDevelop.Projects.Dom.Parser.IParser GetParser ()
 		{
-			return ProjectDomService.GetParser (Document.FileName, MimeType);
+			return ProjectDomService.GetParser (Document.FileName);
 		}
 		
 		public ICSharpCode.NRefactory.Ast.INode ParseMember (IMember member)
@@ -100,17 +100,17 @@ namespace MonoDevelop.Refactoring
 			if (provider == null) 
 				return null;
 			
-			int start = Document.TextEditor.GetPositionFromLineColumn (member.BodyRegion.Start.Line, member.BodyRegion.Start.Column);
-			int end = Document.TextEditor.GetPositionFromLineColumn (member.BodyRegion.End.Line, member.BodyRegion.End.Column);
-			string memberBody = Document.TextEditor.GetText (start, end);
+			int start = Document.Editor.Document.LocationToOffset (member.BodyRegion.Start.Line, member.BodyRegion.Start.Column);
+			int end = Document.Editor.Document.LocationToOffset (member.BodyRegion.End.Line, member.BodyRegion.End.Column);
+			string memberBody = Document.Editor.GetTextBetween (start, end);
 			return provider.ParseText (memberBody);
 		}
 		
 		public static string GetWhitespaces (Document document, int insertionOffset)
 		{
 			StringBuilder result = new StringBuilder ();
-			for (int i = insertionOffset; i < document.TextEditor.TextLength; i++) {
-				char ch = document.TextEditor.GetCharAt (i);
+			for (int i = insertionOffset; i < document.Editor.Length; i++) {
+				char ch = document.Editor.GetCharAt (i);
 				if (ch == ' ' || ch == '\t') {
 					result.Append (ch);
 				} else {
@@ -119,9 +119,10 @@ namespace MonoDevelop.Refactoring
 			}
 			return result.ToString ();
 		}
+		
 		public static string GetIndent (Document document, IMember member)
 		{
-			return GetWhitespaces (document, document.TextEditor.GetPositionFromLineColumn (member.Location.Line, 1));
+			return GetWhitespaces (document, document.Editor.Document.LocationToOffset (member.Location.Line, 1));
 		}
 		public string GetWhitespaces (int insertionOffset)
 		{
@@ -135,12 +136,12 @@ namespace MonoDevelop.Refactoring
 		
 		public IReturnType ShortenTypeName (IReturnType fullyQualifiedTypeName)
 		{
-			return Document.ParsedDocument.CompilationUnit.ShortenTypeName (fullyQualifiedTypeName, Document.TextEditor.CursorLine, Document.TextEditor.CursorColumn);
+			return Document.ParsedDocument.CompilationUnit.ShortenTypeName (fullyQualifiedTypeName, Document.Editor.Caret.Line, Document.Editor.Caret.Column);
 		}
 		
 		public ParsedDocument ParseDocument ()
 		{
-			return ProjectDomService.Parse (Dom.Project, Document.FileName, DesktopService.GetMimeTypeForUri (Document.FileName), Document.TextEditor.Text);
+			return ProjectDomService.Parse (Dom.Project, Document.FileName, Document.Editor.Text);
 		}
 	}
 }

@@ -39,39 +39,39 @@ namespace Mono.TextEditor.Tests
 		public void TestLastLineCreation ()
 		{
 			IBuffer buffer = new Mono.TextEditor.GapBuffer ();
-			LineSplitter splitter = new Mono.TextEditor.LineSplitter (buffer);
+			LineSplitter splitter = new Mono.TextEditor.LineSplitter ();
 			buffer.Text = "1\n2\n3\n";
 			splitter.TextReplaced (null, new ReplaceEventArgs (0, 0, buffer.Text));
-			Assert.AreEqual (4, splitter.LineCount);
+			Assert.AreEqual (4, splitter.Count);
 			for (int i = 0; i < 3; i++) {
-				Assert.AreEqual (i * 2, splitter.Get (i).Offset);
-				Assert.AreEqual (1, splitter.Get (i).EditableLength);
-				Assert.AreEqual (1, splitter.Get (i).DelimiterLength);
-				Assert.AreEqual (2, splitter.Get (i).Length);
+				Assert.AreEqual (i * 2, splitter.Get (i + 1).Offset);
+				Assert.AreEqual (1, splitter.Get (i + 1).EditableLength);
+				Assert.AreEqual (1, splitter.Get (i + 1).DelimiterLength);
+				Assert.AreEqual (2, splitter.Get (i + 1).Length);
 			}
-			Assert.AreEqual (3 * 2, splitter.Get (3).Offset);
-			Assert.AreEqual (0, splitter.Get (3).EditableLength);
-			Assert.AreEqual (0, splitter.Get (3).DelimiterLength);
-			Assert.AreEqual (0, splitter.Get (3).Length);
+			Assert.AreEqual (3 * 2, splitter.Get (4).Offset);
+			Assert.AreEqual (0, splitter.Get (4).EditableLength);
+			Assert.AreEqual (0, splitter.Get (4).DelimiterLength);
+			Assert.AreEqual (0, splitter.Get (4).Length);
 		}
 		
 		[Test()]
 		public void TestLastLineRemove ()
 		{
 			IBuffer buffer = new Mono.TextEditor.GapBuffer ();
-			LineSplitter splitter = new Mono.TextEditor.LineSplitter (buffer);
+			LineSplitter splitter = new Mono.TextEditor.LineSplitter ();
 			buffer.Text = "1\n2\n3\n";
 			splitter.TextReplaced (null, new ReplaceEventArgs (0, 0, buffer.Text));
 			
 			LineSegment lastLine = splitter.Get (2);
 			splitter.TextReplaced (null, new ReplaceEventArgs (lastLine.Offset, lastLine.Length, ""));
 			
-			Assert.AreEqual (3, splitter.LineCount);
+			Assert.AreEqual (3, splitter.Count);
 			
-			Assert.AreEqual (2 * 2, splitter.Get (2).Offset);
-			Assert.AreEqual (0, splitter.Get (2).EditableLength);
-			Assert.AreEqual (0, splitter.Get (2).DelimiterLength);
-			Assert.AreEqual (0, splitter.Get (2).Length);
+			Assert.AreEqual (2 * 2, splitter.Get (3).Offset);
+			Assert.AreEqual (0, splitter.Get (3).EditableLength);
+			Assert.AreEqual (0, splitter.Get (3).DelimiterLength);
+			Assert.AreEqual (0, splitter.Get (3).Length);
 		}
 	}
 }

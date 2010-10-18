@@ -88,13 +88,16 @@ namespace MonoDevelop.AspNet.Gui
 			if (HasDoc)
 				refman.Doc = aspDoc;
 			
-			documentBuilder = HasDoc? LanguageCompletionBuilderService.GetBuilder (aspDoc.Info.Language) : null;
+			documentBuilder = HasDoc ? LanguageCompletionBuilderService.GetBuilder (aspDoc.Info.Language) : null;
 			
 			if (documentBuilder != null) {
 				var usings = refman.GetUsings ();
 				documentInfo = new DocumentInfo (aspDoc, usings, refman.GetDoms ());
-				documentInfo.ParsedDocument = documentBuilder.BuildDocument (documentInfo, TextEditorData);
+				documentInfo.ParsedDocument = documentBuilder.BuildDocument (documentInfo, Editor);
 				documentInfo.CodeBesideClass = CreateCodeBesideClass (documentInfo, refman);
+				domWrapper = new AspProjectDomWrapper (documentInfo);
+				if (localDocumentInfo != null)
+					localDocumentInfo.HiddenDocument.Dom = domWrapper;
 			}
 		}
 		
@@ -112,7 +115,6 @@ namespace MonoDevelop.AspNet.Gui
 		}
 		
 		ILanguageCompletionBuilder documentBuilder;
-		MonoDevelop.Ide.Gui.Document hiddenDocument;
 		LocalDocumentInfo localDocumentInfo;
 		DocumentInfo documentInfo;
 		
@@ -125,11 +127,12 @@ namespace MonoDevelop.AspNet.Gui
 			char currentChar = completionContext.TriggerOffset < 1? ' ' : buf.GetCharAt (completionContext.TriggerOffset - 1);
 			//char previousChar = completionContext.TriggerOffset < 2? ' ' : buf.GetCharAt (completionContext.TriggerOffset - 2);
 			
+			
 			//directive names
 			if (Tracker.Engine.CurrentState is AspNetDirectiveState) {
 				var directive = Tracker.Engine.Nodes.Peek () as AspNetDirective;
 				if (HasDoc && directive != null && directive.Region.Start.Line == completionContext.TriggerLine &&
-				    directive.Region.Start.Column + 4 == completionContext.TriggerLineOffset)
+				    directive.Region.Start.Column + 3 == completionContext.TriggerLineOffset)
 				{
 					return DirectiveCompletion.GetDirectives (aspDoc.Type);
 				}
@@ -137,7 +140,7 @@ namespace MonoDevelop.AspNet.Gui
 			} else if (Tracker.Engine.CurrentState is S.XmlNameState && Tracker.Engine.CurrentState.Parent is AspNetDirectiveState) {
 				var directive = Tracker.Engine.Nodes.Peek () as AspNetDirective;
 				if (HasDoc && directive != null && directive.Region.Start.Line == completionContext.TriggerLine &&
-				    directive.Region.Start.Column + 5 == completionContext.TriggerLineOffset && char.IsLetter (currentChar))
+				    directive.Region.Start.Column + 4 == completionContext.TriggerLineOffset && char.IsLetter (currentChar))
 				{
 					triggerWordLength = 1;
 					return DirectiveCompletion.GetDirectives (aspDoc.Type);
@@ -162,13 +165,6 @@ namespace MonoDevelop.AspNet.Gui
 				var matches = DocTypeRegex.Match (aspDoc.Info.DocType);
 				DocType.PublicFpi = matches.Groups["fpi"].Value;
 				DocType.Uri = matches.Groups["uri"].Value;
-			}
-			
-			//completion for ASP.NET expressions
-			if (documentBuilder != null && isAspExprState) {
-				InitializeCodeCompletion ();
-				return documentBuilder.HandleCompletion (hiddenDocument, documentInfo, localDocumentInfo, 
-					 new AspProjectDomWrapper (documentInfo), currentChar, ref triggerWordLength);
 			}
 			
 			if (Tracker.Engine.CurrentState is HtmlScriptBodyState) {
@@ -205,22 +201,23 @@ namespace MonoDevelop.AspNet.Gui
 				.FirstOrDefault ();
 		}
 		
-		public void InitializeCodeCompletion ()
+		public void InitializeCodeCompletion (char ch)
 		{
-			int caretOffset = Document.TextEditorData.Caret.Offset;
+			int caretOffset = Document.Editor.Caret.Offset;
 			int start = caretOffset - Tracker.Engine.CurrentStateLength;
-			if (Document.TextEditor.GetCharAt (start) == '=') 
+			if (Document.Editor.GetCharAt (start) == '=') 
 				start++;
-			
-			string sourceText = Document.TextEditor.GetText (start, caretOffset);
-			string textAfterCaret = Document.TextEditor.GetText (caretOffset, Tracker.Engine.Position + Tracker.Engine.CurrentStateLength - start);
+			string sourceText = Document.Editor.GetTextBetween (start, caretOffset);
+			if (ch != '\0')
+				sourceText += ch;
+			string textAfterCaret = Document.Editor.GetTextBetween (caretOffset, Math.Min (Document.Editor.Length, Math.Max (caretOffset, Tracker.Engine.Position + Tracker.Engine.CurrentStateLength - 2)));
 			
 			var loc = new MonoDevelop.AspNet.Parser.Internal.Location ();
-			var docLoc = Document.TextEditorData.Document.OffsetToLocation (start);
+			var docLoc = Document.Editor.Document.OffsetToLocation (start);
 			loc.EndLine = loc.BeginLine = docLoc.Line;
 			loc.EndColumn = loc.BeginColumn = docLoc.Column;
 			
-			localDocumentInfo = documentBuilder.BuildLocalDocument (documentInfo, TextEditorData, sourceText, textAfterCaret, true);
+			localDocumentInfo = documentBuilder.BuildLocalDocument (documentInfo, Editor, sourceText, textAfterCaret, true);
 			
 			var viewContent = new MonoDevelop.Ide.Gui.HiddenTextEditorViewContent ();
 			viewContent.Project = Document.Project;
@@ -231,9 +228,10 @@ namespace MonoDevelop.AspNet.Gui
 
 			var workbenchWindow = new MonoDevelop.Ide.Gui.HiddenWorkbenchWindow ();
 			workbenchWindow.ViewContent = viewContent;
-			hiddenDocument = new MonoDevelop.Ide.Gui.Document (workbenchWindow);
-			
-			hiddenDocument.ParsedDocument = localDocumentInfo.ParsedLocalDocument;
+			localDocumentInfo.HiddenDocument = new MonoDevelop.Ide.Gui.Document (workbenchWindow) {
+				ParsedDocument = localDocumentInfo.ParsedLocalDocument,
+				Dom = domWrapper
+			};
 		}
 		
 		
@@ -242,21 +240,93 @@ namespace MonoDevelop.AspNet.Gui
 			//completion for ASP.NET expressions
 			// TODO: Detect <script> state here !!!
 			if (documentBuilder != null && Tracker.Engine.CurrentState is AspNetExpressionState) {
-				InitializeCodeCompletion ();
-				return documentBuilder.HandlePopupCompletion (hiddenDocument, documentInfo, localDocumentInfo, new AspProjectDomWrapper (documentInfo));
+				InitializeCodeCompletion ('\0');
+				return documentBuilder.HandlePopupCompletion (defaultDocument, documentInfo, localDocumentInfo);
 			}
 			return base.CodeCompletionCommand (completionContext);
 		}
 		
+		ICompletionWidget defaultCompletionWidget;
+		MonoDevelop.Ide.Gui.Document defaultDocument;
+		AspProjectDomWrapper domWrapper;
+		public override void Initialize ()
+		{
+			base.Initialize ();
+			defaultCompletionWidget = CompletionWidget;
+			defaultDocument = document;
+/*			defaultDocument.TextEditorData.Caret.PositionChanged += delegate {
+				OnCompletionContextChanged (CompletionWidget, EventArgs.Empty);
+			};*/
+		}
+		
+		
+		public override ICompletionDataList HandleCodeCompletion (
+		    CodeCompletionContext completionContext, char completionChar, ref int triggerWordLength)
+		{
+			if (localDocumentInfo == null)
+				return base.HandleCodeCompletion (completionContext, completionChar, ref triggerWordLength);
+			localDocumentInfo.HiddenDocument.Editor.InsertAtCaret (completionChar.ToString ());
+			return documentBuilder.HandleCompletion (defaultDocument, completionContext, documentInfo, localDocumentInfo, completionChar, ref triggerWordLength);
+		}
+
+		public override bool KeyPress (Gdk.Key key, char keyChar, Gdk.ModifierType modifier)
+		{
+			Tracker.UpdateEngine ();
+			bool isAspExprState = Tracker.Engine.CurrentState is AspNetExpressionState;
+			if (documentBuilder == null || !isAspExprState)
+				return base.KeyPress (key, keyChar, modifier);
+			InitializeCodeCompletion ('\0');
+			document = localDocumentInfo.HiddenDocument;
+			CompletionWidget = documentBuilder.CreateCompletionWidget (defaultDocument, localDocumentInfo);
+			bool result;
+			try {
+				result = base.KeyPress (key, keyChar, modifier);
+				if (PropertyService.Get ("EnableParameterInsight", true) && (keyChar == ',' || keyChar == ')') && CanRunParameterCompletionCommand ()) {
+					RunParameterCompletionCommand ();
+				}
+			} finally {
+				document = defaultDocument;
+				CompletionWidget = defaultCompletionWidget;
+			}
+			return result;
+		}
+		
+		public override bool GetParameterCompletionCommandOffset (out int cpos)
+		{
+			if (Tracker.Engine.CurrentState is AspNetExpressionState && documentBuilder != null && localDocumentInfo != null) {
+				var result = documentBuilder.GetParameterCompletionCommandOffset (defaultDocument, documentInfo, localDocumentInfo, out cpos);
+				return result;
+			}
+			return base.GetParameterCompletionCommandOffset (out cpos);
+		}
+		
 		public override IParameterDataProvider HandleParameterCompletion (CodeCompletionContext completionContext, char completionChar)
 		{
-			if (Tracker.Engine.CurrentState is AspNetExpressionState && documentBuilder != null && localDocumentInfo != null && hiddenDocument != null)
-				return documentBuilder.HandleParameterCompletion (hiddenDocument, documentInfo, localDocumentInfo,
-					new AspProjectDomWrapper (documentInfo), completionChar);
+			if (Tracker.Engine.CurrentState is AspNetExpressionState && documentBuilder != null && localDocumentInfo != null) {
+				return documentBuilder.HandleParameterCompletion (defaultDocument, completionContext, documentInfo, localDocumentInfo, completionChar);
+			}
 			
 			return base.HandleParameterCompletion (completionContext, completionChar);
 		}
-		
+
+		/*public override void RunParameterCompletionCommand ()
+		{
+			if (localDocumentInfo == null) {
+				base.RunParameterCompletionCommand ();
+				return;
+			}
+			var doc = document;
+			document = localDocumentInfo.HiddenDocument;
+			var cw = CompletionWidget;
+			CompletionWidget = documentBuilder.CreateCompletionWidget (localDocumentInfo);
+			try {
+				base.RunParameterCompletionCommand ();
+			} finally {
+				document = doc;
+				CompletionWidget = cw;
+			}
+		}*/
+
 		protected override void GetElementCompletions (CompletionDataList list)
 		{
 			S.XName parentName = GetParentElementName (0);

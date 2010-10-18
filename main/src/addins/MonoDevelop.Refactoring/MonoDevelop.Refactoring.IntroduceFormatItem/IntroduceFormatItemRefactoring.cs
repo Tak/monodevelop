@@ -51,7 +51,7 @@ namespace MonoDevelop.Refactoring.IntroduceFormat
 			TextEditorData data = options.GetTextEditorData ();
 			LineSegment line = data.Document.GetLine (data.Caret.Line);
 			if (data.IsSomethingSelected && line != null) {
-				Stack<Span> stack = line.StartSpan != null ? new Stack<Span> (line.StartSpan) : new Stack<Span> ();
+				var stack = line.StartSpan.Clone ();
 				Mono.TextEditor.Highlighting.SyntaxModeService.ScanSpans (data.Document, data.Document.SyntaxMode, data.Document.SyntaxMode, stack, line.Offset, data.Caret.Offset);
 				foreach (Span span in stack) {
 					if (span.Color == "string.double") {
@@ -92,7 +92,7 @@ namespace MonoDevelop.Refactoring.IntroduceFormat
 				expressionStart--;
 			}
 			// Add parameter to existing string.format call
-			ExpressionResult expressionResult = expressionFinder.FindFullExpression (options.Document.TextEditor.Text, expressionStart);
+			ExpressionResult expressionResult = expressionFinder.FindFullExpression (options.Document.Editor, expressionStart);
 			InvocationExpression formatCall = null;
 			if (expressionResult != null) {
 				InvocationExpression possibleFormatCall = provider.ParseExpression (expressionResult.Expression) as InvocationExpression;
@@ -106,8 +106,8 @@ namespace MonoDevelop.Refactoring.IntroduceFormat
 						expr.StringValue = '"' + str  + '"';
 						possibleFormatCall.Arguments.Add (new PrimitiveExpression (data.Document.GetTextAt (data.SelectionRange)));
 						formatCall = possibleFormatCall;
-						start = data.Document.LocationToOffset (expressionResult.Region.Start.Line - 1, expressionResult.Region.Start.Column - 1);
-						end = data.Document.LocationToOffset (expressionResult.Region.End.Line - 1, expressionResult.Region.End.Column - 1) - 1;
+						start = data.Document.LocationToOffset (expressionResult.Region.Start.Line, expressionResult.Region.Start.Column);
+						end = data.Document.LocationToOffset (expressionResult.Region.End.Line, expressionResult.Region.End.Column) - 1;
 					}
 				}
 			}

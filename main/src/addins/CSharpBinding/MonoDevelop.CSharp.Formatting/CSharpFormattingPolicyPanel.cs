@@ -34,34 +34,21 @@ namespace MonoDevelop.CSharp.Formatting
 {
 	class CSharpFormattingPolicyPanel : MimeTypePolicyOptionsPanel<CSharpFormattingPolicy>
 	{
-		TypedCodeFormattingPolicyPanelWidget<CSharpFormattingPolicy> panel;
-		
-		public static CodeFormatDescription CodeFormatDescription {
-			get {
-				XmlReaderSettings settings = new XmlReaderSettings ();
-				settings.CloseInput = true;
-				using (XmlReader reader = XmlTextReader.Create (typeof (CSharpFormattingPolicy).Assembly.GetManifestResourceStream ("CSharpFormattingPolicy.xml"), settings)) {
-					return CodeFormatDescription.Read (reader);
-				}
-			}
-		}
+		CSharpFormattingPolicyPanelWidget panel;
 		
 		public override Widget CreatePanelWidget ()
 		{
-			panel = new TypedCodeFormattingPolicyPanelWidget<CSharpFormattingPolicy> ();
-			return panel;
+			return panel = new CSharpFormattingPolicyPanelWidget ();
 		}
 		
-		CSharpFormattingPolicy policy;
 		protected override void LoadFrom (CSharpFormattingPolicy policy)
 		{
-			this.policy = policy.Clone ();
-			panel.SetFormat (CodeFormatDescription, this.policy);
+			panel.Policy = policy.Clone ();
 		}
 		
 		protected override CSharpFormattingPolicy GetPolicy ()
 		{
-			return policy;
+			return panel.Policy;
 		}
 	}
 }

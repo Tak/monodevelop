@@ -32,7 +32,6 @@ using MonoDevelop.Core;
 using MonoDevelop.Ide.CodeCompletion;
 using MonoDevelop.Ide.Gui.Content;
 using MonoDevelop.Projects.Dom.Parser;
-using MonoDevelop.Ide.CodeCompletion;
 
 namespace MonoDevelop.Projects.Gui
 {
@@ -65,7 +64,11 @@ namespace MonoDevelop.Projects.Gui
 			{
 				return null;
 			}
-			
+			public CodeCompletionContext CurrentCodeCompletionContext {
+				get {
+					return null;
+				}
+			}
 			public string GetCompletionText (CodeCompletionContext ctx)
 			{
 				return "";
@@ -75,6 +78,12 @@ namespace MonoDevelop.Projects.Gui
 			{
 				this.CompletedWord = complete_word;
 			}
+			
+			public void SetCompletionText (CodeCompletionContext ctx, string partial_word, string complete_word, int offset)
+			{
+				this.CompletedWord = complete_word;
+			}
+			
 			public void Replace (int offset, int count, string text)
 			{
 			}
@@ -375,6 +384,21 @@ namespace MonoDevelop.Projects.Gui
 		}
 		
 		[Test()]
+		public void TestAutoCompleteFileNames ()
+		{
+			string output = RunSimulation ("", "Doc.cs ", true, true, true, "Document.cs");
+
+			Assert.AreEqual ("Document.cs", output);
+			
+			output = RunSimulation ("", "cwid.cs ", true, true, true,
+				"Test.txt",
+				"CompletionWidget.cs", 
+				"CommandWindow.cs");
+
+			Assert.AreEqual ("CompletionWidget.cs", output);
+		}
+		
+		[Test()]
 		public void TestAutoCompleteEmptyMatchOff ()
 		{
 			string output = RunSimulation ("", " ", true, true, false,
@@ -416,14 +440,11 @@ namespace MonoDevelop.Projects.Gui
 			string output = RunSimulation ("", "/\n", true, false, false, punctuationData);
 			Assert.AreEqual ("/AbAb", output);
 			
-			output = RunSimulation ("", ".\n", true, false, false, punctuationData);
-			Assert.AreEqual ("AbAb", output);
-			
 			output = RunSimulation ("", "A\n", true, false, false, punctuationData);
 			Assert.AreEqual ("AbAb", output);
 			
-			output = RunSimulation ("", ",A.b\n", true, false, false, punctuationData);
-			Assert.AreEqual (",A.bAb", output);
+			output = RunSimulation ("", ",A..\n", true, false, false, punctuationData);
+			Assert.AreEqual (",A..bAb", output);
 		}
 		
 		[Test]
@@ -538,7 +559,7 @@ namespace MonoDevelop.Projects.Gui
 		[Test]
 		public void TestBug543984 ()
 		{
-			string output = RunSimulation ("", "foo b ", true, true, false, "foo bar", "foo bar baz");
+			string output = RunSimulation ("", "foo b\n", true, true, false, "foo bar", "foo bar baz");
 			Assert.AreEqual ("foo bar", output);
 		}
 		
@@ -563,6 +584,29 @@ namespace MonoDevelop.Projects.Gui
 		{
 			string output = RunSimulation ("", "DOB ", true, true, false, "DynamicObject", "DynamicObjectBase");
 			Assert.AreEqual ("DynamicObjectBase", output);
+		}
+		
+		/// <summary>
+		/// Bug 629361 - Exact completion matches should take account of case
+		/// </summary>
+		[Test]
+		public void TestBug629361 ()
+		{
+			string output = RunSimulation ("", "unit\t", true, true, false, "Unit", "unit");
+			Assert.AreEqual ("unit", output);
+		}
+				
+		[Test]
+		public void TestSubstringMatch ()
+		{
+			string output = RunSimulation ("", "comcoll\n", true, true, false, "CustomCommandCollection");
+			Assert.AreEqual ("CustomCommandCollection", output);
+			
+			output = RunSimulation ("", "cuscoll\n", true, true, false, "CustomCommandCollection");
+			Assert.AreEqual ("CustomCommandCollection", output);
+			
+			output = RunSimulation ("", "commandcollection\n", true, true, false, "CustomCommandCollection");
+			Assert.AreEqual ("CustomCommandCollection", output);
 		}
 		
 		[TestFixtureSetUp] 

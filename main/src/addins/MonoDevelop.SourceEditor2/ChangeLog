@@ -1,3 +1,41 @@
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorView.cs:
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: Optimized
+	  document loading.
+
+2010-07-20  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/AutoSave.cs:
+	* MonoDevelop.SourceEditor/SourceEditorView.cs:
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: Auto save
+	  thread is now shared.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorView.cs: Moved the
+	  SetCaretTo to the mono.texteditor.
+
+2010-07-16  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/ExtensibleTextEditor.cs: Track API
+	  changes.
+
+2010-07-15  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorView.cs: Track API
+	  changes.
+
+2010-07-15  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: added null
+	  check.-
+
+2010-07-14  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: fixed 'Bug
+	  622214 - NullReferenceException when closing file tab'.
+
 2010-07-13  Michael Hutchinson  <mhutchinson@novell.com>
 
 	* MonoDevelop.SourceEditor/SourceEditorView.cs: Unsubscribe
@@ -9,6 +47,51 @@
 
 	* MonoDevelop.SourceEditor/SourceEditorView.cs:
 	  Also respond to FileService events.
+
+2010-07-13  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* gtk-gui/gui.stetic:
+	* gtk-gui/objects.xml:
+	* MonoDevelop.SourceEditor.csproj:
+	* MonoDevelop.SourceEditor/NavigationBar.cs:
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs:
+	* MonoDevelop.SourceEditor/SourceEditorOptions.cs:
+	* MonoDevelop.SourceEditor/ISourceEditorOptions.cs:
+	* MonoDevelop.SourceEditor/ExtensibleTextEditor.cs:
+	* MonoDevelop.SourceEditor/DropDownBoxListWindow.cs:
+	* MonoDevelop.SourceEditor/NavigationBarCommands.cs:
+	* MonoDevelop.SourceEditor/StyledSourceEditorOptions.cs:
+	* MonoDevelop.SourceEditor.OptionPanels/GeneralOptionsPanel.cs:
+	* gtk-gui/MonoDevelop.SourceEditor.OptionPanels.GeneralOptionsPanel.cs:
+	  Removed old unused quick finder code/moved dropdownbox to
+	  components.
+
+2010-07-13  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: Replaced
+	  custom workerthread with
+	  system.compontentmodel.backgroundworker.
+
+2010-07-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.SourceEditor/ExtensibleTextEditor.cs: Track
+	  ProjectDomService/Parser API.
+
+2010-07-12  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: Handled some
+	  potential threading issues.-
+
+2010-07-12  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: Track API
+	  changes.
+
+2010-07-08  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.SourceEditor/SourceEditorWidget.cs: Simplified
+	  call.
 
 2010-07-06  Mike Krüger  <mkrueger@novell.com>
 

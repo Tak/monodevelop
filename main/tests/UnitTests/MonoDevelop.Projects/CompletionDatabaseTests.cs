@@ -74,7 +74,7 @@ namespace MonoDevelop.Projects
 			string tfile = mainProject.Project.GetAbsoluteChildPath (targetRelativePath);
 			string sfile = mainProject.Project.GetAbsoluteChildPath (sourceRelativePath);
 			File.Copy (sfile, tfile, true);
-			ProjectDomService.Parse (tfile, null, null);
+			ProjectDomService.Parse (tfile, null);
 		}
 
 		[Test]
@@ -295,6 +295,32 @@ namespace MonoDevelop.Projects
 			Assert.AreEqual (5, types.Count);
 		}
 		
+			
+		[Test]
+		public void GetInheritanceTreeForEnumsAndStructs ()
+		{
+			IType type = mainProject.GetType ("CompletionDbTest.TestEnum", false);
+			
+			List<string> types = new List<string> ();
+			foreach (IType t in mainProject.GetInheritanceTree (type)) {
+				Console.WriteLine (t.FullName);
+				types.Add (t.FullName);
+			}
+			
+			Assert.IsTrue (types.Contains ("CompletionDbTest.TestEnum"));
+			Assert.IsTrue (types.Contains ("System.Enum"));
+			Assert.IsTrue (types.Contains ("System.Object"));
+			
+			type = mainProject.GetType ("CompletionDbTest.TestStruct", false);
+			
+			types = new List<string> ();
+			foreach (IType t in mainProject.GetInheritanceTree (type))
+				types.Add (t.FullName);
+			
+			Assert.IsTrue (types.Contains ("CompletionDbTest.TestStruct"));
+			Assert.IsTrue (types.Contains ("System.ValueType"));
+			Assert.IsTrue (types.Contains ("System.Object"));
+		}
 		[Test]
 		public void GetNamespaceContents ()
 		{
@@ -789,6 +815,17 @@ namespace MonoDevelop.Projects
 			
 			type = mainProject.GetType ("CompletionDbTest.PartialTest");
 			Assert.IsNull (type);
+		}
+		
+		[Test]
+		public void NamespaceExistsTest ()
+		{
+			Assert.IsTrue (mainProject.NamespaceExists ("Level1"), "Level1 doesn't exist.");
+			Assert.IsTrue (mainProject.NamespaceExists ("Level1.Level2"), "Level1.Level2 doesn't exist.");
+			Assert.IsTrue (mainProject.NamespaceExists ("Level1.Level2.Level3"), "Level1.Level2.Level3 doesn't exist.");
+			Assert.IsTrue (mainProject.NamespaceExists ("Level1.Level2.Level3.Level4"), "Level1.Level2.Level3.Level4 doesn't exist.");
+			Assert.IsFalse (mainProject.NamespaceExists ("Level1.Level2.Level3.Level4.Level5"), "Level5 shouldn't exist.");
+			Assert.IsFalse (mainProject.NamespaceExists ("Level1.Level3"), "level1.level3 shouldn't exist.");
 		}
 	}
 }

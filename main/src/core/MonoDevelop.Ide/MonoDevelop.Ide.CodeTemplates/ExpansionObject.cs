@@ -34,6 +34,7 @@ using MonoDevelop.Projects.Dom;
 using MonoDevelop.Projects.Dom.Parser;
 using MonoDevelop.Projects.Dom.Output;
 using Mono.TextEditor.PopupWindow;
+using Mono.TextEditor;
 
 namespace MonoDevelop.Ide.CodeTemplates
 {
@@ -53,7 +54,7 @@ namespace MonoDevelop.Ide.CodeTemplates
 			set;
 		}
 		
-		public DomLocation InsertPosition {
+		public DocumentLocation InsertPosition {
 			get;
 			set;
 		}
@@ -96,6 +97,20 @@ namespace MonoDevelop.Ide.CodeTemplates
 			return type.Name;
 		}
 		
+		public string GetConstructorModifier ()
+		{
+			Console.WriteLine (CurrentContext);
+			Console.WriteLine ("doc:" + CurrentContext.ParsedDocument);
+			if (CurrentContext.ParsedDocument == null)
+				return null;
+			IType type = CurrentContext.ParsedDocument.CompilationUnit.GetTypeAt (CurrentContext.InsertPosition.Line, CurrentContext.InsertPosition.Column);
+			Console.WriteLine ("pos:" + CurrentContext.InsertPosition);
+			Console.WriteLine ("type:" + type);
+			if (type == null)
+				return "";
+			return type.IsStatic ? "static " : "public ";
+		}
+		
 		public string GetLengthProperty (Func<string, string> callback, string varName)
 		{
 			if (callback == null)
@@ -105,7 +120,7 @@ namespace MonoDevelop.Ide.CodeTemplates
 			
 			ITextEditorResolver textEditorResolver = CurrentContext.Document.GetContent <ITextEditorResolver> ();
 			if (textEditorResolver != null) {
-				ResolveResult result = textEditorResolver.GetLanguageItem (CurrentContext.Document.TextEditor.GetPositionFromLineColumn (CurrentContext.InsertPosition.Line, CurrentContext.InsertPosition.Column), var);
+				ResolveResult result = textEditorResolver.GetLanguageItem (CurrentContext.Document.Editor.Document.LocationToOffset (CurrentContext.InsertPosition.Line, CurrentContext.InsertPosition.Column), var);
 				if (result != null && (result.ResolvedType.ArrayDimensions > 0 || result.ResolvedType.FullName == DomReturnType.String.FullName))
 					return "Length";
 			}
@@ -120,7 +135,7 @@ namespace MonoDevelop.Ide.CodeTemplates
 			string var = callback (varName);
 			ITextEditorResolver textEditorResolver = CurrentContext.Document.GetContent <ITextEditorResolver> ();
 			if (textEditorResolver != null) {
-				ResolveResult result =  textEditorResolver.GetLanguageItem (CurrentContext.Document.TextEditor.CursorPosition, var);
+				ResolveResult result =  textEditorResolver.GetLanguageItem (CurrentContext.Document.Editor.Caret.Offset, var);
 				if (result != null) {
 					IReturnType componentType =  DomType.GetComponentType (CurrentContext.ProjectDom, result.ResolvedType);
 					if (componentType != null) {
@@ -139,7 +154,7 @@ namespace MonoDevelop.Ide.CodeTemplates
 			var ext = CurrentContext.Document.GetContent <CompletionTextEditorExtension> ();
 			if (ext != null) {
 				if (list == null)
-					list = ext.CodeCompletionCommand (CurrentContext.Document.TextEditor.CurrentCodeCompletionContext);
+					list = ext.CodeCompletionCommand (CurrentContext.Document.GetContent <MonoDevelop.Ide.CodeCompletion.ICompletionWidget> ().CurrentCodeCompletionContext);
 				
 				foreach (object o in list) {
 					MonoDevelop.Ide.CodeCompletion.MemberCompletionData data = o as MonoDevelop.Ide.CodeCompletion.MemberCompletionData;
@@ -183,7 +198,7 @@ namespace MonoDevelop.Ide.CodeTemplates
 			if (CurrentContext.ParsedDocument == null)
 				return fullTypeName;
 			
-			return CurrentContext.ParsedDocument.CompilationUnit.ShortenTypeName (new DomReturnType (fullTypeName), CurrentContext.InsertPosition).FullName;
+			return CurrentContext.ParsedDocument.CompilationUnit.ShortenTypeName (new DomReturnType (fullTypeName), CurrentContext.InsertPosition.Line, CurrentContext.InsertPosition.Column).FullName;
 		}
 		
 		static Regex functionRegEx = new Regex ("([^(]*)\\(([^(]*)\\)", RegexOptions.Compiled);
@@ -195,6 +210,7 @@ namespace MonoDevelop.Ide.CodeTemplates
 				return new string[] {
 					"",
 					"GetCurrentClassName()",
+					"GetConstructorModifier()",
 					"GetSimpleTypeName(\"LongName\")",
 					"GetLengthProperty(\"Var\")",
 					"GetComponentTypeOf(\"Var\")",
@@ -215,6 +231,9 @@ namespace MonoDevelop.Ide.CodeTemplates
 				return GetCollections ();
 			case "GetCurrentClassName":
 				return new CodeTemplateListDataProvider (GetCurrentClassName ());
+			case "GetConstructorModifier":
+				return new CodeTemplateListDataProvider (GetConstructorModifier ());
+				
 			case "GetSimpleTypeName":
 				return new CodeTemplateListDataProvider (GetSimpleTypeName (match.Groups[2].Value.Trim ('"')));
 			case "GetLengthProperty":

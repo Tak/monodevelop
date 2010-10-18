@@ -2,12 +2,13 @@ include config.make
 installdir = "$(prefix)/lib/monodevelop/AddIns/MonoDevelop.IPhone"
 conf=Debug
 SLN=MonoDevelop.IPhone.sln
-VERBOSITY=quiet
+VERBOSITY=normal
 XBUILD_ARGS=/verbosity:$(VERBOSITY) /nologo
 
-ISLOCAL := $(wildcard "../local-config/monodevelop.pc")
-ifeq ($(strip $(ISLOCAL)),)
-	LOCAL_CONFIG="`pwd`/../../local-config"
+srcdir_abs=$(shell pwd)
+LOCAL_CONFIG=$(srcdir_abs)/../../local-config
+
+ifeq ($(strip $(wildcard "${LOCAL_CONFIG}/monodevelop.pc")),)
 	XBUILD=PKG_CONFIG_PATH="${LOCAL_CONFIG}:${PKG_CONFIG_PATH}" xbuild $(XBUILD_ARGS)
 else
 	XBUILD=xbuild $(XBUILD_ARGS)
@@ -17,6 +18,7 @@ all:
 	$(XBUILD) $(SLN) /property:Configuration=$(conf)
 
 clean:
+	$(XBUILD) $(SLN) /property:Configuration=$(conf) /t:Clean
 	rm -rf build/*
 
 install: all

@@ -50,7 +50,14 @@ namespace MonoDevelop.Projects.Dom
 				return genericArguments.AsReadOnly ();
 			}
 		}
-		
+		public virtual string HelpUrl {
+			get {
+				if (GenericArguments.Count == 0)
+					return Name;
+				return Name + "`" + GenericArguments.Count;
+			}
+		}
+
 		public bool IsGenerated {
 			get;
 			set;
@@ -160,10 +167,29 @@ namespace MonoDevelop.Projects.Dom
 		public static readonly IReturnType EventArgs;
 		public static readonly IReturnType StringBuilder;
 		public static readonly IReturnType TypeReturnType;
+		
+		public static readonly IReturnType Enum;
+		public static readonly IReturnType ValueType;
 	
 		public bool IsGenerated {
 			get;
 			set;
+		}
+		
+		public string HelpUrl {
+			get {
+				
+				StringBuilder result = new StringBuilder ();
+				result.Append ("T:");
+				if (!string.IsNullOrEmpty (Namespace))
+					result.Append (Namespace);
+				for (int i = 0; i < parts.Count; i++) {
+					if (result.Length > "T:".Length)
+						result.Append (".");
+					result.Append (parts[i].HelpUrl);
+				}
+				return result.ToString ();
+			}
 		}
 		
 		public object Tag {
@@ -234,6 +260,8 @@ namespace MonoDevelop.Projects.Dom
 			CreateTableEntry ("Gtk.Label");
 			
 			Delegate = CreateTableEntry ("System.Delegate");
+			Enum = CreateTableEntry ("System.Enum");
+			ValueType = CreateTableEntry ("System.ValueType");
 		}
 
 		public List<IReturnTypePart> Parts {

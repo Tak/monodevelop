@@ -41,7 +41,7 @@ namespace MonoDevelop.Ide.Gui.Content
 {
 	public class TextEditorExtension : ITextEditorExtension, ICommandRouter
 	{
-		internal Document document;
+		internal protected Document document;
 		
 		internal protected void Initialize (Document document)
 		{
@@ -57,15 +57,11 @@ namespace MonoDevelop.Ide.Gui.Content
 		protected Document Document {
 			get { return document; }
 		}
-		
-		protected TextEditor Editor {
-			get { return document.TextEditor; }
+
+		protected TextEditorData Editor {
+			get { return document.Editor; }
 		}
-		
-		protected TextEditorData TextEditorData {
-			get { return document.TextEditorData; }
-		}
-		
+
 		protected FilePath FileName {
 			get {
 				IViewContent view = document.Window.ViewContent;

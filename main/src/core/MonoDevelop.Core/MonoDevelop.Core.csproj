@@ -21,6 +21,7 @@
     <Execution>
       <Execution clr-version="Net_2_0" />
     </Execution>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -40,16 +41,24 @@
     <Reference Include="System.Runtime.Remoting" />
     <Reference Include="Mono.Addins.Setup, Version=0.4.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
       <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System.Configuration" />
     <Reference Include="Mono.Addins, Version=0.4.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
       <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib" />
-    <Reference Include="monodoc, Version=1.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756" />
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="monodoc, Version=1.0.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
+      <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MonoDevelop.Core\StringParserService.cs" />
@@ -384,7 +393,6 @@
     <Compile Include="MonoDevelop.Projects.Dom.Serialization\ProjectCodeCompletionDatabase.cs" />
     <Compile Include="MonoDevelop.Projects.Dom.Serialization\SimpleCodeCompletionDatabase.cs" />
     <Compile Include="MonoDevelop.Projects.Dom.Serialization\FileEntry.cs" />
-    <Compile Include="MonoDevelop.Projects.Dom.Serialization\NamespaceEntry.cs" />
     <Compile Include="MonoDevelop.Projects.Dom.Serialization\DomTypeProxy.cs" />
     <Compile Include="MonoDevelop.Projects.Dom.Serialization\DatabaseProjectDom.cs" />
     <Compile Include="MonoDevelop.Projects.Dom.Serialization\ParserDatabase.cs" />
@@ -477,6 +485,12 @@
     <Compile Include="MonoDevelop.Projects.CodeGeneration\CodeGenerator.cs" />
     <Compile Include="MonoDevelop.Projects.CodeGeneration\MimeTypeExtensionNode.cs" />
     <Compile Include="MonoDevelop.Core.Execution\ExecutionEnvironment.cs" />
+    <Compile Include="MonoDevelop.Projects.Extensions\ParserNode.cs" />
+    <Compile Include="MonoDevelop.Projects\AuthorInformation.cs" />
+    <Compile Include="MonoDevelop.Core.Text\StringMatcher.cs" />
+    <Compile Include="MonoDevelop.Core.Text\LaneStringMatcher.cs" />
+    <Compile Include="MonoDevelop.Core.Text\BacktrackingStringMatcher.cs" />
+    <Compile Include="MonoDevelop.Projects.Text\DocGenerator.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ChangeLog" />
@@ -511,7 +525,7 @@
   <ProjectExtensions>
     <MonoDevelop>
       <Properties>
-        <MonoDevelop.Autotools.MakefileInfo IntegrationEnabled="true" RelativeMakefileName="./Makefile.am" BuildTargetName="" CleanTargetName="" SyncReferences="true" IsAutotoolsProject="true" RelativeConfigureInPath="../../../">
+        <MonoDevelop.Autotools.MakefileInfo IntegrationEnabled="true" RelativeMakefileName="Makefile.am" BuildTargetName="" CleanTargetName="" SyncReferences="true" IsAutotoolsProject="true" RelativeConfigureInPath="../../../">
           <BuildFilesVar Sync="true" Name="FILES" />
           <DeployFilesVar />
           <ResourcesVar Sync="true" Name="RES" />
@@ -528,6 +542,7 @@
     <Folder Include="frameworks\" />
     <Folder Include="MonoDevelop.Core.Instrumentation\" />
     <Folder Include="MonoDevelop.Core.StringParsing\" />
+    <Folder Include="MonoDevelop.Core.Text\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\..\contrib\Mono.Cecil\Mono.Cecil.csproj">

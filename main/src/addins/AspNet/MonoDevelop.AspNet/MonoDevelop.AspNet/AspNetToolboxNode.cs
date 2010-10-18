@@ -106,7 +106,7 @@ namespace MonoDevelop.AspNet
 		public void InsertAtCaret (MonoDevelop.Ide.Gui.Document document)
 		{
 			var tag = GetTextWithDirective (document, true);
-			document.TextEditor.InsertText (document.TextEditor.CursorPosition, tag);
+			document.Editor.InsertAtCaret (tag);
 		}
 		
 		string GetTextWithDirective (MonoDevelop.Ide.Gui.Document document, bool insertDirective)
@@ -148,7 +148,7 @@ namespace MonoDevelop.AspNet
 			tag = string.Format (tag, prefix);
 			
 			if (directive != null && insertDirective)
-				refMan.AddRegisterDirective (directive, document.TextEditor, true);
+				refMan.AddRegisterDirective (directive, document.Editor, true);
 			
 			return tag;
 		}

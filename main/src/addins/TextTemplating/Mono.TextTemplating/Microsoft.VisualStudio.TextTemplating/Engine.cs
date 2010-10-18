@@ -34,10 +34,9 @@ using Mono.TextTemplating;
 
 namespace Microsoft.VisualStudio.TextTemplating
 {
-	
-	
 	public class Engine : ITextTemplatingEngine
 	{
+		TemplatingEngine engine = new TemplatingEngine ();
 		
 		public Engine ()
 		{
@@ -45,22 +44,15 @@ namespace Microsoft.VisualStudio.TextTemplating
 		
 		public string ProcessTemplate (string content, ITextTemplatingEngineHost host)
 		{
-			AppDomain appdomain = host.ProvideTemplatingAppDomain (content);
-			ITextTemplatingEngine engine;
-			if (appdomain != null) {
-				engine = (ITextTemplatingEngine)
-					appdomain.CreateInstanceAndUnwrap (typeof (TemplatingEngine).Assembly.FullName,
-					                                   typeof (TemplatingEngine).FullName);
-			} else {
-				engine = new TemplatingEngine ();
-			}
-			
 			return engine.ProcessTemplate (content, host);
 		}
-	}
-	
-	public interface ITextTemplatingEngine
-	{
-		string ProcessTemplate (string content, ITextTemplatingEngineHost host);
+		
+		public string PreprocessTemplate (string content, ITextTemplatingEngineHost host, string className, 
+			string classNamespace, out string language, out string[] references)
+		{
+			return engine.PreprocessTemplate (content, host, className, classNamespace, out language, out references);
+		}
+		
+		public const string CacheAssembliesOptionString = "CacheAssemblies";
 	}
 }

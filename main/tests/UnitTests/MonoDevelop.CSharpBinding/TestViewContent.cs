@@ -43,8 +43,13 @@ namespace MonoDevelop.CSharpBinding.Tests
 				return null;
 			}
 		}
-		
-		public TestViewContent ()
+		public TextEditorData Data {
+			get {
+				return this.data;
+			}
+		}
+
+		public TestViewContent ()
 		{
 			document = new Mono.TextEditor.Document ();
 			data = new TextEditorData (document);
@@ -55,9 +60,10 @@ namespace MonoDevelop.CSharpBinding.Tests
 		{
 		}
 		
+		FilePath name;
 		public FilePath Name { 
-			get;
-			set;
+			get { return name; }
+			set { name =  document.FileName = value; }
 		}
 		
 		public int LineCount {
@@ -104,14 +110,14 @@ namespace MonoDevelop.CSharpBinding.Tests
 		
 		public int GetPositionFromLineColumn (int line, int column)
 		{
-			return document.LocationToOffset (line - 1, column - 1);
+			return document.LocationToOffset (line, column);
 		}
 		
 		public void GetLineColumnFromPosition (int position, out int line, out int column)
 		{
 			DocumentLocation loc = document.OffsetToLocation (position);
-			line = loc.Line + 1;
-			column = loc.Column + 1;
+			line = loc.Line;
+			column = loc.Column;
 		}
 		
 		public string SelectedText { get { return ""; } set { } }

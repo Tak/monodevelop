@@ -1,3 +1,131 @@
+2010-07-30  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Refactoring/FindMemberAstVisitor.cs: Used
+	  fast text search.
+
+2010-07-28  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Resolver/NRefactoryResolver.cs:
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	  Fixed 'Bug 625064 - Internal classes aren't suggested for
+	  completion'.
+
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Highlighting/HighlightUsagesExtension.cs:
+	  fixed highlight usages extension.
+
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Resolver/NewCSharpExpressionFinder.cs:
+	* MonoDevelop.CSharp.Resolver/TextEditorResolverProvider.cs:
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	  No longer transform the editor contents to text when using
+	  the expression finder - the expression finder now uses the
+	  text editor directly.
+
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Highlighting/CSharpSyntaxMode.cs: Added
+	  check for #else span.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Resolver/NRefactoryResolver.cs:
+	* MonoDevelop.CSharp.Refactoring/CSharpRefactorer.cs:
+	* MonoDevelop.CSharp.Refactoring/FindMemberAstVisitor.cs:
+	* MonoDevelop.CSharp.Highlighting/HighlightUsagesExtension.cs:
+	  Worked on text edior performance issues / needed to
+	  restructure the resolver/member reference collector a bit.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Parser/NRefactoryParser.cs: Don't parse
+	  method bodies for the MonoDevelop dom (skipping these is
+	  much faster & more memory efficient).
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Highlighting/CSharpSyntaxMode.cs: Track
+	  API changes.
+
+2010-07-21  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Parser/CSharpParser.cs: Updated to new
+	  mcs.
+
+2010-07-19  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Resolver/NRefactoryResolver.cs: Fixed
+	  'Bug 623308 - ArgumentOutOfRangeException after typing ( for
+	  method params'.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Parser/NRefactoryParser.cs:
+	* MonoDevelop.CSharp.Highlighting/CSharpSyntaxMode.cs:
+	* MonoDevelop.CSharp.Highlighting/MoveToUsagesHandler.cs:
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	* MonoDevelop.CSharp.Highlighting/HighlightUsagesExtension.cs:
+	* MonoDevelop.CSharp.Formatting/CSharpTextEditorIndentation.cs:
+	  Track API changes.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Parser/NRefactoryParser.cs:
+	* MonoDevelop.CSharp.Resolver/NRefactoryResolver.cs:
+	* MonoDevelop.CSharp.Resolver/NewCSharpExpressionFinder.cs:
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	* MonoDevelop.CSharp.Highlighting/HighlightUsagesExtension.cs:
+	* MonoDevelop.CSharp.Formatting/CSharpTextEditorIndentation.cs:
+	* MonoDevelop.CSharp.Completion/NRefactoryParameterDataProvider.cs:
+	* MonoDevelop.CSharp.Completion/NRefactoryIndexerParameterDataProvider.cs:
+	* MonoDevelop.CSharp.Completion/NRefactoryTemplateParameterDataProvider.cs:
+	  Track API changes.
+
+2010-07-17  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Highlighting/CSharpSyntaxMode.cs: Track
+	  API changes.
+
+2010-07-16  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Highlighting/CSharpSyntaxMode.cs:
+	* MonoDevelop.CSharp.Resolver/TextEditorResolverProvider.cs:
+	  Track API changes.
+
+2010-07-15  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	* MonoDevelop.CSharp.Completion/NRefactoryParameterDataProvider.cs:
+	* MonoDevelop.CSharp.Completion/NRefactoryIndexerParameterDataProvider.cs:
+	* MonoDevelop.CSharp.Completion/NRefactoryTemplateParameterDataProvider.cs:
+	  Worked on 'Bug 621658 - Parameter hints disappear
+	  afterkeystroke'.
+
+2010-07-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* CSharpBinding.addin.xml:
+	* MonoDevelop.CSharp.Parser/NRefactoryParser.cs:
+	* MonoDevelop.CSharp.Resolver/TextEditorResolverProvider.cs:
+	  Track ProjectDomService/Parser API.
+
+2010-07-12  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.CSharp.Dom/CSharpAmbience.cs:
+	* MonoDevelop.CSharp.Resolver/TextEditorResolverProvider.cs:
+	* MonoDevelop.CSharp.Completion/NRefactoryParameterDataProvider.cs:
+	  Enhanced support for keyword like names.
+
+2010-07-08  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* CSharpBinding.csproj:
+	* MonoDevelop.CSharp.Completion/DropDownBoxListWindow.cs:
+	* MonoDevelop.CSharp.Completion/CSharpTextEditorCompletion.cs:
+	* MonoDevelop.CSharp.Completion/EventCreationCompletionData.cs:
+	  Worked on version control gui.
+
 2010-07-07  Mike Krüger  <mkrueger@novell.com>
 
 	* MonoDevelop.CSharp.Formatting/CSharpIndentEngineStack.cs:

@@ -37,10 +37,8 @@ using MonoDevelop.Core;
 
 namespace MonoDevelop.TextTemplating
 {
-	
-	
 	public static class TextTemplatingService
-	{	
+	{
 		public static void ShowTemplateHostErrors (CompilerErrorCollection errors)
 		{
 			if (errors.Count == 0)
@@ -62,6 +60,9 @@ namespace MonoDevelop.TextTemplating
 				var dir = Path.GetDirectoryName (typeof (TemplatingEngine).Assembly.Location);
 				var info = new AppDomainSetup () {
 					ApplicationBase = dir,
+					DisallowBindingRedirects = false,
+					DisallowCodeDownload = true,
+					ConfigurationFile = AppDomain.CurrentDomain.SetupInformation.ConfigurationFile,
 				};
 				domain = new RecyclableAppDomain ("T4Domain", info);
 			}
@@ -72,7 +73,7 @@ namespace MonoDevelop.TextTemplating
 	public class RecyclableAppDomain
 	{
 		const int DOMAIN_TIMEOUT = 2 * 60 * 1000;
-		const int DOMAIN_RECYCLE_AFTER = 10;
+		const int DOMAIN_RECYCLE_AFTER = 25;
 		
 		int handleCount = 0;
 		int uses = 0;
@@ -85,7 +86,7 @@ namespace MonoDevelop.TextTemplating
 			//FIXME: do we really want to allow resolving arbitrary MD assemblies?
 			// some things do depend on this behaviour, but maybe some kind of explicit registration system 
 			// would be better, so we can prevent accidentally pulling in unwanted assemblies
-			domain.AssemblyResolve += new Mono.TextTemplating.CrossAppDomainAssemblyResolver ().Resolve;
+			//domain.AssemblyResolve += new Mono.TextTemplating.CrossAppDomainAssemblyResolver ().Resolve;
 		}
 		
 		public bool Used { get; private set; }
@@ -135,6 +136,28 @@ namespace MonoDevelop.TextTemplating
 						parent.Kill ();
 					parent = null;
 				}
+			}
+			
+			
+			public void LoadAssembly (System.Reflection.Assembly assembly)
+			{
+				Domain.DoCallBack (new DomainAssemblyLoader (assembly.Location).Load);
+			}
+		}
+		
+		[Serializable]
+		class DomainAssemblyLoader
+		{
+			string assemblyFile;
+			
+			public DomainAssemblyLoader (string assemblyFile)
+			{
+				this.assemblyFile = assemblyFile;
+			}
+			
+			public void Load ()
+			{
+				System.Reflection.Assembly.LoadFrom (assemblyFile);
 			}
 		}
 	}

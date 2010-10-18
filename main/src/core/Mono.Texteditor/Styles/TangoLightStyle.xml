@@ -56,6 +56,7 @@
 	<!-- color styles -->
 	<Style name="text" color="black" bgColor="white">
 		<Style name="background" color="white">
+			<Style name="readonly" color="#fAfAf8"/>
 			<Style name="searchresult-main" color="#f3d647"/>
 			<Style name="searchresult" color="#ffe2b9"/>
 		</Style>
@@ -70,6 +71,10 @@
 		<Style name="markup" color="skyblue3">
 			<Style name="tag"/>
 		</Style>
+	</Style>
+	
+	<Style name="template" color ="black" bgColor="#fdfaed">
+		<Style name="tag" color ="black" bgColor="#fdf0bd"/>
 	</Style>
 	
 	<Style name="diff">
@@ -93,7 +98,9 @@
 		<Style name="line.dirty" color="butter2"/>
 	
 		<Style name="ruler" color="aluminium3"/>
-		<Style name="whitespace" color="aluminium3"/>
+		<Style name="whitespace" color="aluminium3"> 
+			<Style name="eol" color="aluminium2"/> 
+		</Style>
 		<Style name="invalidline" color="scarletred2"/>
 		<Style name="bracket" color="aluminium2" bgColor="aluminium1"/>
 		

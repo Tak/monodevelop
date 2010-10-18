@@ -39,6 +39,10 @@ using MonoDevelop.Ide.CodeCompletion;
 using MonoDevelop.Xml.StateEngine;
 using MonoDevelop.XmlEditor.Completion;
 using MonoDevelop.Ide;
+using MonoDevelop.Components;
+using Gtk;
+using System.Linq;
+using System.Text;
 
 namespace MonoDevelop.XmlEditor.Gui
 {
@@ -65,7 +69,7 @@ namespace MonoDevelop.XmlEditor.Gui
 		{
 			base.Initialize ();
 			Parser parser = new Parser (CreateRootState (), false);
-			tracker = new DocumentStateTracker<Parser> (parser, TextEditorData);
+			tracker = new DocumentStateTracker<Parser> (parser, Editor);
 			MonoDevelop.Projects.Dom.Parser.ProjectDomService.ParsedDocumentUpdated += OnParseInformationChanged;
 			
 			if (Document.ParsedDocument != null) {
@@ -170,26 +174,50 @@ namespace MonoDevelop.XmlEditor.Gui
 		{
 		}
 		
+		public override bool KeyPress (Gdk.Key key, char keyChar, Gdk.ModifierType modifier)
+		{
+			if (TextEditorProperties.IndentStyle == IndentStyle.Smart) {
+				var newLine = Editor.Caret.Line + 1;
+				var ret = base.KeyPress (key, keyChar, modifier);
+				if (key == Gdk.Key.Return && Editor.Caret.Line == newLine) {
+					string indent = GetLineIndent (newLine);
+					var oldIndent = Editor.GetLineIndent (newLine);
+					var seg = Editor.GetLine (newLine);
+					if (oldIndent != indent) {
+						int newCaretOffset = Editor.Caret.Offset;
+						if (newCaretOffset > seg.Offset) {
+							newCaretOffset += (indent.Length - oldIndent.Length);
+						}
+						Editor.Document.BeginAtomicUndo ();
+						Editor.Replace (seg.Offset, oldIndent.Length, indent);
+						Editor.Caret.Offset = newCaretOffset;
+						Editor.Document.EndAtomicUndo ();
+					}
+				}
+				return ret;
+			}
+			return base.KeyPress (key, keyChar, modifier);
+		}
+		
 		#region Code completion
 
 		public override ICompletionDataList CodeCompletionCommand (CodeCompletionContext completionContext)
 		{
 			int pos = completionContext.TriggerOffset;
-			string txt = Editor.GetText (pos - 1, pos);
+			if (pos <= 0)
+				return null;
 			int triggerWordLength = 0;
 			
-			if (txt.Length > 0) {
-				tracker.UpdateEngine ();
-				return HandleCodeCompletion ((CodeCompletionContext) completionContext, true, ref triggerWordLength);
-			}
-			return null;
+			tracker.UpdateEngine ();
+			return HandleCodeCompletion ((CodeCompletionContext) completionContext, true, ref triggerWordLength);
 		}
 
 		public override ICompletionDataList HandleCodeCompletion (
 		    CodeCompletionContext completionContext, char completionChar, ref int triggerWordLength)
 		{
 			int pos = completionContext.TriggerOffset;
-			if (pos > 0 && Editor.GetCharAt (pos - 1) == completionChar) {
+			char ch = CompletionWidget != null ? CompletionWidget.GetChar (pos - 1) : Editor.GetCharAt (pos - 1);
+			if (pos > 0 && ch == completionChar) {
 				tracker.UpdateEngine ();
 				return HandleCodeCompletion ((CodeCompletionContext) completionContext, 
 				                             false, ref triggerWordLength);
@@ -387,6 +415,44 @@ namespace MonoDevelop.XmlEditor.Gui
 			return null;
 		}
 		
+		protected string GetLineIndent (int line)
+		{
+			var seg = Editor.Document.GetLine (line);
+			
+			//reset the tracker to the beginning of the line
+			Tracker.UpdateEngine (seg.Offset);
+			
+			//calculate the indentation
+			var startElementDepth = GetElementIndentDepth (Tracker.Engine.Nodes);
+			var attributeDepth = GetAttributeIndentDepth (Tracker.Engine.Nodes);
+			
+			//update the tracker to the end of the line 
+			Tracker.UpdateEngine (seg.Offset + seg.EditableLength);
+			
+			//if end depth is less than start depth, then reduce start depth
+			//because that means there are closing tags on the line, and they de-indent the line they're on
+			var endElementDepth = GetElementIndentDepth (Tracker.Engine.Nodes);
+			var elementDepth = Math.Min (endElementDepth, startElementDepth);
+			
+			//FIXME: use policies
+			return new string ('\t', elementDepth + attributeDepth);
+		}
+		
+		static int GetElementIndentDepth (NodeStack nodes)
+		{
+			return nodes.OfType<XElement> ().Where (el => !el.IsClosed).Count ();
+		}
+		
+		static int GetAttributeIndentDepth (NodeStack nodes)
+		{
+			var node = nodes.Peek ();
+			if (node is XElement && !node.IsEnded)
+				return 1;
+			if (node is XAttribute)
+				return node.IsEnded? 1 : 2;
+			return 0;
+		}
+		
 		protected IEnumerable<XName> GetParentElementNames (int skip)
 		{
 			foreach (XObject obj in tracker.Engine.Nodes) {
@@ -452,6 +518,9 @@ namespace MonoDevelop.XmlEditor.Gui
 			}
 		}
 		
+		/// <summary>
+		/// Adds CDATA and comment begin tags.
+		/// </summary>
 		protected static void AddMiscBeginTags (CompletionDataList list)
 		{
 			list.Add ("!--",  "md-literal", GettextCatalog.GetString ("Comment"));
@@ -462,10 +531,8 @@ namespace MonoDevelop.XmlEditor.Gui
 		
 		#region IPathedDocument
 		
-		string[] currentPath;
-		int selectedPathIndex;
+		PathEntry[] currentPath;
 		bool pathUpdateQueued = false;
-		
 		
 		public override void CursorPositionChanged ()
 		{
@@ -504,7 +571,7 @@ namespace MonoDevelop.XmlEditor.Gui
 			XElement el = node as XElement;
 			
 			//hoist this as it may not be cheap to evaluate (P/Invoke), but won't be changing during the loop
-			int textLen = Editor.TextLength;
+			int textLen = Editor.Length;
 			
 			//run the parser until the tag's closed, or we move to its sibling or parent
 			if (node != null) {
@@ -547,20 +614,37 @@ namespace MonoDevelop.XmlEditor.Gui
 		
 		protected void EditorSelect (DomRegion region)
 		{
-			int s = Editor.GetPositionFromLineColumn (region.Start.Line, region.Start.Column);
-			int e = Editor.GetPositionFromLineColumn (region.End.Line, region.End.Column);
+			int s = Editor.Document.LocationToOffset (region.Start.Line, region.Start.Column);
+			int e = Editor.Document.LocationToOffset (region.End.Line, region.End.Column);
 			if (s > -1 && e > s) {
-				Editor.Select (s, e);
-				Editor.ShowPosition (s);
+				Editor.SetSelection (s, e);
+				Editor.ScrollTo (s);
 			}
 		}
 		
 		public event EventHandler<DocumentPathChangedEventArgs> PathChanged;
 		
-		protected void OnPathChanged (string[] oldPath, int oldSelectedIndex)
+		public Gtk.Widget CreatePathWidget (int index)
+		{
+			Menu menu = new Menu ();
+			MenuItem mi = new MenuItem (GettextCatalog.GetString ("Select"));
+			mi.Activated += delegate {
+				SelectPath (index);
+			};
+			menu.Add (mi);
+			mi = new MenuItem (GettextCatalog.GetString ("Select contents"));
+			mi.Activated += delegate {
+				SelectPathContents (index);
+			};
+			menu.Add (mi);
+			menu.ShowAll ();
+			return menu;
+		}
+		
+		protected void OnPathChanged (PathEntry[] oldPath)
 		{
 			if (PathChanged != null)
-				PathChanged (this, new DocumentPathChangedEventArgs (oldPath, oldSelectedIndex));
+				PathChanged (this, new DocumentPathChangedEventArgs (oldPath));
 		}
 		
 		protected XName GetCompleteName ()
@@ -571,7 +655,7 @@ namespace MonoDevelop.XmlEditor.Gui
 			int start = end - this.tracker.Engine.CurrentStateLength;
 			int mid = -1;
 			
-			int limit = Math.Min (Editor.TextLength, end + 35);
+			int limit = Math.Min (Editor.Length, end + 35);
 			
 			//try to find the end of the name, but don't go too far
 			for (; end < limit; end++) {
@@ -587,9 +671,9 @@ namespace MonoDevelop.XmlEditor.Gui
 			}
 			
 			if (mid > 0 && end > mid + 1) {
-				return new XName (Editor.GetText (start, mid), Editor.GetText (mid + 1, end));
+				return new XName (Editor.GetTextBetween (start, mid), Editor.GetTextBetween (mid + 1, end));
 			} else {
-				return new XName (Editor.GetText (start, end));
+				return new XName (Editor.GetTextBetween (start, end));
 			}
 		}
 		/*
@@ -639,28 +723,21 @@ namespace MonoDevelop.XmlEditor.Gui
 				return;
 			
 			//build the list
-			string[] path = new string[l.Count];
+			PathEntry[] path = new PathEntry[l.Count];
 			for (int i = 0; i < l.Count; i++) {
 				if (l[i].FriendlyPathRepresentation == null) System.Console.WriteLine(l[i].GetType ());
-				path[i] = l[i].FriendlyPathRepresentation ?? "<>";
+				path[i] = new PathEntry (l[i].FriendlyPathRepresentation ?? "<>");
 			}
 			
-			string[] oldPath = currentPath;
-			int oldIndex = selectedPathIndex;
+			PathEntry[] oldPath = currentPath;
 			currentPath = path;
-			selectedPathIndex = currentPath.Length - 1;
 			
-			OnPathChanged (oldPath, oldIndex);
+			OnPathChanged (oldPath);
 		}
 		
-		public string[] CurrentPath {
+		public PathEntry[] CurrentPath {
 			get { return currentPath; }
 		}
-		
-		public int SelectedIndex {
-			get { return selectedPathIndex; }
-		}
-		
 		#endregion
 		
 		#region IOutlinedDocument

@@ -7,7 +7,8 @@
        description = "XML Editor"
        category    = "IDE extensions"
        version     = "2.4">
-	<Runtime>
+
+	<Runtime>
 		<Import assembly="MonoDevelop.XmlEditor.dll" />
 		<Import file="schemas/appconfig.xsd" />
 		<Import file="schemas/MonoDevelopAddIn.xsd" />
@@ -84,11 +85,8 @@
 	</Extension>
 
 	<!-- XML menu -->
-	<Extension path = "/MonoDevelop/Ide/MainMenu">
-		<ItemSet id = "XmlMenu" 
-		         insertafter = "Run" 
-		         insertbefore = "Tools" 
-		         _label = "_XML" >
+	<Extension path = "/MonoDevelop/Ide/MainMenu/Tools">
+		<ItemSet id = "XmlMenu" insertafter = "AddinManagerSeparator" _label = "_XML" >
 			<CommandItem id = "MonoDevelop.XmlEditor.Commands.CreateSchema" />
 			<CommandItem id = "MonoDevelop.XmlEditor.Commands.GoToSchemaDefinition" />
 			<CommandItem id = "MonoDevelop.XmlEditor.Commands.Validate" /><!--
@@ -101,6 +99,7 @@
 			<CommandItem id = "MonoDevelop.XmlEditor.Commands.RunXslTransform"/>				
 			<SeparatorItem id = "FormatSeparator"/>
 			<CommandItem id = "MonoDevelop.XmlEditor.Commands.Format" />
+			<SeparatorItem/>
 		</ItemSet>
 	</Extension>
 	
@@ -128,7 +127,7 @@
 	</Extension>-->
 	
 	<Extension path = "/MonoDevelop/ProjectModel/DomParser">
-		<Class class = "MonoDevelop.XmlEditor.XmlDocumentParser" id = "XmlParser" />
+		<Parser class = "MonoDevelop.XmlEditor.XmlDocumentParser" id = "XmlParser" />
 	</Extension>
 	
 	<Extension path = "/MonoDevelop/ProjectModel/TextPrettyPrinters">

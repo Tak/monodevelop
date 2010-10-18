@@ -1178,6 +1178,12 @@ namespace MonoDevelop.Debugger
 		
 		#region ICompletionWidget implementation 
 		
+		CodeCompletionContext ICompletionWidget.CurrentCodeCompletionContext {
+			get {
+				return ((ICompletionWidget)this).CreateCodeCompletionContext (editEntry.Position);
+			}
+		}
+		
 		EventHandler completionContextChanged;
 		
 		event EventHandler ICompletionWidget.CompletionContextChanged {
@@ -1243,6 +1249,14 @@ namespace MonoDevelop.Debugger
 			editEntry.DeleteText (sp, sp + partial_word.Length);
 			editEntry.InsertText (complete_word, ref sp);
 			editEntry.Position = sp; // sp is incremented by InsertText
+		}
+		
+		void ICompletionWidget.SetCompletionText (CodeCompletionContext ctx, string partial_word, string complete_word, int offset)
+		{
+			int sp = editEntry.Position - partial_word.Length;
+			editEntry.DeleteText (sp, sp + partial_word.Length);
+			editEntry.InsertText (complete_word, ref sp);
+			editEntry.Position = sp + offset; // sp is incremented by InsertText
 		}
 		
 		int ICompletionWidget.TextLength {

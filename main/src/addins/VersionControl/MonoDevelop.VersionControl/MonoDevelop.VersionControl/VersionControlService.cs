@@ -14,6 +14,7 @@ using MonoDevelop.Projects.Policies;
 using MonoDevelop.Core.Serialization;
 using Mono.Addins;
 using MonoDevelop.Ide;
+using MonoDevelop.Core.ProgressMonitoring;
 
 namespace MonoDevelop.VersionControl
 {
@@ -488,6 +489,16 @@ namespace MonoDevelop.VersionControl
 			NotifyFileStatusChanged (repo, parent.BaseDirectory, true);
 		}
 		
+		public static IProgressMonitor GetProgressMonitor (string operation)
+		{
+			IProgressMonitor monitor = IdeApp.Workbench.ProgressMonitors.GetOutputProgressMonitor ("Version Control", "md-version-control", false, true);
+			Pad outPad = IdeApp.Workbench.ProgressMonitors.GetPadForMonitor (monitor);
+			
+			AggregatedProgressMonitor mon = new AggregatedProgressMonitor (monitor);
+			mon.AddSlaveMonitor (IdeApp.Workbench.ProgressMonitors.GetStatusProgressMonitor (operation, "md-version-control", false, true, false, outPad));
+			return mon;
+		}
+		
 		static IProgressMonitor GetStatusMonitor ()
 		{
 			return IdeApp.Workbench.ProgressMonitors.GetStatusProgressMonitor (GettextCatalog.GetString ("Updating version control repository"), "vc-remote-status", true);
@@ -561,8 +572,10 @@ namespace MonoDevelop.VersionControl
 		{
 			foreach (VersionControlSystem vcs in GetVersionControlSystems ()) {
 				Repository repo = vcs.GetRepositoryReference (path, id);
-				if (repo != null)
+				if (repo != null) {
+					repo.VersionControlSystem = vcs;
 					return repo;
+				}
 			}
 			return null;
 		}
@@ -615,6 +628,7 @@ namespace MonoDevelop.VersionControl
 		{
 			CommitMessageFormat format = new CommitMessageFormat ();
 			format.Style = item.Policies.Get<VersionControlPolicy> ().CommitMessageStyle;
+			format.ShowFilesForSingleComment = false;
 			return format;
 		}
 		
@@ -648,10 +662,11 @@ namespace MonoDevelop.VersionControl
 				style = PolicyService.GetDefaultPolicy<CommitMessageStyle> ();
 			}
 			
-			authorInfo = IdeApp.Workspace.GetAuthorInformation (project);
+			authorInfo = project != null ? project.AuthorInformation : AuthorInformation.Default;
 			
 			CommitMessageFormat format = new CommitMessageFormat ();
 			format.Style = style;
+			format.ShowFilesForSingleComment = false;
 			
 			return format;
 		}

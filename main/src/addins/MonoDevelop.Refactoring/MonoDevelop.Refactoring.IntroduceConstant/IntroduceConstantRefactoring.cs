@@ -56,7 +56,7 @@ namespace MonoDevelop.Refactoring.IntroduceConstant
 			TextEditorData data = options.GetTextEditorData ();
 			LineSegment line = data.Document.GetLine (data.Caret.Line);
 			if (!data.IsSomethingSelected && line != null) {
-				Stack<Span> stack = line.StartSpan != null ? new Stack<Span> (line.StartSpan) : new Stack<Span> ();
+				var stack = line.StartSpan.Clone ();
 				Mono.TextEditor.Highlighting.SyntaxModeService.ScanSpans (data.Document, data.Document.SyntaxMode, data.Document.SyntaxMode, stack, line.Offset, data.Caret.Offset);
 				foreach (Span span in stack) {
 					if (span.Color == "string.single" || span.Color == "string.double")
@@ -147,7 +147,7 @@ namespace MonoDevelop.Refactoring.IntroduceConstant
 			if (resolveResult == null) {
 				LineSegment line = data.Document.GetLine (data.Caret.Line);
 				if (line != null) {
-					Stack<Span> stack = line.StartSpan != null ? new Stack<Span> (line.StartSpan) : new Stack<Span> ();
+					var stack = line.StartSpan.Clone ();
 					Mono.TextEditor.Highlighting.SyntaxModeService.ScanSpans (data.Document, data.Document.SyntaxMode, data.Document.SyntaxMode, stack, line.Offset, data.Caret.Offset);
 					foreach (Span span in stack) {
 						if (span.Color == "string.single" || span.Color == "string.double") {
@@ -160,8 +160,8 @@ namespace MonoDevelop.Refactoring.IntroduceConstant
 					resolveResult = resolver.Resolve (new ExpressionResult (SearchNumber (data, out start, out end)), DomLocation.Empty);
 				}
 			} else {
-				start = data.Document.LocationToOffset (resolveResult.ResolvedExpression.Region.Start.Line - 1, resolveResult.ResolvedExpression.Region.Start.Column - 1);
-				end = data.Document.LocationToOffset (resolveResult.ResolvedExpression.Region.End.Line - 1, resolveResult.ResolvedExpression.Region.End.Column - 1);
+				start = data.Document.LocationToOffset (resolveResult.ResolvedExpression.Region.Start.Line, resolveResult.ResolvedExpression.Region.Start.Column);
+				end = data.Document.LocationToOffset (resolveResult.ResolvedExpression.Region.End.Line, resolveResult.ResolvedExpression.Region.End.Column);
 			}
 			if (start == 0 && end == 0)
 				return result;
@@ -179,7 +179,7 @@ namespace MonoDevelop.Refactoring.IntroduceConstant
 			TextReplaceChange insertConstant = new TextReplaceChange ();
 			insertConstant.FileName = options.Document.FileName;
 			insertConstant.Description = string.Format (GettextCatalog.GetString ("Generate constant '{0}'"), param.Name);
-			insertConstant.Offset = data.Document.LocationToOffset (curMember.Location.Line - 1, 0);
+			insertConstant.Offset = data.Document.LocationToOffset (curMember.Location.Line, 1);
 			insertConstant.InsertedText = provider.OutputNode (options.Dom, fieldDeclaration, options.GetIndent (curMember)) + Environment.NewLine;
 			result.Add (insertConstant);
 

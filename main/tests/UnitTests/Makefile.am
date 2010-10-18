@@ -11,6 +11,7 @@ FIXTURE = /fixture=$(fixture)
 REFS =  \
 	$(GLIB_SHARP_LIBS) \
 	$(GTK_SHARP_LIBS) \
+	$(MONO_ADDINS_LIBS) \
 	-r:../../build/AddIns/BackendBindings/MonoDevelop.CSharpBinding.dll \
 	-r:../../build/AddIns/MonoDevelop.AspNet/MonoDevelop.AspNet.dll \
 	-r:../../build/AddIns/MonoDevelop.Autotools/MonoDevelop.Autotools.dll \
@@ -37,9 +38,11 @@ FILES =  \
 	Mono.TextEditor.Tests.DefaultEditActions/InsertTabTests.cs \
 	Mono.TextEditor.Tests.DefaultEditActions/RemoveTabTests.cs \
 	Mono.TextEditor.Tests.DefaultEditActions/SelectionActionTests.cs \
+	Mono.TextEditor.Tests/BufferTests.cs \
 	Mono.TextEditor.Tests/DocumentTests.cs \
 	Mono.TextEditor.Tests/EditActionsTest.cs \
 	Mono.TextEditor.Tests/FoldingTests.cs \
+	Mono.TextEditor.Tests/InsertionModeTests.cs \
 	Mono.TextEditor.Tests/LineSplitterTests.cs \
 	Mono.TextEditor.Tests/SearchTests.cs \
 	Mono.TextEditor.Tests/SelectionTests.cs \
@@ -58,6 +61,7 @@ FILES =  \
 	MonoDevelop.CSharpBinding/MemberTests.cs \
 	MonoDevelop.CSharpBinding/ParameterCompletionTests.cs \
 	MonoDevelop.CSharpBinding/ProjectDomTests.cs \
+	MonoDevelop.CSharpBinding/TestBlankLineFormatting.cs \
 	MonoDevelop.CSharpBinding/TestBraceStlye.cs \
 	MonoDevelop.CSharpBinding/TestFormattingBugs.cs \
 	MonoDevelop.CSharpBinding/TestSpacingVisitor.cs \
@@ -84,6 +88,7 @@ FILES =  \
 	MonoDevelop.Projects/WorkspaceTests.cs \
 	MonoDevelop.Refactoring/BaseRefactorerTests.cs \
 	MonoDevelop.Refactoring/CreateBackingStoreTests.cs \
+	MonoDevelop.Refactoring/CreateMethodTests.cs \
 	MonoDevelop.Refactoring/DeclareLocalTests.cs \
 	MonoDevelop.Refactoring/ExtractMethodTests.cs \
 	MonoDevelop.Refactoring/GenerateNewMemberTests.cs \

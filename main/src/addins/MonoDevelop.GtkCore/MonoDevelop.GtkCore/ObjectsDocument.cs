@@ -101,7 +101,17 @@ namespace MonoDevelop.GtkCore
 
 		public void Save ()
 		{
-			Save (path);
+			//Always write line endings as \n to be consistent with other stetic files
+			//and explicitly write with no BOM or XML declaration in order to be consistent with existing format.
+			var settings = new XmlWriterSettings () {
+				Encoding = Stetic.EncodingUtility.UTF8NoBom,
+				NewLineChars = "\n",
+				Indent = true,
+				OmitXmlDeclaration = true,
+			};
+			using (var writer = XmlTextWriter.Create (path, settings)) {
+				Save (writer);
+			}
 		}
 
 		void InsertToolboxItemAttributes (WidgetParser parser, CodeRefactorer cref)

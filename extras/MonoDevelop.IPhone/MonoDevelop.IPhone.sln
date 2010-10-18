@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoDevelop.IPhone", "MonoDevelop.IPhone\MonoDevelop.IPhone.csproj", "{B9D6A509-8369-4E86-B04E-936491E11801}"
@@ -33,7 +33,8 @@ Global
 		$1.DirectoryNamespaceAssociation = PrefixedFlat
 		$1.ResourceNamePolicy = FileName
 		$0.ChangeLogPolicy = $2
-		$2.UpdateMode = ProjectRoot
+		$2.UpdateMode = None
+		$2.VcsIntegration = None
 		$2.inheritsSet = Mono
 	EndGlobalSection
 EndGlobal

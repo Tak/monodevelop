@@ -518,8 +518,8 @@ namespace MonoDevelop.Refactoring
 			public void ResolveName ()
 			{
 				// TODO: Move this to a expression refactorer !!!!
-				int pos = doc.TextEditor.GetPositionFromLineColumn (resolveResult.ResolvedExpression.Region.Start.Line, resolveResult.ResolvedExpression.Region.Start.Column);
-				doc.TextEditor.InsertText (pos, ns +"." );
+				int pos = doc.Editor.Document.LocationToOffset (resolveResult.ResolvedExpression.Region.Start.Line, resolveResult.ResolvedExpression.Region.Start.Column);
+				doc.Editor.Insert (pos, ns +"." );
 			}
 		}
 
@@ -836,7 +836,7 @@ namespace MonoDevelop.Refactoring
 						System.IO.TextReader textReader = provider.Open ();
 						doc.Text = textReader.ReadToEnd ();
 						textReader.Close ();
-						int position = doc.LocationToOffset (part.Location.Line - 1, part.Location.Column - 1);
+						int position = doc.LocationToOffset (part.Location.Line, part.Location.Column);
 						while (position + part.Name.Length < doc.Length) {
 							if (doc.GetTextAt (position, part.Name.Length) == part.Name)
 								break;
@@ -855,13 +855,10 @@ namespace MonoDevelop.Refactoring
 		public void FindReferences ()
 		{
 			monitor = IdeApp.Workbench.ProgressMonitors.GetSearchProgressMonitor (true, true);
-			Thread t = new Thread (new ThreadStart (FindReferencesThread));
-			t.Name = "Find references";
-			t.IsBackground = true;
-			t.Start ();
+			ThreadPool.QueueUserWorkItem (FindReferencesThread);
 		}
 		
-		void FindReferencesThread ()
+		void FindReferencesThread (object state)
 		{
 			try {
 				CodeRefactorer refactorer = IdeApp.Workspace.GetCodeRefactorer (IdeApp.ProjectOperations.CurrentSelectedSolution);
@@ -934,14 +931,10 @@ namespace MonoDevelop.Refactoring
 		
 		public void FindDerivedClasses ()
 		{
-			monitor = IdeApp.Workbench.ProgressMonitors.GetSearchProgressMonitor (true, true);
-			Thread t = new Thread (new ThreadStart (FindDerivedThread));
-			t.Name = "Find subclasses";
-			t.IsBackground = true;
-			t.Start ();
+			ThreadPool.QueueUserWorkItem (FindDerivedThread);
 		}
 		
-		void FindDerivedThread ()
+		void FindDerivedThread (object state)
 		{
 			using (monitor) {
 				IType cls = (IType) item;
@@ -1025,16 +1018,16 @@ namespace MonoDevelop.Refactoring
 		{
 			EncapsulateFieldDialog dialog;
 			if (item is IField) {
-				dialog = new EncapsulateFieldDialog (IdeApp.Workbench.ActiveDocument.TextEditorData.Parent, ctx, (IField) item);
+				dialog = new EncapsulateFieldDialog (IdeApp.Workbench.ActiveDocument, ctx, (IField) item);
 			} else {
-				dialog = new EncapsulateFieldDialog (IdeApp.Workbench.ActiveDocument.TextEditorData.Parent, ctx, (IType) item);
+				dialog = new EncapsulateFieldDialog (IdeApp.Workbench.ActiveDocument, ctx, (IType) item);
 			}
 			MessageService.ShowCustomDialog (dialog);
 		}
 		
 		public void OverrideOrImplementMembers ()
 		{
-			MessageService.ShowCustomDialog (new OverridesImplementsDialog (IdeApp.Workbench.ActiveDocument.TextEditorData.Parent, (IType)item));
+			MessageService.ShowCustomDialog (new OverridesImplementsDialog (IdeApp.Workbench.ActiveDocument, (IType)item));
 		}
 		
 		public void Rename ()

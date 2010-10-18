@@ -42,6 +42,15 @@ namespace MonoDevelop.CSharp.Refactoring
 		OutputVisitor visitor;
 		CSharpFormattingPolicy policy;
 		
+		public CSharpFormattingPolicy Policy {
+			get {
+				return this.policy;
+			}
+			set {
+				policy = value;
+			}
+		}
+		
 		public CSharpCodeGenerator ()
 		{
 			visitor = new OutputVisitor (this);
@@ -61,8 +70,10 @@ namespace MonoDevelop.CSharp.Refactoring
 			StringBuilder result = new StringBuilder ();
 			AppendIndent (result);
 			result.Append ("#region ");
-			result.AppendLine (regionName);
-			result.AppendLine (text);
+			result.Append (regionName);
+			AppendLine (result);
+			result.Append (text);
+			AppendLine (result);
 			AppendIndent (result);
 			result.Append ("#endregion");
 			return result.ToString ();
@@ -83,25 +94,30 @@ namespace MonoDevelop.CSharp.Refactoring
 		{
 			switch (braceStyle) {
 			case BraceStyle.EndOfLine:
-				result.AppendLine (" {");
+				result.Append (" {");
+				AppendLine (result);
 				break;
 			case BraceStyle.EndOfLineWithoutSpace:
-				result.AppendLine ("{");
+				result.Append ("{");
+				AppendLine (result);
 				break;
 			case BraceStyle.NextLine:
-				result.AppendLine ();
+				AppendLine (result);
 				AppendIndent (result);
-				result.AppendLine ("{");
+				result.Append ("{");
+				AppendLine (result);
 				break;
 			case BraceStyle.NextLineShifted:
-				result.AppendLine ();
+				AppendLine (result);
 				result.Append (GetIndent (IndentLevel + 1));
-				result.AppendLine ("{");
+				result.Append ("{");
+				AppendLine (result);
 				break;
 			case BraceStyle.NextLineShifted2:
-				result.AppendLine ();
+				AppendLine (result);
 				result.Append (GetIndent (IndentLevel + 1));
-				result.AppendLine ("{");
+				result.Append ("{");
+				AppendLine (result);
 				IndentLevel++;
 				break;
 			default:
@@ -203,14 +219,17 @@ namespace MonoDevelop.CSharp.Refactoring
 					result.Append ("add");
 					generator.AppendBraceStart (result, generator.policy.EventAddBraceStyle);
 					generator.AppendIndent (result);
-					result.AppendLine ("// TODO");
+					result.Append ("// TODO");
+					generator.AppendLine (result);
 					generator.AppendBraceEnd (result, generator.policy.EventAddBraceStyle);
 					
 					generator.AppendIndent (result);
 					result.Append ("remove");
 					generator.AppendBraceStart (result, generator.policy.EventRemoveBraceStyle);
 					generator.AppendIndent (result);
-					result.AppendLine ("// TODO");
+					result.Append ("// TODO");
+					generator.AppendLine (result);
+					
 					generator.AppendBraceEnd (result, generator.policy.EventRemoveBraceStyle);
 					generator.AppendBraceEnd (result, generator.policy.EventBraceStyle);
 				} else {
@@ -230,7 +249,7 @@ namespace MonoDevelop.CSharp.Refactoring
 					result.Append (" ");
 				result.Append ("();");
 				bodyEndOffset = result.Length;
-				result.AppendLine ();
+				generator.AppendLine (result);
 			}
 			
 			public void AppendMonoTouchTodo (StringBuilder result, out int bodyStartOffset, out int bodyEndOffset)
@@ -239,7 +258,7 @@ namespace MonoDevelop.CSharp.Refactoring
 				bodyStartOffset = result.Length;
 				result.Append ("// TODO: Implement - see: http://go-mono.com/docs/index.aspx?link=T%3aMonoTouch.Foundation.ModelAttribute");
 				bodyEndOffset = result.Length;
-				result.AppendLine ();
+				generator.AppendLine (result);
 			}
 			
 			public override CodeGeneratorMemberResult Visit (IMethod method, CodeGenerationOptions options)
@@ -269,69 +288,72 @@ namespace MonoDevelop.CSharp.Refactoring
 				result.Append ("(");
 				AppendParameterList (result, options.ImplementingType, method.Parameters);
 				result.Append (")");
-				
-				generator.AppendBraceStart (result, generator.policy.MethodBraceStyle);
-				if (method.Name == "ToString" && (method.Parameters == null || method.Parameters.Count == 0) && method.ReturnType != null && method.ReturnType.FullName == "System.String") {
-					generator.AppendIndent (result);
-					bodyStartOffset = result.Length;
-					result.Append ("return string.Format");
-					if (generator.policy.BeforeMethodDeclarationParentheses)
-						result.Append (" ");
-					result.Append ("(\"[");
-					result.Append (options.ImplementingType.Name);
-					if (options.ImplementingType.PropertyCount > 0) 
-						result.Append (": ");
-					int i = 0;
-					foreach (IProperty property in options.ImplementingType.Properties) {
-						if (property.IsStatic || !property.IsPublic)
-							continue;
-						if (i > 0)
-							result.Append (", ");
-						result.Append (property.Name);
-						result.Append ("={");
-						result.Append (i++);
-						result.Append ("}");
-					}
-					result.Append ("]\"");
-					foreach (IProperty property in options.ImplementingType.Properties) {
-						if (property.IsStatic || !property.IsPublic)
-							continue;
-						result.Append (", ");
-						result.Append (property.Name);
-					}
-					result.Append (");");
-					bodyEndOffset = result.Length;
-					result.AppendLine ();
-				} else if (IsMonoTouchModelMember (method)) {
-					AppendMonoTouchTodo (result, out bodyStartOffset, out bodyEndOffset);
-				} else if (method.IsAbstract || method.DeclaringType.ClassType == ClassType.Interface) {
-					AppendNotImplementedException (result, options, out bodyStartOffset, out bodyEndOffset);
+				if (options.ImplementingType.ClassType == ClassType.Interface) {
+					result.Append (";");
 				} else {
-					generator.AppendIndent (result);
-					bodyStartOffset = result.Length;
-					if (method.ReturnType.FullName != DomReturnType.Void.FullName)
-						result.Append ("return ");
-					result.Append ("base.");
-					result.Append (method.Name);
-					if (generator.policy.BeforeMethodCallParentheses)
-						result.Append (" ");
-					result.Append ("(");
-					for (int i = 0; i < method.Parameters.Count; i++) {
-						if (i > 0)
+					generator.AppendBraceStart (result, generator.policy.MethodBraceStyle);
+					if (method.Name == "ToString" && (method.Parameters == null || method.Parameters.Count == 0) && method.ReturnType != null && method.ReturnType.FullName == "System.String") {
+						generator.AppendIndent (result);
+						bodyStartOffset = result.Length;
+						result.Append ("return string.Format");
+						if (generator.policy.BeforeMethodDeclarationParentheses)
+							result.Append (" ");
+						result.Append ("(\"[");
+						result.Append (options.ImplementingType.Name);
+						if (options.ImplementingType.PropertyCount > 0) 
+							result.Append (": ");
+						int i = 0;
+						foreach (IProperty property in options.ImplementingType.Properties) {
+							if (property.IsStatic || !property.IsPublic)
+								continue;
+							if (i > 0)
+								result.Append (", ");
+							result.Append (property.Name);
+							result.Append ("={");
+							result.Append (i++);
+							result.Append ("}");
+						}
+						result.Append ("]\"");
+						foreach (IProperty property in options.ImplementingType.Properties) {
+							if (property.IsStatic || !property.IsPublic)
+								continue;
 							result.Append (", ");
-						
-						var p = method.Parameters[i];
-						if (p.IsOut)
-							result.Append ("out ");
-						if (p.IsRef)
-							result.Append ("ref ");
-						result.Append (p.Name);
+							result.Append (property.Name);
+						}
+						result.Append (");");
+						bodyEndOffset = result.Length;
+						generator.AppendLine (result);
+					} else if (IsMonoTouchModelMember (method)) {
+						AppendMonoTouchTodo (result, out bodyStartOffset, out bodyEndOffset);
+					} else if (method.IsAbstract || !(method.IsVirtual && method.IsOverride) || method.DeclaringType.ClassType == ClassType.Interface) {
+						AppendNotImplementedException (result, options, out bodyStartOffset, out bodyEndOffset);
+					} else {
+						generator.AppendIndent (result);
+						bodyStartOffset = result.Length;
+						if (method.ReturnType.FullName != DomReturnType.Void.FullName)
+							result.Append ("return ");
+						result.Append ("base.");
+						result.Append (method.Name);
+						if (generator.policy.BeforeMethodCallParentheses)
+							result.Append (" ");
+						result.Append ("(");
+						for (int i = 0; i < method.Parameters.Count; i++) {
+							if (i > 0)
+								result.Append (", ");
+							
+							var p = method.Parameters[i];
+							if (p.IsOut)
+								result.Append ("out ");
+							if (p.IsRef)
+								result.Append ("ref ");
+							result.Append (p.Name);
+						}
+						result.Append (");");
+						bodyEndOffset = result.Length;
+						generator.AppendLine (result);
 					}
-					result.Append (");");
-					bodyEndOffset = result.Length;
-					result.AppendLine ();
+					generator.AppendBraceEnd (result, generator.policy.MethodBraceStyle);
 				}
-				generator.AppendBraceEnd (result, generator.policy.MethodBraceStyle);
 				return new CodeGeneratorMemberResult (result.ToString (), bodyStartOffset, bodyEndOffset);
 			}
 			
@@ -356,33 +378,48 @@ namespace MonoDevelop.CSharp.Refactoring
 			
 			static string GetModifiers (IType implementingType, IMember member)
 			{
-				if (member.IsPublic || member.DeclaringType.ClassType == ClassType.Interface) 
-					return "public ";
-				if (member.IsPrivate) 
-					return "";
+				StringBuilder result = new StringBuilder ();
+				if (member.IsPublic || member.DeclaringType.ClassType == ClassType.Interface) {
+					result.Append ("public ");
+				} else if (member.IsProtectedAndInternal) {
+					result.Append ("protected internal ");
+				} else if (member.IsProtectedOrInternal && implementingType.SourceProjectDom == member.DeclaringType.SourceProjectDom) {
+					result.Append ("internal protected ");
+				} else if (member.IsProtected) {
+					result.Append ("protected ");
+				} else if (member.IsInternal) {
+					result.Append ("internal ");
+				}
 					
-				if (member.IsProtectedAndInternal) 
-					return "protected internal ";
-				if (member.IsProtectedOrInternal && implementingType.SourceProjectDom == member.DeclaringType.SourceProjectDom) 
-					return "internal protected ";
+				if (member.IsStatic) 
+					result.Append ("static ");
 				
-				if (member.IsProtected) 
-					return "protected ";
-				if (member.IsInternal) 
-					return "internal ";
-					
-				return "";
+				return result.ToString ();
 			}
 			
 			void AppendModifiers (StringBuilder result, CSharpCodeGenerator.CodeGenerationOptions options, IMember member)
 			{
 				generator.AppendIndent (result);
-				if (options.ExplicitDeclaration)
+				if (options.ExplicitDeclaration || options.ImplementingType.ClassType == ClassType.Interface)
 					return;
 				result.Append (GetModifiers (options.ImplementingType, member));
 				
-				if ((member.Modifiers & Modifiers.Virtual) == Modifiers.Virtual ||
-				    (member.Modifiers & Modifiers.Abstract) == Modifiers.Abstract)
+				bool isFromInterface = false;
+				if (member.DeclaringType.ClassType == ClassType.Interface) {
+					isFromInterface = true;
+					if (options.ImplementingType != null) {
+						foreach (IType type in options.ImplementingType.SourceProjectDom.GetInheritanceTree (options.ImplementingType)) {
+							if (type.ClassType == ClassType.Interface)
+								continue;
+							if (type.SearchMember (member.Name, true).Any (m => m.Name == member.Name && member.MemberType == m.MemberType && DomMethod.ParameterListEquals (member.Parameters, m.Parameters))) {
+								isFromInterface = false;
+								break;
+							}
+						}
+					}
+				}
+				if (!isFromInterface && ((member.Modifiers & Modifiers.Virtual) == Modifiers.Virtual || 
+					(member.Modifiers & Modifiers.Abstract) == Modifiers.Abstract))
 					result.Append ("override ");
 			}
 			
@@ -409,47 +446,54 @@ namespace MonoDevelop.CSharp.Refactoring
 					int bodyStartOffset, bodyEndOffset;
 					generator.AppendIndent (result);
 					result.Append ("get");
-					generator.AppendBraceStart (result, generator.policy.PropertyGetBraceStyle);
-					if (IsMonoTouchModelMember (property)) {
-						AppendMonoTouchTodo (result, out bodyStartOffset, out bodyEndOffset);
-					} else if (property.IsAbstract || property.DeclaringType.ClassType == ClassType.Interface) {
-						AppendNotImplementedException (result, options, out bodyStartOffset, out bodyEndOffset);
+					if (options.ImplementingType.ClassType == ClassType.Interface) {
+						result.AppendLine (";");
 					} else {
-						generator.AppendIndent (result);
-						bodyStartOffset = result.Length;
-						result.Append ("return base.");
-						result.Append (property.Name);
-						result.Append (";");
-						bodyEndOffset = result.Length;
-						result.AppendLine ();
+						generator.AppendBraceStart (result, generator.policy.PropertyGetBraceStyle);
+						if (IsMonoTouchModelMember (property)) {
+							AppendMonoTouchTodo (result, out bodyStartOffset, out bodyEndOffset);
+						} else if (property.IsAbstract || property.DeclaringType.ClassType == ClassType.Interface) {
+							AppendNotImplementedException (result, options, out bodyStartOffset, out bodyEndOffset);
+						} else {
+							generator.AppendIndent (result);
+							bodyStartOffset = result.Length;
+							result.Append ("return base.");
+							result.Append (property.Name);
+							result.Append (";");
+							bodyEndOffset = result.Length;
+							generator.AppendLine (result);
+						}
+						generator.AppendBraceEnd (result, generator.policy.PropertyGetBraceStyle);
+						generator.AppendLine (result);
+						regions.Add (new CodeGeneratorBodyRegion (bodyStartOffset, bodyEndOffset));
 					}
-					generator.AppendBraceEnd (result, generator.policy.PropertyGetBraceStyle);
-					result.AppendLine ();
-					regions.Add (new CodeGeneratorBodyRegion (bodyStartOffset, bodyEndOffset));
 				}
 				
 				if (property.HasSet) {
 					int bodyStartOffset, bodyEndOffset;
 					generator.AppendIndent (result);
 					result.Append ("set");
-					generator.AppendBraceStart (result, generator.policy.PropertyGetBraceStyle);
-					if (IsMonoTouchModelMember (property)) {
-						AppendMonoTouchTodo (result, out bodyStartOffset, out bodyEndOffset);
-					} else if (property.IsAbstract || property.DeclaringType.ClassType == ClassType.Interface) {
-						AppendNotImplementedException (result, options, out bodyStartOffset, out bodyEndOffset);
+					if (options.ImplementingType.ClassType == ClassType.Interface) {
+						result.AppendLine (";");
 					} else {
-						generator.AppendIndent (result);
-						bodyStartOffset = result.Length;
-						result.Append ("base.");
-						result.Append (property.Name);
-						result.Append (" = value;");
-						bodyEndOffset = result.Length;
-						result.AppendLine ();
+						generator.AppendBraceStart (result, generator.policy.PropertyGetBraceStyle);
+						if (IsMonoTouchModelMember (property)) {
+							AppendMonoTouchTodo (result, out bodyStartOffset, out bodyEndOffset);
+						} else if (property.IsAbstract || property.DeclaringType.ClassType == ClassType.Interface) {
+							AppendNotImplementedException (result, options, out bodyStartOffset, out bodyEndOffset);
+						} else {
+							generator.AppendIndent (result);
+							bodyStartOffset = result.Length;
+							result.Append ("base.");
+							result.Append (property.Name);
+							result.Append (" = value;");
+							bodyEndOffset = result.Length;
+							generator.AppendLine (result);
+						}
+						generator.AppendBraceEnd (result, generator.policy.PropertyGetBraceStyle);
+						generator.AppendLine (result);
+						regions.Add (new CodeGeneratorBodyRegion (bodyStartOffset, bodyEndOffset));
 					}
-					generator.AppendBraceEnd (result, generator.policy.PropertyGetBraceStyle);
-					result.AppendLine ();
-					regions.Add (new CodeGeneratorBodyRegion (bodyStartOffset, bodyEndOffset));
-						
 				}
 				generator.AppendBraceEnd (result, generator.policy.PropertyBraceStyle);
 				return new CodeGeneratorMemberResult (result.ToString (), regions);
@@ -462,12 +506,7 @@ namespace MonoDevelop.CSharp.Refactoring
 				return member.DeclaringType.Attributes.Any (attr => attr.AttributeType != null && attr.AttributeType.FullName == "MonoTouch.Foundation.ModelAttribute");
 			}
 		}
-	
-		internal static string GetIndent (int indentLevel)
-		{
-			return new string ('\t', indentLevel);
-		}
-		
+
 		public override string CreateFieldEncapsulation (IType implementingType, IField field, string propertyName, Modifiers modifiers, bool readOnly)
 		{
 			SetIndentTo (implementingType);
@@ -490,9 +529,10 @@ namespace MonoDevelop.CSharp.Refactoring
 			AppendIndent (result);
 			result.Append ("return this.");
 			result.Append (field.Name);
-			result.AppendLine (";");
+			result.Append (";");
+			AppendLine (result);
 			AppendBraceEnd (result, policy.PropertyGetBraceStyle);
-			result.AppendLine ();
+			AppendLine (result);
 
 			if (!readOnly) {
 				AppendIndent (result);
@@ -500,9 +540,10 @@ namespace MonoDevelop.CSharp.Refactoring
 				AppendBraceStart (result, policy.PropertyGetBraceStyle);
 				AppendIndent (result);
 				result.Append (field.Name);
-				result.AppendLine (" = value;");
+				result.Append (" = value;");
+				AppendLine (result);
 				AppendBraceEnd (result, policy.PropertyGetBraceStyle);
-				result.AppendLine ();
+				AppendLine (result);
 			}
 			
 			AppendBraceEnd (result, policy.PropertyBraceStyle);

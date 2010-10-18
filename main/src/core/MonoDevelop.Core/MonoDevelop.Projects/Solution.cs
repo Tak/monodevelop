@@ -26,6 +26,7 @@
 //
 
 using System;
+using System.Linq;
 using System.IO;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -188,6 +189,32 @@ namespace MonoDevelop.Projects
 			}
 			set {
 				multiStartupItems = value;
+			}
+		}
+		
+		/// <summary>
+		/// Gets the author information for this solution. If no specific information is set for this solution, it
+		/// will return the author defined in the global settings.
+		/// </summary>
+		public AuthorInformation AuthorInformation {
+			get {
+				return LocalAuthorInformation ?? AuthorInformation.Default;
+			}
+		}
+
+		/// <summary>
+		/// Gets or sets the author information for this solution. It returns null if no specific information
+		/// has been set for this solution.
+		/// </summary>
+		public AuthorInformation LocalAuthorInformation {
+			get {
+				return UserProperties.GetValue<AuthorInformation> ("AuthorInfo");
+			}
+			set {
+				if (value != null)
+					UserProperties.SetValue<AuthorInformation> ("AuthorInfo", value);
+				else
+					UserProperties.RemoveValue ("AuthorInfo");
 			}
 		}
 
@@ -560,6 +587,13 @@ namespace MonoDevelop.Projects
 			base.ConvertToFormat (format, convertChildren);
 			foreach (SolutionItem item in GetAllSolutionItems<SolutionItem> ())
 				ConvertToSolutionFormat (item, convertChildren);
+		}
+		
+		public override bool SupportsFormat (FileFormat format)
+		{
+			if (!base.SupportsFormat (format))
+				return false;
+			return GetAllSolutionItems<SolutionEntityItem> ().All (p => p.SupportsFormat (format));
 		}
 
 		public override List<FilePath> GetItemFiles (bool includeReferencedFiles)

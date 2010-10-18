@@ -101,8 +101,7 @@ fi
 
 
 dnl hard dependencies
-#FIXME mono.addins dep should be 0.5 once there are Mac packages for it
-MONOADDINS_REQUIRED_VERSION=0.4
+MONOADDINS_REQUIRED_VERSION=0.5
 GTKSHARP_REQUIRED_VERSION=2.12.8
 MONODOC_REQUIRED_VERSION=1.0
 
@@ -121,9 +120,6 @@ AC_SUBST(GLADE_SHARP_LIBS)
 
 PKG_CHECK_MODULES(MONODOC, monodoc >= $MONODOC_REQUIRED_VERSION)
 AC_SUBST(MONODOC_LIBS)
-PKG_CHECK_MODULES(MONO_CAIRO, mono-cairo >= 1.2)
-MONO_CAIRO_LIBS=" -r:Mono.Cairo "
-AC_SUBST(MONO_CAIRO_LIBS)
 
 dnl soft dependencies
 PKG_CHECK_MODULES(GNOME_SHARP, gnome-sharp-2.0 >= $GTKSHARP_REQUIRED_VERSION, [gnome_sharp=yes], [gnome_sharp=no])
@@ -165,6 +161,13 @@ AC_ARG_ENABLE(subversion,
 		enable_subversion=${enableval}, enable_subversion=yes)
 
 AM_CONDITIONAL(ENABLE_SUBVERSION, test x$enable_subversion = xyes)
+
+AC_ARG_ENABLE(git,
+	AC_HELP_STRING([--enable-git],
+		[enable Git support [default=no]]),
+		enable_git=${enableval}, enable_git=yes)
+
+AM_CONDITIONAL(ENABLE_GIT, test x$enable_git = xyes)
 
 platform_bindings=""
 
@@ -313,6 +316,7 @@ build/MacOSX/Makefile
 contrib/Makefile
 contrib/Mono.Cecil/Makefile
 contrib/NRefactory/Makefile
+contrib/GitSharp/Makefile
 src/Makefile
 src/core/Makefile
 src/core/Mono.Texteditor/Makefile
@@ -334,6 +338,7 @@ src/addins/NUnit/Makefile
 src/addins/NUnit/NUnitRunner/Makefile
 src/addins/VersionControl/MonoDevelop.VersionControl/Makefile
 src/addins/VersionControl/MonoDevelop.VersionControl.Subversion/Makefile
+src/addins/VersionControl/MonoDevelop.VersionControl.Git/Makefile
 src/addins/VersionControl/Makefile
 src/addins/CSharpBinding/Makefile
 src/addins/CSharpBinding/Autotools/Makefile
@@ -399,6 +404,7 @@ echo "   * C# compiler = $CSC"
 echo "   * Mono class library development extensions: $enable_monoextensions"
 echo "   * Version control providers:"
 echo "   *     Subversion (Unix): $enable_subversion"
+echo "   *     Git: $enable_git"
 echo "   * Platform bindings: $platform_bindings"
 echo "   * Unit tests: $enable_tests"
 echo "   * Mozilla location: $MOZILLA_HOME"

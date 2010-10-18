@@ -43,8 +43,8 @@ namespace MonoDevelop.DocFood
 		protected override void Update (CommandInfo info)
 		{
 			info.Enabled = IdeApp.Workbench.ActiveDocument != null && 
-				IdeApp.Workbench.ActiveDocument.TextEditorData != null &&
-				IdeApp.Workbench.ActiveDocument.TextEditorData.Document.MimeType == "text/x-csharp";
+				IdeApp.Workbench.ActiveDocument.Editor != null &&
+				IdeApp.Workbench.ActiveDocument.Editor.Document.MimeType == "text/x-csharp";
 			base.Update (info);
 		}
 		
@@ -59,8 +59,8 @@ namespace MonoDevelop.DocFood
 		protected override void Update (CommandInfo info)
 		{
 			info.Enabled = IdeApp.Workbench.ActiveDocument != null && 
-				IdeApp.Workbench.ActiveDocument.TextEditorData != null &&
-				IdeApp.Workbench.ActiveDocument.TextEditorData.Document.MimeType == "text/x-csharp";
+				IdeApp.Workbench.ActiveDocument.Editor != null &&
+				IdeApp.Workbench.ActiveDocument.Editor.Document.MimeType == "text/x-csharp";
 			base.Update (info);
 		}
 		
@@ -69,7 +69,7 @@ namespace MonoDevelop.DocFood
 			var unit = IdeApp.Workbench.ActiveDocument.CompilationUnit;
 			if (unit == null)
 				return;
-			TextEditorData data = IdeApp.Workbench.ActiveDocument.TextEditorData;
+			TextEditorData data = IdeApp.Workbench.ActiveDocument.Editor;
 			Stack<IType> types = new Stack<IType> (unit.Types);
 			List<KeyValuePair<int, string>> docs = new List<KeyValuePair<int, string>> ();
 			while (types.Count > 0) {
@@ -101,7 +101,7 @@ namespace MonoDevelop.DocFood
 		
 		static bool NeedsDocumentation (TextEditorData data, IMember member)
 		{
-			int lineNr = member.Location.Line - 1;
+			int lineNr = member.Location.Line;
 			LineSegment line;
 			do {
 				line = data.Document.GetLine (lineNr--);
@@ -114,12 +114,17 @@ namespace MonoDevelop.DocFood
 		
 		static string GetIndent (TextEditorData data, IMember member, out int offset)
 		{
-			LineSegment line = data.Document.GetLine (member.Location.Line - 1);
+			LineSegment line = data.Document.GetLine (member.Location.Line);
 			offset = line.Offset;
 			return data.Document.GetLineIndent (line);
 		}
 		
 		internal static string GenerateDocumentation (TextEditorData data, IMember member, string indent)
+		{
+			return GenerateDocumentation (data, member, indent, "/// ");
+		}
+		
+		internal static string GenerateDocumentation (TextEditorData data, IMember member, string indent, string prefix)
 		{
 			StringBuilder result = new StringBuilder ();
 			
@@ -130,12 +135,14 @@ namespace MonoDevelop.DocFood
 			foreach (Section section in generator.sections) {
 				if (first) {
 					result.Append (indent);
-					result.Append ("/// <");
+					result.Append (prefix);
+					result.Append ("<");
 					first = false;
 				} else {
 					result.AppendLine ();
 					result.Append (indent);
-					result.Append ("/// <");
+					result.Append (prefix);
+					result.Append ("<");
 				}
 				result.Append (section.Name);
 				foreach (var attr in section.Attributes) {
@@ -148,9 +155,9 @@ namespace MonoDevelop.DocFood
 				result.AppendLine (">");
 				
 				result.Append (indent);
-				result.Append ("/// ");
+				result.Append (prefix);
 				bool inTag = false;
-				int column = indent.Length + "/// ".Length;
+				int column = indent.Length + prefix.Length;
 				StringBuilder curWord = new StringBuilder ();
 				foreach (char ch in section.Documentation) {
 					if (ch == '<')
@@ -162,8 +169,8 @@ namespace MonoDevelop.DocFood
 							result.Length--; // trunk last char white space.
 							result.AppendLine ();
 							result.Append (indent);
-							result.Append ("/// ");
-							column = indent.Length + "/// ".Length;
+							result.Append (prefix);
+							column = indent.Length + prefix .Length;
 						}
 						result.Append (curWord.ToString ());
 						result.Append (ch);
@@ -176,7 +183,8 @@ namespace MonoDevelop.DocFood
 				result.AppendLine (curWord.ToString ());
 				
 				result.Append (indent);
-				result.Append ("/// </");
+				result.Append (prefix);
+				result.Append ("</");
 				result.Append (section.Name);
 				result.Append (">");
 			}

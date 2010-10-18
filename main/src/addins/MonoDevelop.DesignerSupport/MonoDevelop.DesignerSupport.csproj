@@ -40,9 +40,12 @@
     <Reference Include="System.Xml" />
     <Reference Include="System.Web" />
     <Reference Include="System.Drawing" />
-    <Reference Include="Mono.Posix" />
+    <Reference Include="Mono.Posix">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="Mono.Addins, Version=0.4.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
       <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
       <SpecificVersion>False</SpecificVersion>
@@ -62,7 +65,9 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="Mono.Cairo" />
+    <Reference Include="Mono.Cairo">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\core\MonoDevelop.Core\MonoDevelop.Core.csproj">
@@ -78,6 +83,11 @@
     <ProjectReference Include="..\..\..\contrib\Mono.Cecil\Mono.Cecil.csproj">
       <Project>{3EC06433-F168-4C5B-A885-99CE4AB617E1}</Project>
       <Name>Mono.Cecil</Name>
+      <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\..\core\Mono.Texteditor\Mono.TextEditor.csproj">
+      <Project>{A2329308-3751-4DBD-9A75-5F7B8B024625}</Project>
+      <Name>Mono.TextEditor</Name>
       <Private>False</Private>
     </ProjectReference>
   </ItemGroup>
@@ -109,7 +119,6 @@
     <Compile Include="gtk-gui\MonoDevelop.DesignerSupport.Toolbox.ComponentSelectorDialog.cs" />
     <Compile Include="MonoDevelop.DesignerSupport.Toolbox\ToolboxConfiguration.cs" />
     <Compile Include="MonoDevelop.DesignerSupport\Commands.cs" />
-    <Compile Include="MonoDevelop.DesignerSupport\OpenDocumentFileProvider.cs" />
     <Compile Include="MonoDevelop.DesignerSupport\ErrorInFileException.cs" />
     <Compile Include="MonoDevelop.DesignerSupport\TypeNotFoundException.cs" />
     <Compile Include="MonoDevelop.DesignerSupport.Toolbox\ToolboxWidget.cs" />

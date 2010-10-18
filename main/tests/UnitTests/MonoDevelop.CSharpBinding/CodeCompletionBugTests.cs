@@ -80,8 +80,8 @@ namespace MonoDevelop.CSharpBinding.Tests
 			ProjectDomService.Load (project);
 			ProjectDom dom = ProjectDomService.GetProjectDom (project);
 			dom.ForceUpdate (true);
-			ProjectDomService.Parse (project, file, null, delegate { return parsedText; });
-			ProjectDomService.Parse (project, file, null, delegate { return parsedText; });
+			ProjectDomService.Parse (project, file, delegate { return parsedText; });
+			ProjectDomService.Parse (project, file, delegate { return parsedText; });
 			
 			sev.Project = project;
 			sev.ContentName = file;
@@ -100,12 +100,10 @@ namespace MonoDevelop.CSharpBinding.Tests
 			int line, column;
 			sev.GetLineColumnFromPosition (sev.CursorPosition, out line, out column);
 			ctx.TriggerLine = line;
-			ctx.TriggerLineOffset = column;
-			
+			ctx.TriggerLineOffset = column - 1;
 			if (isCtrlSpace)
 				return textEditorCompletion.CodeCompletionCommand (ctx) as CompletionDataList;
-			else
-				return textEditorCompletion.HandleCodeCompletion (ctx, editorText[cursorPosition - 1] , ref triggerWordLength) as CompletionDataList;
+			return textEditorCompletion.HandleCodeCompletion (ctx, editorText[cursorPosition - 1] , ref triggerWordLength) as CompletionDataList;
 		}
 		
 		public static void CheckObjectMembers (CompletionDataList provider)
@@ -613,7 +611,7 @@ class C {
         }
 }");
 			Assert.IsNotNull (provider, "provider not found.");
-			Assert.AreEqual ("C.D", provider.DefaultCompletionString, "Completion string is incorrect");
+			Assert.AreEqual ("D", provider.DefaultCompletionString, "Completion string is incorrect");
 		}
 		
 		[Test()]
@@ -2521,7 +2519,7 @@ class Foo
 	}
 }
 
-class Test
+class MyTest
 {
 	static T Test<T> (Func<string, T> myFunc)
 	{
@@ -2657,6 +2655,118 @@ class Test : TestBase
 			Assert.IsNotNull (provider.Find ("Bar"), "method 'Bar' not found.");
 		}
 		
+		/// <summary>
+		/// Bug 625064 - Internal classes aren't suggested for completion
+		/// </summary>
+		[Test()]
+		public void TestBug625064 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"class Foo 
+{
+	class Bar { }
+	$List<$
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("Bar"), "class 'Bar' not found.");
+		}
+		
+		
+		/// <summary>
+		/// Bug 631875 - No Intellisense for arrays
+		/// </summary>
+		[Test()]
+		public void TestBug631875 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"class C
+{
+	static void Main ()
+	{
+		var objects = new[] { new { X = (object)null }};
+		$objects[0].$
+	}
+}
+");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("X"), "property 'X' not found.");
+		}
+		
+		/// <summary>
+		/// Bug 632228 - Wrong var inference
+		/// </summary>
+		[Test()]
+		public void TestBug632228 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"
+class C {
+	public void FooBar () {}
+	public static void Main ()
+	{
+		var thingToTest = new[] { new C (), 22, new object(), string.Empty, null };
+		$thingToTest[0].$
+	}
+}
+");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNull (provider.Find ("FooBar"), "method 'FooBar' found, but shouldn't.");
+		}
 
+		/// <summary>
+		/// Bug 632696 - No intellisense for constraints
+		/// </summary>
+		[Test()]
+		public void TestBug632696 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"
+class Program
+{
+	void Foo ()
+	{
+	}
+
+	static void Foo<T> () where T : Program
+	{
+		var s = new[] { default(T) };
+		$s[0].$
+	}
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("Foo"), "method 'Foo' not found.");
+		}
+		
+		[Test()]
+		public void TestCommentsWithWindowsEol ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider ("class TestClass\r\n{\r\npublic static void Main (string[] args) {\r\n// TestComment\r\n$args.$\r\n}\r\n}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNotNull (provider.Find ("ToString"), "method 'ToString' not found.");
+		}
+		
+		[Test()]
+		public void TestGhostEntryBug ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"
+using System.IO;
+
+class TestClass
+{
+	public Path Path {
+		get;
+		set;
+	}
+	
+	void Test ()
+	{
+		$$
+	}
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNull (provider.Find ("System.IO.Path"), "'System.IO.Path' found but shouldn't.");
+			Assert.IsNotNull (provider.Find ("Path"), "property 'Path' not found.");
+		}
 	}
 }

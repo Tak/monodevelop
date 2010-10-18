@@ -53,7 +53,7 @@ namespace MonoDevelop.Refactoring.ImplementInterface
 			if (!CodeGenerator.HasGenerator (options.GetTextEditorData ().Document.MimeType))
 				return false;
 			DocumentLocation location = options.GetTextEditorData ().Caret.Location;
-			IType declaringType = options.Document.CompilationUnit.GetTypeAt (location.Line + 1, location.Column + 1);
+			IType declaringType = options.Document.CompilationUnit.GetTypeAt (location.Line, location.Column);
 			return declaringType != null && options.ResolveResult.ResolvedExpression.IsInInheritableTypeContext;
 		}
 		
@@ -61,11 +61,11 @@ namespace MonoDevelop.Refactoring.ImplementInterface
 		{
 			DocumentLocation location = options.GetTextEditorData ().Caret.Location;
 			IType interfaceType = options.Dom.GetType (options.ResolveResult.ResolvedType);
-			IType declaringType = options.Document.CompilationUnit.GetTypeAt (location.Line + 1, location.Column + 1);
+			IType declaringType = options.Document.CompilationUnit.GetTypeAt (location.Line, location.Column);
 			
 			var editor = options.GetTextEditorData ().Parent;
 			
-			InsertionCursorEditMode mode = new InsertionCursorEditMode (editor, HelperMethods.GetInsertionPoints (editor.Document, declaringType));
+			InsertionCursorEditMode mode = new InsertionCursorEditMode (editor, HelperMethods.GetInsertionPoints (options.Document, declaringType));
 			ModeHelpWindow helpWindow = new ModeHelpWindow ();
 			helpWindow.TransientFor = IdeApp.Workbench.RootWindow;
 			helpWindow.TitleText = GettextCatalog.GetString ("<b>Implement Interface -- Targeting</b>");
@@ -79,7 +79,7 @@ namespace MonoDevelop.Refactoring.ImplementInterface
 			mode.StartMode ();
 			mode.Exited += delegate(object s, InsertionCursorEventArgs args) {
 				if (args.Success) {
-					CodeGenerator generator = CodeGenerator.CreateGenerator (options.GetTextEditorData ().Document.MimeType);
+					CodeGenerator generator = options.Document.CreateCodeGenerator ();
 					args.InsertionPoint.Insert (editor, generator.CreateInterfaceImplementation (declaringType, interfaceType, false));
 				}
 			};

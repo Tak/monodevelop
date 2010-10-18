@@ -75,8 +75,8 @@ namespace MonoDevelop.WelcomePage
 			this.ContentName = GettextCatalog.GetString ("Welcome");
 			this.IsViewOnly = true;
 			
-			recentChangesHandler = (EventHandler) DispatchService.GuiDispatch (new EventHandler (RecentChangesHandler));
-			IdeApp.Workbench.RecentOpen.RecentProjectChanged += recentChangesHandler;
+			recentChangesHandler = DispatchService.GuiDispatch (new EventHandler (RecentChangesHandler));
+			DesktopService.RecentFiles.Changed += recentChangesHandler;
 			NewsUpdated += (EventHandler) DispatchService.GuiDispatch (new EventHandler (HandleNewsUpdate));
 			
 			UpdateNews ();
@@ -139,7 +139,7 @@ namespace MonoDevelop.WelcomePage
 						var response = (HttpWebResponse) request.EndGetResponse (ar);
 						if (response.StatusCode == HttpStatusCode.OK) {
 							using (var fs = File.Create (localCachedNewsFile))
-								CopyStream (fs, response.GetResponseStream (), response.ContentLength);
+								CopyStream (response.GetResponseStream (), fs, response.ContentLength);
 						}
 						NewsUpdated (null, EventArgs.Empty);
 					} catch (System.Net.WebException wex) {
@@ -284,7 +284,11 @@ namespace MonoDevelop.WelcomePage
 
 		public override void Dispose ()
 		{
-			IdeApp.Workbench.RecentOpen.RecentProjectChanged -= recentChangesHandler;
+			if (recentChangesHandler != null) {
+				DesktopService.RecentFiles.Changed -= recentChangesHandler;
+				recentChangesHandler = null;
+			}
+			base.Dispose ();
 		}
 		
 		public static string TimeSinceEdited (DateTime prjtime)
@@ -301,16 +305,9 @@ namespace MonoDevelop.WelcomePage
 			return GettextCatalog.GetString ("Less than a minute");
 		}
 		
-		public IEnumerable<RecentItem> RecentProjects {
-			get {
-				return IdeApp.Workbench.RecentOpen.RecentProjects;
-			}
-		}
-		
-		public int RecentProjectsCount {
-			get {
-				return IdeApp.Workbench.RecentOpen.RecentProjectsCount;
-			}
+		public IList<RecentFile> GetRecentProjects ()
+		{
+			return DesktopService.RecentFiles.GetProjects ();
 		}
 	}
 }

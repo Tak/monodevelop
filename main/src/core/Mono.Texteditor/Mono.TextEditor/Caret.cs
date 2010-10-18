@@ -29,15 +29,13 @@ using System;
 
 namespace Mono.TextEditor
 {
-	public class Caret : IDisposable
+	public class Caret
 	{
-		DocumentLocation location;
+		DocumentLocation location = new DocumentLocation (1, 1);
 		
 		bool isInInsertMode = true;
 		bool autoScrollToCaret = true;
 		
-		Document document;
-		TextEditorData editor;
 		CaretMode mode;
 		
 		public int Line {
@@ -46,6 +44,8 @@ namespace Mono.TextEditor
 			}
 			set {
 				if (location.Line != value) {
+					if (value < DocumentLocation.MinLine)
+						throw new ArgumentException ("Line < MinLine");
 					DocumentLocation old = location;
 					location.Line = value;
 					SetColumn ();
@@ -60,6 +60,8 @@ namespace Mono.TextEditor
 			}
 			set {
 				if (location.Column != value) {
+					if (value < DocumentLocation.MinColumn)
+						throw new ArgumentException ("Column < MinColumn");
 					DocumentLocation old = location;
 					location.Column = value;
 					SetDesiredColumn ();
@@ -74,6 +76,8 @@ namespace Mono.TextEditor
 			}
 			set {
 				if (location != value) {
+					if (value.Line < DocumentLocation.MinLine || value.Column < DocumentLocation.MinColumn)
+						throw new ArgumentException ("invalid location: " + value);
 					DocumentLocation old = location;
 					location = value;
 					SetDesiredColumn ();
@@ -85,17 +89,18 @@ namespace Mono.TextEditor
 		public int Offset {
 			get {
 				int result = 0;
-				if (Line < document.LineCount) {
-					LineSegment line = document.GetLine (Line);
+				if (Line <= TextEditorData.Document.LineCount) {
+					LineSegment line = TextEditorData.Document.GetLine (Line);
 					if (line != null)
 						result = line.Offset;
-					result += System.Math.Min (Column, line.EditableLength);
+					result += System.Math.Min (Column - 1, line.EditableLength);
 				}
 				return result;
 			}
 			set {
-				int line   = document.OffsetToLineNumber (value);
-				int column = value - document.GetLine (line).Offset;
+				int line   = TextEditorData.Document.OffsetToLineNumber (value);
+				var lineSegment = TextEditorData.Document.GetLine (line);
+				int column = lineSegment != null ? value - lineSegment.Offset + 1 : 1;
 				Location = new DocumentLocation (line, column);
 			}
 		}
@@ -156,26 +161,25 @@ namespace Mono.TextEditor
 			set;
 		}
 		
-		public Caret (TextEditorData editor, Document document)
-		{
-			this.editor = editor;
-			this.document = document;
-			this.IsVisible = true;
-			this.AllowCaretBehindLineEnd = false;
+		public TextEditorData TextEditorData {
+			get;
+			private set;
 		}
 		
-		public void Dispose ()
+		public Caret (TextEditorData editor)
 		{
-			this.document = null;
+			this.TextEditorData = editor;
+			this.IsVisible = true;
+			this.AllowCaretBehindLineEnd = false;
+			this.DesiredColumn = DocumentLocation.MinColumn;
 		}
 		
 		public void CheckCaretPosition ()
 		{
-			if (this.Line >= this.document.LineCount) 
-				this.Line = this.document.LineCount - 1;
+			this.Line = System.Math.Min (this.Line, TextEditorData.Document.LineCount);
 			if (!AllowCaretBehindLineEnd) {
-				LineSegment curLine = this.document.GetLine (this.Line);
-				this.Column = System.Math.Min (curLine.EditableLength, System.Math.Max (0, this.Column));
+				LineSegment curLine = TextEditorData.Document.GetLine (this.Line);
+				this.Column = System.Math.Min (curLine.EditableLength + 1, this.Column);
 			}
 		}
 		
@@ -191,8 +195,8 @@ namespace Mono.TextEditor
 		{
 			DocumentLocation old = Location;
 			
-			int line   = document.OffsetToLineNumber (desiredOffset);
-			int column = desiredOffset - document.GetLine (line).Offset;
+			int line   = TextEditorData.Document.OffsetToLineNumber (desiredOffset);
+			int column = desiredOffset - TextEditorData.Document.GetLine (line).Offset + 1;
 			location = new DocumentLocation (line, column);
 			SetColumn ();
 			OnPositionChanged (new DocumentLocationEventArgs (old));
@@ -200,28 +204,28 @@ namespace Mono.TextEditor
 		
 		void SetDesiredColumn ()
 		{
-			LineSegment curLine = this.document.GetLine (this.Line);
+			LineSegment curLine = TextEditorData.Document.GetLine (this.Line);
 			if (curLine == null)
 				return;
 			
 			if (!AllowCaretBehindLineEnd)
-				this.Column = System.Math.Min (curLine.EditableLength, System.Math.Max (0, this.Column));
-			this.DesiredColumn = curLine.GetVisualColumn (editor, this.Column);
+				this.Column = System.Math.Min (curLine.EditableLength + 1, System.Math.Max (DocumentLocation.MinColumn, this.Column));
+			this.DesiredColumn = curLine.GetVisualColumn (TextEditorData, this.Column);
 		}
 		
 		void SetColumn ()
 		{
-			LineSegment curLine = this.document.GetLine (this.Line);
+			LineSegment curLine = TextEditorData.Document.GetLine (this.Line);
 			if (curLine == null)
 				return;
-			this.location.Column = curLine.GetLogicalColumn (editor, this.DesiredColumn);
-			if (curLine.GetVisualColumn (editor, this.location.Column) < this.DesiredColumn) {
-				this.location.Column = editor.GetNextVirtualColumn (Line, this.location.Column);
+			this.location.Column = curLine.GetLogicalColumn (TextEditorData, this.DesiredColumn);
+			if (curLine.GetVisualColumn (TextEditorData, this.location.Column) < this.DesiredColumn) {
+				this.location.Column = TextEditorData.GetNextVirtualColumn (Line, this.location.Column);
 			} else {
-				if (this.Column > curLine.EditableLength) {
-					this.location.Column = System.Math.Min (curLine.EditableLength, System.Math.Max (0, this.Column));
+				if (this.Column > curLine.EditableLength + 1) {
+					this.location.Column = System.Math.Min (curLine.EditableLength + 1, System.Math.Max (DocumentLocation.MinColumn, this.Column));
 					if (AllowCaretBehindLineEnd)
-						this.location.Column = editor.GetNextVirtualColumn (Line, this.location.Column);
+						this.location.Column = TextEditorData.GetNextVirtualColumn (Line, this.location.Column);
 				}
 			}
 		}
@@ -248,7 +252,7 @@ namespace Mono.TextEditor
 		public void MoveCaretBeforeFoldings ()
 		{
 			int offset = this.Offset;
-			foreach (FoldSegment fold in this.document.GetFoldingsFromOffset (this.Offset)) {
+			foreach (FoldSegment fold in TextEditorData.Document.GetFoldingsFromOffset (this.Offset)) {
 				if (fold.IsFolded)
 					offset = System.Math.Min (offset, fold.Offset);
 			}
@@ -257,7 +261,7 @@ namespace Mono.TextEditor
 		
 		protected virtual void OnPositionChanged (DocumentLocationEventArgs args)
 		{
-			document.EnsureOffsetIsUnfolded (this.Offset);
+			TextEditorData.Document.EnsureOffsetIsUnfolded (this.Offset);
 			if (PositionChanged != null) 
 				PositionChanged (this, args);
 		}

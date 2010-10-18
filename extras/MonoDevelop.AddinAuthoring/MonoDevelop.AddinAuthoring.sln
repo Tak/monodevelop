@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoDevelop.AddinAuthoring", "MonoDevelop.AddinAuthoring.csproj", "{3614523B-7789-4475-9A99-D71727E8C627}"
@@ -17,7 +17,8 @@ Global
 		StartupItem = MonoDevelop.AddinAuthoring.csproj
 		Policies = $0
 		$0.ChangeLogPolicy = $1
-		$1.UpdateMode = ProjectRoot
+		$1.UpdateMode = None
+		$1.VcsIntegration = None
 		$1.MessageStyle = $2
 		$2.LineAlign = 0
 		$1.inheritsSet = Mono

@@ -45,15 +45,6 @@ namespace MonoDevelop.CSharp.Parser
 {
 	public class NRefactoryParser : AbstractParser
 	{
-		public override bool CanParse (string fileName)
-		{
-			return Path.GetExtension (fileName) == ".cs";
-		}
-
-		public NRefactoryParser () : base("C#", "text/x-csharp")
-		{
-		}
-
 		public override IExpressionFinder CreateExpressionFinder (ProjectDom dom)
 		{
 			return new NewCSharpExpressionFinder (dom);
@@ -62,7 +53,7 @@ namespace MonoDevelop.CSharp.Parser
 		public override IResolver CreateResolver (ProjectDom dom, object editor, string fileName)
 		{
 			MonoDevelop.Ide.Gui.Document doc = (MonoDevelop.Ide.Gui.Document)editor;
-			return new NRefactoryResolver (dom, doc.CompilationUnit, ICSharpCode.NRefactory.SupportedLanguage.CSharp, doc.TextEditor, fileName);
+			return new NRefactoryResolver (dom, doc.CompilationUnit, ICSharpCode.NRefactory.SupportedLanguage.CSharp, doc.Editor, fileName);
 		}
 
 		class SpecialTracker : ICSharpCode.NRefactory.ISpecialVisitor
@@ -91,7 +82,9 @@ namespace MonoDevelop.CSharp.Parser
 				newComment.Text = comment.CommentText;
 				int commentTagLength = comment.CommentType == ICSharpCode.NRefactory.CommentType.Documentation ? 3 : 2;
 				int commentEndOffset = comment.CommentType == ICSharpCode.NRefactory.CommentType.Block ? 0 : 1;
-				newComment.Region = new DomRegion (comment.StartPosition.Line, comment.StartPosition.Column - commentTagLength, comment.EndPosition.Line, comment.EndPosition.Column - commentEndOffset);
+				newComment.Region = new DomRegion (comment.StartPosition.Line, comment.StartPosition.Column - commentTagLength, 
+					comment.EndPosition.Line, comment.EndPosition.Column - commentEndOffset);
+				
 				switch (comment.CommentType) {
 				case ICSharpCode.NRefactory.CommentType.Block:
 					newComment.CommentType = MonoDevelop.Projects.Dom.CommentType.MultiLine;
@@ -211,16 +204,16 @@ namespace MonoDevelop.CSharp.Parser
 		public override ParsedDocument Parse (ProjectDom dom, string fileName, string content)
 		{
 			using (ICSharpCode.NRefactory.IParser parser = ICSharpCode.NRefactory.ParserFactory.CreateParser (ICSharpCode.NRefactory.SupportedLanguage.CSharp, new StringReader (content))) {
-
 				ParsedDocument result = new ParsedDocument (fileName);
 				result.CompilationUnit = new MonoDevelop.Projects.Dom.CompilationUnit (fileName);
 				
+				parser.ParseMethodBodies = false;
 				parser.Errors.Error += delegate(int line, int col, string message) { result.Add (new Error (ErrorType.Error, line, col, message)); };
-				parser.Lexer.SpecialCommentTags = LexerTags;
+				parser.Lexer.SpecialCommentTags = ProjectDomService.SpecialCommentTags.GetNames ();
 				parser.Lexer.EvaluateConditionalCompilation = true;
-				if (dom != null && dom.Project != null) {
-					DotNetProjectConfiguration conf = dom.Project.DefaultConfiguration as DotNetProjectConfiguration;
-					CSharpCompilerParameters par = conf != null ? conf.CompilationParameters as CSharpCompilerParameters : null;
+				if (dom != null && dom.Project != null && MonoDevelop.Ide.IdeApp.Workspace != null) {
+					DotNetProjectConfiguration configuration = dom.Project.GetConfiguration (MonoDevelop.Ide.IdeApp.Workspace.ActiveConfiguration) as DotNetProjectConfiguration;
+					CSharpCompilerParameters par = configuration != null ? configuration.CompilationParameters as CSharpCompilerParameters : null;
 					if (par != null)
 						parser.Lexer.SetConditionalCompilationSymbols (par.DefineSymbols);
 				}
@@ -234,7 +227,7 @@ namespace MonoDevelop.CSharp.Parser
 				foreach (ICSharpCode.NRefactory.Parser.TagComment tagComment in parser.Lexer.TagComments) {
 					result.Add (new Tag (tagComment.Tag, tagComment.CommentText, new DomRegion (tagComment.StartPosition.Y, tagComment.StartPosition.X, tagComment.EndPosition.Y, tagComment.EndPosition.X)));
 				}
-				ConversionVisitior visitor = new ConversionVisitior (result, parser.Lexer.SpecialTracker.CurrentSpecials);
+				ConversionVisitior visitor = new ConversionVisitior (dom, result, parser.Lexer.SpecialTracker.CurrentSpecials);
 				visitor.VisitCompilationUnit (parser.CompilationUnit, null);
 				result.CompilationUnit.Tag = parser.CompilationUnit;
 				LastUnit = parser.CompilationUnit;
@@ -244,12 +237,14 @@ namespace MonoDevelop.CSharp.Parser
 
 		class ConversionVisitior : ICSharpCode.NRefactory.Visitors.AbstractAstVisitor
 		{
+			ProjectDom dom;
 			MonoDevelop.Projects.Dom.ParsedDocument result;
 			int lastSpecial = 0;
 			List<ISpecial> specials;
 			
-			public ConversionVisitior (MonoDevelop.Projects.Dom.ParsedDocument result, List<ISpecial> specials)
+			public ConversionVisitior (ProjectDom dom, MonoDevelop.Projects.Dom.ParsedDocument result, List<ISpecial> specials)
 			{
+				this.dom = dom;
 				this.specials = specials;
 				this.result = result;
 				namespaceEndLocationStack.Push (new Location (Int32.MaxValue, Int32.MaxValue));
@@ -377,15 +372,17 @@ namespace MonoDevelop.CSharp.Parser
 			public override object VisitTypeDeclaration (ICSharpCode.NRefactory.Ast.TypeDeclaration typeDeclaration, object data)
 			{
 				DomType newType = new DomType ();
+				newType.SourceProjectDom = dom;
 				newType.Name = typeDeclaration.Name;
 				newType.Documentation = RetrieveDocumentation (typeDeclaration.StartLocation.Line);
 				newType.Location = ConvertLocation (typeDeclaration.StartLocation);
 				newType.ClassType = ConvertClassType (typeDeclaration.Type);
 				DomRegion region = ConvertRegion (typeDeclaration.BodyStartLocation, typeDeclaration.EndLocation);
-				region.End = new DomLocation (region.End.Line, region.End.Column + 1);
+				region.End = new DomLocation (region.End.Line, region.End.Column);
 				newType.BodyRegion = region;
 				newType.Modifiers = ConvertModifiers (typeDeclaration.Modifier);
-
+				
+				
 				AddAttributes (newType, typeDeclaration.Attributes);
 
 				foreach (ICSharpCode.NRefactory.Ast.TemplateDefinition template in typeDeclaration.Templates) {
@@ -485,6 +482,7 @@ namespace MonoDevelop.CSharp.Parser
 			{
 				List<IParameter> parameter = ConvertParameterList (null, delegateDeclaration.Parameters);
 				DomType delegateType = DomType.CreateDelegate (result.CompilationUnit, delegateDeclaration.Name, ConvertLocation (delegateDeclaration.StartLocation), ConvertReturnType (delegateDeclaration.ReturnType), parameter);
+				delegateType.SourceProjectDom = dom;
 				delegateType.Documentation = RetrieveDocumentation (delegateDeclaration.StartLocation.Line);
 				delegateType.Location = ConvertLocation (delegateDeclaration.StartLocation);
 				delegateType.Modifiers = ConvertModifiers (delegateDeclaration.Modifier);
@@ -563,7 +561,8 @@ namespace MonoDevelop.CSharp.Parser
 
 				return null;
 			}
-
+			
+			
 			static string GetOperatorName (ICSharpCode.NRefactory.Ast.OperatorDeclaration operatorDeclaration)
 			{
 				if (operatorDeclaration == null)

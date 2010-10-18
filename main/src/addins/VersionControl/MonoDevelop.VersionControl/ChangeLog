@@ -1,3 +1,143 @@
+2010-08-04  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl/ChangeSet.cs:
+	* MonoDevelop.VersionControl/ChangeLogWriter.cs:
+	* MonoDevelop.VersionControl.Dialogs/CommitDialog.cs:
+	* MonoDevelop.VersionControl/VersionControlService.cs:
+	* MonoDevelop.VersionControl.Dialogs/VersionControlPolicyPanel.cs:
+	* MonoDevelop.VersionControl.Dialogs/CommitMessageStylePanelWidget.cs:
+	  Track api changes.
+
+	* MonoDevelop.VersionControl/CreatePatchCommand.cs: Ignore
+	  extensions which failed to initialize.
+
+2010-07-29  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl/Repository.cs:
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs: Annotations
+	  now use a DateTime instead of a String to represent the
+	  commit date.
+
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs:
+	  Provide the correct path to GetTextAtRevision.
+
+2010-07-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* gtk-gui/gui.stetic:
+	* MonoDevelop.VersionControl.Dialogs/CommitDialog.cs:
+	* gtk-gui/MonoDevelop.VersionControl.Dialogs.CommitDialog.cs:
+	  Improved look. Show separators between extension widgets.
+
+	* MonoDevelop.VersionControl/CommitDialogExtension.cs: The
+	  Initialize method now can return a boolean indicating
+	  whether the extension is enabled or not. Added some
+	  comments.
+
+2010-07-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Dialogs/CommitDialog.cs: Focus
+	  the text view and move the insert point to the begining.
+	  Makes it easier to insert a comment header.
+
+	* MonoDevelop.VersionControl/ChangeLogWriter.cs:
+	* MonoDevelop.VersionControl/CommitMessageFormat.cs:
+	* MonoDevelop.VersionControl/VersionControlService.cs: Added
+	  option which allows omiting the file list in the commit
+	  message when all files have the same comment.
+
+	* gtk-gui/gui.stetic:
+	* gtk-gui/MonoDevelop.VersionControl.Dialogs.CommitDialog.cs:
+	  Add some mnemonics.
+
+2010-07-28  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl/Repository.cs: Remove debug code.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl.Views/ChangeSetView.cs: Add
+	  missing file.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl/VersionControlNodeExtension.cs:
+	  Remove debug output.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* Makefile.am:
+	* MonoDevelop.VersionControl.csproj:
+	* MonoDevelop.VersionControl/ChangeSet.cs: New reusable widget
+	  for showing change sets.
+
+2010-07-27  Lluis Sanchez Gual  <lluis@novell.com>
+
+	* MonoDevelop.VersionControl/Repository.cs:
+	* MonoDevelop.VersionControl.Views/DiffView.cs:
+	* MonoDevelop.VersionControl/UnknownRepository.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonView.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs:
+	* MonoDevelop.VersionControl/VersionControlNodeExtension.cs:
+	  Add basic support for git.
+
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameView.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonView.cs: Use
+	  delegation methods.
+
+2010-07-19  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/LogView.cs:
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Worked
+	  on version control views.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameView.cs:
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs:
+	* MonoDevelop.VersionControl.Views/PatchWidget.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonView.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Track
+	  API changes.
+
+2010-07-14  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Worked
+	  on adjustments. (text editors no longer share a common
+	  adjustment - instead they communicate)
+
+2010-07-14  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Fixed
+	  the overview renderer click position.
+
+2010-07-14  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Caret
+	  state is now shown.
+
+2010-07-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* VersionControl.addin.xml:
+	* MonoDevelop.VersionControl.Views/DiffParser.cs: Track
+	  ProjectDomService/Parser API.
+
+2010-07-09  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/DropDownBox.cs: fixed some
+	  drop down box issues.
+
+2010-07-08  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.VersionControl.Views/DropDownBox.cs:
+	* MonoDevelop.VersionControl.Views/BlameWidget.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonView.cs:
+	* MonoDevelop.VersionControl.Views/ComparisonWidget.cs: Worked
+	  on version control gui.
+
 2010-07-07  Mike Krüger  <mkrueger@novell.com>
 
 	* Makefile.am:

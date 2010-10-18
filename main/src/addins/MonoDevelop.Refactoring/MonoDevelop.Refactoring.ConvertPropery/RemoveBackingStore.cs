@@ -53,9 +53,9 @@ namespace MonoDevelop.Refactoring.ConvertPropery
 				return false;
 			
 			TextEditorData data = options.GetTextEditorData ();
-			if (property.HasGet && data.Document.GetCharAt (data.Document.LocationToOffset (property.GetRegion.End.Line - 1, property.GetRegion.End.Column - 2)) == ';')
+			if (property.HasGet && data.Document.GetCharAt (data.Document.LocationToOffset (property.GetRegion.End.Line, property.GetRegion.End.Column - 1)) == ';')
 				return false;
-			if (property.HasSet && data.Document.GetCharAt (data.Document.LocationToOffset (property.SetRegion.End.Line - 1, property.SetRegion.End.Column - 2)) == ';')
+			if (property.HasSet && data.Document.GetCharAt (data.Document.LocationToOffset (property.SetRegion.End.Line, property.SetRegion.End.Column - 1)) == ';')
 				return false;
 			INRefactoryASTProvider astProvider = options.GetASTProvider ();
 			string backingStoreName = RetrieveBackingStore (options, astProvider, property);
@@ -155,7 +155,7 @@ namespace MonoDevelop.Refactoring.ConvertPropery
 					DocumentLocation location = member.Location.ToDocumentLocation (data.Document);
 					LineSegment line = data.Document.GetLine (location.Line);
 					backinStoreStart = line.Offset;
-					backinStoreEnd = line.Offset + line.EditableLength;
+					backinStoreEnd = line.EndOffset;
 					backingStore = member;
 					break;
 				}
@@ -165,7 +165,7 @@ namespace MonoDevelop.Refactoring.ConvertPropery
 
 		string RetrieveBackingStore (MonoDevelop.Refactoring.RefactoringOptions options, MonoDevelop.Refactoring.INRefactoryASTProvider astProvider, MonoDevelop.Projects.Dom.IProperty property)
 		{
-			ICSharpCode.NRefactory.Ast.CompilationUnit compilationUnit = astProvider.ParseFile (options.Document.TextEditor.Text);
+			ICSharpCode.NRefactory.Ast.CompilationUnit compilationUnit = astProvider.ParseFile (options.Document.Editor.Text);
 			PropertyVisitor visitor = new PropertyVisitor (property);
 			compilationUnit.AcceptVisitor (visitor, null);
 			return visitor.BackingStoreName;

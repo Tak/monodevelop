@@ -135,6 +135,9 @@ FILES =  \
 	MonoDevelop.Core.StringParsing/StringTagModel.cs \
 	MonoDevelop.Core.StringParsing/StringTagModelDescription.cs \
 	MonoDevelop.Core.StringParsing/StringTagProvider.cs \
+	MonoDevelop.Core.Text/BacktrackingStringMatcher.cs \
+	MonoDevelop.Core.Text/LaneStringMatcher.cs \
+	MonoDevelop.Core.Text/StringMatcher.cs \
 	MonoDevelop.Core/ClrVersion.cs \
 	MonoDevelop.Core/ComponentModelLocalization.cs \
 	MonoDevelop.Core/DefaultAddinLocalizer.cs \
@@ -196,7 +199,6 @@ FILES =  \
 	MonoDevelop.Projects.Dom.Serialization/DomPersistence.cs \
 	MonoDevelop.Projects.Dom.Serialization/DomTypeProxy.cs \
 	MonoDevelop.Projects.Dom.Serialization/FileEntry.cs \
-	MonoDevelop.Projects.Dom.Serialization/NamespaceEntry.cs \
 	MonoDevelop.Projects.Dom.Serialization/ParserDatabase.cs \
 	MonoDevelop.Projects.Dom.Serialization/ProjectCodeCompletionDatabase.cs \
 	MonoDevelop.Projects.Dom.Serialization/SimpleCodeCompletionDatabase.cs \
@@ -282,6 +284,7 @@ FILES =  \
 	MonoDevelop.Projects.Extensions/ItemTypeNode.cs \
 	MonoDevelop.Projects.Extensions/LanguageBindingCodon.cs \
 	MonoDevelop.Projects.Extensions/MonoDocSourceNode.cs \
+	MonoDevelop.Projects.Extensions/ParserNode.cs \
 	MonoDevelop.Projects.Extensions/PolicyNode.cs \
 	MonoDevelop.Projects.Extensions/PolicySetNode.cs \
 	MonoDevelop.Projects.Extensions/ProjectBindingCodon.cs \
@@ -335,6 +338,7 @@ FILES =  \
 	MonoDevelop.Projects.Policies/PolicySet.cs \
 	MonoDevelop.Projects.Policies/ScopedPolicy.cs \
 	MonoDevelop.Projects.Text/CodeFormatDescription.cs \
+	MonoDevelop.Projects.Text/DocGenerator.cs \
 	MonoDevelop.Projects.Text/Formatter.cs \
 	MonoDevelop.Projects.Text/IEditableTextFile.cs \
 	MonoDevelop.Projects.Text/IFormatter.cs \
@@ -347,6 +351,7 @@ FILES =  \
 	MonoDevelop.Projects.Text/TextFileService.cs \
 	MonoDevelop.Projects.Text/TextFormatter.cs \
 	MonoDevelop.Projects.Utility/DiffUtility.cs \
+	MonoDevelop.Projects/AuthorInformation.cs \
 	MonoDevelop.Projects/BuildAction.cs \
 	MonoDevelop.Projects/BuildEventHandler.cs \
 	MonoDevelop.Projects/BuildResult.cs \

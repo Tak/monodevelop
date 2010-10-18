@@ -34,6 +34,7 @@ using MonoDevelop.Core;
 using MonoDevelop.Projects.Text;
 using MonoDevelop.Ide.Gui;
 using MonoDevelop.Ide;
+using MonoDevelop.Projects;
 
 namespace MonoDevelop.ChangeLogAddIn
 {
@@ -73,7 +74,7 @@ namespace MonoDevelop.ChangeLogAddIn
 			haux.PackStart (optionsButton, false, false, 0);
 		}
 		
-		public override void Initialize (ChangeSet cset)
+		public override bool Initialize (ChangeSet cset)
 		{	
 			this.cset = cset;
 			msgLabel = new Label ();
@@ -88,6 +89,7 @@ namespace MonoDevelop.ChangeLogAddIn
 				ShowAll ();
 				UpdateStatus ();
 			}
+			return enabled;
 		}
 		
 		void UpdateStatus ()
@@ -251,7 +253,7 @@ namespace MonoDevelop.ChangeLogAddIn
 				ChangeLogEntry entry;
 				if (!entries.TryGetValue (logf, out entry)) {
 					entry = new ChangeLogEntry ();
-					entry.AuthorInformation = IdeApp.Workspace.GetAuthorInformation (parentItem);
+					entry.AuthorInformation = parentItem.AuthorInformation;
 					entry.MessageStyle = ChangeLogService.GetMessageStyle (parentItem);
 					entry.CantGenerate = cantGenerate;
 					entry.File = logf;

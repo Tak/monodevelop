@@ -71,9 +71,12 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
-    <Reference Include="ICSharpCode.SharpZipLib" />
+    <Reference Include="ICSharpCode.SharpZipLib">
+      <SpecificVersion>False</SpecificVersion>
+    </Reference>
     <Reference Include="Mono.Cairo" />
     <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\MonoDevelop.Core\MonoDevelop.Core.csproj">
@@ -85,6 +88,10 @@
       <Project>{A2329308-3751-4DBD-9A75-5F7B8B024625}</Project>
       <Name>Mono.TextEditor</Name>
       <Private>False</Private>
+    </ProjectReference>
+    <ProjectReference Include="..\MonoDevelop.Projects.Formats.MSBuild\MonoDevelop.Projects.Formats.MSBuild.csproj">
+      <Project>{A437F1A3-78DF-4F00-8053-D32A8B1EB679}</Project>
+      <Name>MonoDevelop.Projects.Formats.MSBuild</Name>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
@@ -724,9 +731,6 @@
     <EmbeddedResource Include="MonoDevelop.Components.Docking\stock-menu-right-12.png">
       <LogicalName>stock-menu-right-12.png</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="gtk-gui\objects.xml">
-      <LogicalName>objects.xml</LogicalName>
-    </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="MonoDevelop.Ide.Commands\CustomStringTagProvider.cs" />
@@ -844,7 +848,6 @@
     <Compile Include="MonoDevelop.Ide.Gui.Content\IExtensibleTextEditor.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Pads.ProjectPad\UnknownEntryNodeBuilder.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Content\TextEditorExtension.cs" />
-    <Compile Include="MonoDevelop.Ide.Gui\TextEditor.cs" />
     <Compile Include="MonoDevelop.Ide.Commands\NavigationCommands.cs" />
     <Compile Include="MonoDevelop.Ide.Templates\ISolutionItemFeature.cs" />
     <Compile Include="MonoDevelop.Ide.StandardHeader\StandardHeaderService.cs" />
@@ -931,7 +934,6 @@
     <Compile Include="BuildVariables.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Content\ITextEditorResolver.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.OptionPanels\AuthorInformationPanel.cs" />
-    <Compile Include="MonoDevelop.Ide.Gui\AuthorInformation.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.OptionPanels\GlobalAuthorInformationPanel.cs" />
     <Compile Include="MonoDevelop.Ide.StandardHeader\StandardHeaderPolicyPanel.cs" />
     <Compile Include="gtk-gui\MonoDevelop.Ide.Gui.OptionPanels.AuthorInformationPanelWidget.cs" />
@@ -1106,13 +1108,6 @@
     <Compile Include="MonoDevelop.Components.Commands.ExtensionNodes\SeparatorItemCodon.cs" />
     <Compile Include="MonoDevelop.Components.Commands.ExtensionNodes\LocalCommandItemCodon.cs" />
     <Compile Include="MonoDevelop.Components.Commands.ExtensionNodes\SchemeExtensionNode.cs" />
-    <Compile Include="MonoDevelop.Components.Diff\DiffWidget.cs" />
-    <Compile Include="MonoDevelop.Components.Diff\Diff.cs" />
-    <Compile Include="MonoDevelop.Components.Diff\Merge.cs" />
-    <Compile Include="MonoDevelop.Components.Diff\Patch.cs" />
-    <Compile Include="MonoDevelop.Components.Diff\StructuredDiff.cs" />
-    <Compile Include="MonoDevelop.Components.Diff\TextDiff.cs" />
-    <Compile Include="MonoDevelop.Components.Diff\UnifiedDiff.cs" />
     <Compile Include="MonoDevelop.Components.DockToolbars\ArrowWindow.cs" />
     <Compile Include="MonoDevelop.Components.DockToolbars\DockedPosition.cs" />
     <Compile Include="MonoDevelop.Components.DockToolbars\DockGrip.cs" />
@@ -1363,6 +1358,21 @@
     <Compile Include="MonoDevelop.Components.AutoTest\AutoTestService.cs" />
     <Compile Include="MonoDevelop.Components.AutoTest\AutoTestSession.cs" />
     <Compile Include="MonoDevelop.Components.AutoTest\AutoTestClientSession.cs" />
+    <Compile Include="MonoDevelop.Components\DropDownBoxListWindow.cs" />
+    <Compile Include="MonoDevelop.Components\DropDownBox.cs" />
+    <Compile Include="MonoDevelop.Ide.CodeCompletion\CompletionMatcher.cs" />
+    <Compile Include="MonoDevelop.Components\Tabstrip.cs" />
+    <Compile Include="MonoDevelop.Ide.Fonts\FontChooserPanelWidget.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.Ide.Fonts.FontChooserPanelWidget.cs" />
+    <Compile Include="MonoDevelop.Ide.Fonts\FontChooserPanel.cs" />
+    <Compile Include="MonoDevelop.Ide.Fonts\FontService.cs" />
+    <Compile Include="MonoDevelop.Ide.Fonts\FontDescriptionCodon.cs" />
+    <Compile Include="MonoDevelop.Ide.Updater\UpdateDialog.cs" />
+    <Compile Include="MonoDevelop.Ide.Updater\UpdateResult.cs" />
+    <Compile Include="MonoDevelop.Ide.Updater\UpdateService.cs" />
+    <Compile Include="MonoDevelop.Ide.Updater\UpdateCommands.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.Ide.Updater.UpdateDialog.cs" />
+    <Compile Include="MonoDevelop.Ide.Updater\UpdateInfoExtensionNode.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ChangeLog" />
@@ -1411,7 +1421,6 @@
     <Folder Include="MonoDevelop.Ide.Execution\" />
     <Folder Include="MonoDevelop.Ide.Extensions\" />
     <Folder Include="MonoDevelop.Ide.CustomTools\" />
-    <Folder Include="MonoDevelop.Components.Diff\" />
     <Folder Include="MonoDevelop.Components.Extensions\" />
     <Folder Include="MonoDevelop.Components.Theming\" />
     <Folder Include="MonoDevelop.Components.Docking\" />
@@ -1425,5 +1434,7 @@
     <Folder Include="MonoDevelop.Ide.NavigateToDialog\" />
     <Folder Include="MonoDevelop.Ide.Navigation\" />
     <Folder Include="MonoDevelop.Components.AutoTest\" />
+    <Folder Include="MonoDevelop.Ide.Fonts\" />
+    <Folder Include="MonoDevelop.Ide.Updater\" />
   </ItemGroup>
 </Project>

@@ -33,13 +33,19 @@ namespace MonoDevelop.CSharp.Dom
 {
 	public class MemberReferenceExpression : AbstractCSharpNode
 	{
+		public override NodeType NodeType {
+			get {
+				return NodeType.Expression;
+			}
+		}
+
 		public INode Target {
 			get { return GetChildByRole (Roles.TargetExpression); }
 		}
 		
-		public ICSharpNode Identifier {
+		public Identifier Identifier {
 			get {
-				return (ICSharpNode)GetChildByRole (Roles.Identifier);
+				return (Identifier)GetChildByRole (Roles.Identifier);
 			}
 		}
 		

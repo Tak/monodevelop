@@ -111,7 +111,7 @@ namespace MonoDevelop.Projects.Dom.MemoryDatabase
 			foreach (string fileName in from pf in Project.Files where pf.BuildAction == BuildAction.Compile select pf.Name) {
 				if (!files.Contains (fileName)) {
 					files.Add (fileName);
-					ProjectDomService.QueueParseJob (this, new JobCallback (ParseCallback), fileName);
+					ProjectDomService.QueueParseJob (this, ParseCallback, fileName);
 				}
 			}
 			
@@ -132,13 +132,7 @@ namespace MonoDevelop.Projects.Dom.MemoryDatabase
 		{
 			string fileName = (string) ob;
 			
-			ProjectDomService.Parse (Project, 
-			                         fileName,
-			                         null,
-			                         delegate () { 
-			                            return File.ReadAllText (fileName); 
-			                         });
-
+			ProjectDomService.Parse (Project, fileName, delegate () { return File.ReadAllText (fileName); });
 			
 			/*
 			ParseFile (fileName, monitor);

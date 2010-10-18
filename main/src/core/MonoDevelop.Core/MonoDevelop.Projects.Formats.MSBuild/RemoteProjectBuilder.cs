@@ -77,14 +77,20 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 			builder = engine.LoadProject (file, binPath);
 		}
 		
-		public MSBuildResult[] RunTarget (string target, string configuration, string platform, ILogWriter logWriter)
+		public MSBuildResult[] RunTarget (string target, string configuration, string platform, ILogWriter logWriter,
+			MSBuildVerbosity verbosity)
 		{
-			return builder.RunTarget (target, configuration, platform, logWriter);
+			return builder.RunTarget (target, configuration, platform, logWriter, verbosity);
 		}
 		
 		public string[] GetAssemblyReferences (string configuration, string platform)
 		{
 			return builder.GetAssemblyReferences (configuration, platform);
+		}
+		
+		public void Refresh ()
+		{
+			builder.Refresh ();
 		}
 		
 		public void Dispose ()

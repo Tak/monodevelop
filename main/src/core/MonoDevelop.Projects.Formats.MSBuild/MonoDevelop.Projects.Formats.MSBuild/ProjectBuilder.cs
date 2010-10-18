@@ -41,50 +41,104 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		Project project;
 		Engine engine;
 		string file;
-		
+		ILogWriter currentLogWriter;
+		ConsoleLogger consoleLogger;
+
+		AutoResetEvent moreWorkEvent = new AutoResetEvent (false);
+		AutoResetEvent wordDoneEvent = new AutoResetEvent (false);
+		ThreadStart workDelegate;
+		object workLock = new object ();
+		Thread workThread;
+		Exception workError;
+
 		public ProjectBuilder (string file, string binDir)
 		{
 			this.file = file;
-			engine = new Engine (binDir);
-			engine.GlobalProperties.SetProperty ("BuildingInsideVisualStudio", "true");
+			RunSTA (delegate
+			{
+				engine = new Engine (binDir);
+				engine.GlobalProperties.SetProperty ("BuildingInsideVisualStudio", "true");
+
+				consoleLogger = new ConsoleLogger (LoggerVerbosity.Normal, LogWriteLine, null, null);
+				engine.RegisterLogger (consoleLogger);
+			});
+			
 			Refresh ();
 		}
 		
 		public void Refresh ()
 		{
-			project = new Project (engine);
-			project.Load (file);
+			RunSTA (delegate
+			{
+				project = new Project (engine);
+				project.Load (file);
+			});
 		}
 		
-		public MSBuildResult[] RunTarget (string target, string configuration, string platform, ILogWriter logWriter)
+		void LogWriteLine (string txt)
 		{
-			try {
-				SetupEngine (configuration, platform);
-				
-				LocalLogger logger = new LocalLogger (Path.GetDirectoryName (file));
-				engine.RegisterLogger (logger);
-				
-				ConsoleLogger consoleLogger = new ConsoleLogger (LoggerVerbosity.Normal, logWriter.WriteLine, null, null);
-				engine.RegisterLogger (consoleLogger);
-				
-				project.Build (target);
-				return logger.BuildResult.ToArray ();
-				
-			} finally {
-				engine.UnregisterAllLoggers ();
+			if (currentLogWriter != null)
+				currentLogWriter.WriteLine (txt);
+		}
+		
+		public MSBuildResult[] RunTarget (string target, string configuration, string platform, ILogWriter logWriter,
+			MSBuildVerbosity verbosity)
+		{
+			MSBuildResult[] result = null;
+			RunSTA (delegate
+			{
+				try {
+					SetupEngine (configuration, platform);
+					currentLogWriter = logWriter;
+
+					LocalLogger logger = new LocalLogger (Path.GetDirectoryName (file));
+					engine.RegisterLogger (logger);
+
+					consoleLogger.Verbosity = GetVerbosity (verbosity);
+					project.Build (target);
+					result = logger.BuildResult.ToArray ();
+
+				}
+				finally {
+					currentLogWriter = null;
+				}
+			});
+			return result;
+		}
+		
+		LoggerVerbosity GetVerbosity (MSBuildVerbosity verbosity)
+		{
+			switch (verbosity) {
+			case MSBuildVerbosity.Quiet:
+				return LoggerVerbosity.Quiet;
+			case MSBuildVerbosity.Minimal:
+				return LoggerVerbosity.Minimal;
+			case MSBuildVerbosity.Normal:
+			default:
+				return LoggerVerbosity.Normal;
+			case MSBuildVerbosity.Detailed:
+				return LoggerVerbosity.Detailed;
+			case MSBuildVerbosity.Diagnostic:
+				return LoggerVerbosity.Diagnostic;
 			}
 		}
-		
+
 		public string[] GetAssemblyReferences (string configuration, string platform)
 		{
-			SetupEngine (configuration, platform);
-			
-			project.Build ("ResolveReferences");
-			BuildItemGroup grp = project.GetEvaluatedItemsByName ("ReferencePath");
-			List<string> refs = new List<string> ();
-			foreach (BuildItem item in grp)
-				refs.Add (item.Include);
-			return refs.ToArray ();
+			string[] refsArray = null;
+
+			RunSTA (delegate
+			{
+				SetupEngine (configuration, platform);
+
+				project.Build ("ResolveReferences");
+				BuildItemGroup grp = project.GetEvaluatedItemsByName ("ReferencePath");
+				List<string> refs = new List<string> ();
+				foreach (BuildItem item in grp)
+					refs.Add (item.Include);
+				refsArray = refs.ToArray ();
+			});
+			return refsArray;
 		}
 		
 		void SetupEngine (string configuration, string platform)
@@ -101,6 +155,47 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		{
 			return null;
 		}
+
+		void RunSTA (ThreadStart ts)
+		{
+			lock (workLock) {
+				lock (threadLock) {
+					workDelegate = ts;
+					workError = null;
+					if (workThread == null) {
+						workThread = new Thread (STARunner);
+						workThread.ApartmentState = ApartmentState.STA;
+						workThread.IsBackground = true;
+						workThread.Start ();
+					}
+					else
+						// Awaken the existing thread
+						Monitor.Pulse (threadLock);
+				}
+				wordDoneEvent.WaitOne ();
+			}
+			if (workError != null)
+				throw new Exception ("MSBuild operation failed", workError);
+		}
+
+		object threadLock = new object ();
+
+		void STARunner ()
+		{
+			lock (threadLock) {
+				do {
+					try {
+						workDelegate ();
+					}
+					catch (Exception ex) {
+						workError = ex;
+					}
+					wordDoneEvent.Set ();
+				}
+				while (Monitor.Wait (threadLock, 60000));
+
+				workThread = null;
+			}
+		}
 	}
 }
-

@@ -1,7 +1,8 @@
 
 DEPS =  \
 	$(top_builddir)/build/bin/Mono.TextEditor.dll \
-	$(top_builddir)/build/bin/MonoDevelop.Core.dll
+	$(top_builddir)/build/bin/MonoDevelop.Core.dll \
+	$(top_builddir)/build/bin/MonoDevelop.Projects.Formats.MSBuild.exe
 
 REFS =  \
 	$(GLIB_SHARP_LIBS) \
@@ -11,8 +12,8 @@ REFS =  \
 	$(MONO_ADDINS_SETUP_LIBS) \
 	$(MONODOC_LIBS) \
 	-r:ICSharpCode.SharpZipLib \
-	-r:Mono.Cairo \
 	-r:Mono.Posix \
+	-r:Mono.Cairo \
 	-r:System \
 	-r:System.Core \
 	-r:System.Data \
@@ -20,7 +21,8 @@ REFS =  \
 	-r:System.Runtime.Remoting \
 	-r:System.Web \
 	-r:System.Web.Services \
-	-r:System.Xml
+	-r:System.Xml \
+	-r:System.Xml.Linq
 
 FILES =  \
 	AssemblyInfo.cs \
@@ -39,6 +41,7 @@ FILES =  \
 	gtk-gui/MonoDevelop.Ide.ExternalTools.ExternalToolPanelWidget.cs \
 	gtk-gui/MonoDevelop.Ide.FindInFiles.FindInFilesDialog.cs \
 	gtk-gui/MonoDevelop.Ide.FindInFiles.SearchResultWidget.cs \
+	gtk-gui/MonoDevelop.Ide.Fonts.FontChooserPanelWidget.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Components.ExecutionModeComboBox.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Components.StringTagSelectorButton.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.AddinLoadErrorDialog.cs \
@@ -94,6 +97,7 @@ FILES =  \
 	gtk-gui/MonoDevelop.Ide.Projects.SelectReferenceDialog.cs \
 	gtk-gui/MonoDevelop.Ide.SelectEncodingsDialog.cs \
 	gtk-gui/MonoDevelop.Ide.StandardHeader.StandardHeaderPolicyPanelWidget.cs \
+	gtk-gui/MonoDevelop.Ide.Updater.UpdateDialog.cs \
 	MonoDevelop.Components.AutoTest/AutoTestClientSession.cs \
 	MonoDevelop.Components.AutoTest/AutoTestService.cs \
 	MonoDevelop.Components.AutoTest/AutoTestSession.cs \
@@ -155,13 +159,6 @@ FILES =  \
 	MonoDevelop.Components.Commands/KeyBindingSet.cs \
 	MonoDevelop.Components.Commands/LinkCommandEntry.cs \
 	MonoDevelop.Components.Commands/MenuToolButton.cs \
-	MonoDevelop.Components.Diff/Diff.cs \
-	MonoDevelop.Components.Diff/DiffWidget.cs \
-	MonoDevelop.Components.Diff/Merge.cs \
-	MonoDevelop.Components.Diff/Patch.cs \
-	MonoDevelop.Components.Diff/StructuredDiff.cs \
-	MonoDevelop.Components.Diff/TextDiff.cs \
-	MonoDevelop.Components.Diff/UnifiedDiff.cs \
 	MonoDevelop.Components.Docking/AutoHideBox.cs \
 	MonoDevelop.Components.Docking/DockBar.cs \
 	MonoDevelop.Components.Docking/DockBarItem.cs \
@@ -236,6 +233,8 @@ FILES =  \
 	MonoDevelop.Components/CompactScrolledWindow.cs \
 	MonoDevelop.Components/ConsoleView.cs \
 	MonoDevelop.Components/DataGrid.cs \
+	MonoDevelop.Components/DropDownBox.cs \
+	MonoDevelop.Components/DropDownBoxListWindow.cs \
 	MonoDevelop.Components/FileEntry.cs \
 	MonoDevelop.Components/FileSelector.cs \
 	MonoDevelop.Components/FixedWidthWrapLabel.cs \
@@ -261,6 +260,7 @@ FILES =  \
 	MonoDevelop.Components/SelectFileDialog.cs \
 	MonoDevelop.Components/SelectFolderDialog.cs \
 	MonoDevelop.Components/TabLabel.cs \
+	MonoDevelop.Components/Tabstrip.cs \
 	MonoDevelop.Components/TooltipWindow.cs \
 	MonoDevelop.Components/TreeViewCellContainer.cs \
 	MonoDevelop.Components/TreeViewState.cs \
@@ -271,6 +271,7 @@ FILES =  \
 	MonoDevelop.Ide.CodeCompletion/CompletionData.cs \
 	MonoDevelop.Ide.CodeCompletion/CompletionDataList.cs \
 	MonoDevelop.Ide.CodeCompletion/CompletionListWindow.cs \
+	MonoDevelop.Ide.CodeCompletion/CompletionMatcher.cs \
 	MonoDevelop.Ide.CodeCompletion/CompletionWindowManager.cs \
 	MonoDevelop.Ide.CodeCompletion/DeclarationViewWindow.cs \
 	MonoDevelop.Ide.CodeCompletion/DisplayFlags.cs \
@@ -372,6 +373,10 @@ FILES =  \
 	MonoDevelop.Ide.FindInFiles/SearchResult.cs \
 	MonoDevelop.Ide.FindInFiles/SearchResultPad.cs \
 	MonoDevelop.Ide.FindInFiles/SearchResultWidget.cs \
+	MonoDevelop.Ide.Fonts/FontChooserPanel.cs \
+	MonoDevelop.Ide.Fonts/FontChooserPanelWidget.cs \
+	MonoDevelop.Ide.Fonts/FontDescriptionCodon.cs \
+	MonoDevelop.Ide.Fonts/FontService.cs \
 	MonoDevelop.Ide.Gui.Components/CellRendererPixbuf.cs \
 	MonoDevelop.Ide.Gui.Components/CustomCommandTargetAttribute.cs \
 	MonoDevelop.Ide.Gui.Components/DragOperation.cs \
@@ -513,7 +518,6 @@ FILES =  \
 	MonoDevelop.Ide.Gui/AbstractViewContent.cs \
 	MonoDevelop.Ide.Gui/AddinUpdateHandler.cs \
 	MonoDevelop.Ide.Gui/AsyncDispatchAttribute.cs \
-	MonoDevelop.Ide.Gui/AuthorInformation.cs \
 	MonoDevelop.Ide.Gui/BackgroundProgressMonitor.cs \
 	MonoDevelop.Ide.Gui/ConfigurationComboBox.cs \
 	MonoDevelop.Ide.Gui/DefaultWorkbench.cs \
@@ -549,7 +553,6 @@ FILES =  \
 	MonoDevelop.Ide.Gui/SyncContext.cs \
 	MonoDevelop.Ide.Gui/SyncContextAttribute.cs \
 	MonoDevelop.Ide.Gui/SyncObject.cs \
-	MonoDevelop.Ide.Gui/TextEditor.cs \
 	MonoDevelop.Ide.Gui/ToolbarComboBox.cs \
 	MonoDevelop.Ide.Gui/ViewCommandHandlers.cs \
 	MonoDevelop.Ide.Gui/Workbench.cs \
@@ -635,6 +638,11 @@ FILES =  \
 	MonoDevelop.Ide.Templates/SolutionDescriptor.cs \
 	MonoDevelop.Ide.Templates/SolutionItemDescriptor.cs \
 	MonoDevelop.Ide.Templates/TextFileDescriptionTemplate.cs \
+	MonoDevelop.Ide.Updater/UpdateCommands.cs \
+	MonoDevelop.Ide.Updater/UpdateDialog.cs \
+	MonoDevelop.Ide.Updater/UpdateInfoExtensionNode.cs \
+	MonoDevelop.Ide.Updater/UpdateResult.cs \
+	MonoDevelop.Ide.Updater/UpdateService.cs \
 	MonoDevelop.Ide.WebBrowser/IWebBrowser.cs \
 	MonoDevelop.Ide.WebBrowser/IWebBrowserLoader.cs \
 	MonoDevelop.Ide.WebBrowser/LoadingProgressChangedEventArgs.cs \
@@ -660,7 +668,6 @@ FILES =  \
 
 RES =  \
 	gtk-gui/gui.stetic \
-	gtk-gui/objects.xml \
 	icons/AboutImage.png \
 	icons/AboutImageSep.png \
 	icons/add-namespace-16.png \

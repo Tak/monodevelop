@@ -36,9 +36,10 @@ namespace MonoDevelop.SourceEditor
 	public class MessageBubbleHighlightPopupWindow : BounceFadePopupWindow
 	{
 		MessageBubbleTextMarker marker;
+		Gdk.Rectangle bounds;
 		
 		public MessageBubbleHighlightPopupWindow (SourceEditorView view, MessageBubbleTextMarker marker)
-			: base (view.TextEditor, marker.ErrorTextBounds)
+			: base (view.TextEditor)
 		{
 			this.marker = marker;
 			
@@ -46,6 +47,11 @@ namespace MonoDevelop.SourceEditor
 			ExpandHeight = 2;
 			BounceEasing = Easing.Sine;
 			Duration = 600;
+		}
+	
+		protected override Gdk.Rectangle CalculateInitialBounds ()
+		{
+			return marker.ErrorTextBounds;
 		}
 		
 		protected override Gdk.Pixbuf RenderInitialPixbuf (Gdk.Window parentwindow, Gdk.Rectangle bounds)
@@ -55,10 +61,16 @@ namespace MonoDevelop.SourceEditor
 				using (var bgGc = new Gdk.GC(pixmap)) {
 					bgGc.RgbFgColor = CairoExtensions.CairoColorToGdkColor (marker.colorMatrix[0, 0, 0, 0, 0]);
 					pixmap.DrawRectangle (bgGc, true, 0, 0, bounds.Width, bounds.Height);
-					pixmap.DrawLayout (marker.gc, 4, (bounds.Height - marker.Layouts[0].Height) / 2, marker.Layouts[0].Layout);
+					bgGc.RgbFgColor = (Mono.TextEditor.HslColor)marker.gc;
+					pixmap.DrawLayout (bgGc, 4, (bounds.Height - marker.Layouts[0].Height) / 2, marker.Layouts[0].Layout);
 				}
 				return Gdk.Pixbuf.FromDrawable (pixmap, Colormap, 0, 0, 0, 0, bounds.Width, bounds.Height);
 			}
+		}
+
+		protected override void OnAnimationCompleted ()
+		{
+			Destroy ();
 		}
 	}
 }

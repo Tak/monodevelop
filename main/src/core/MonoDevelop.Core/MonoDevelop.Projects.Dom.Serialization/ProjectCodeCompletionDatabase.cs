@@ -27,6 +27,7 @@
 //
 
 using System;
+using System.Linq;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -136,10 +137,8 @@ namespace MonoDevelop.Projects.Dom.Serialization
 				if (GetFile (file.Name) == null) AddFile (file.Name);
 				fs [file.Name] = null;
 			}
-			
-			ArrayList keys = new ArrayList ();
-			keys.AddRange (files.Keys);
-			foreach (string file in keys)
+
+			foreach (string file in files.Keys.ToArray ())
 			{
 				if (!fs.Contains (file))
 					RemoveFile (file);
@@ -166,9 +165,7 @@ namespace MonoDevelop.Projects.Dom.Serialization
 				}
 			}
 			
-			keys.Clear();
-			keys.AddRange (references);
-			foreach (ReferenceEntry re in keys)
+			foreach (ReferenceEntry re in References)
 			{
 				// Don't delete corlib references. They are implicit to projects, but not to pidbs.
 				if (!fs.Contains (re.Uri) && !IsCorlibReference (re))
@@ -237,10 +234,7 @@ namespace MonoDevelop.Projects.Dom.Serialization
 			if (monitor != null) monitor.BeginTask (string.Format (GettextCatalog.GetString ("Parsing file: {0}"), Path.GetFileName (fileName)), 1);
 			
 			try {
-				ProjectDomService.Parse (this.project,
-				                         fileName,
-				                         null,
-				                         delegate () { return File.ReadAllText (fileName); });
+				ProjectDomService.Parse (project, fileName, delegate () { return File.ReadAllText (fileName); });
 				// The call to ProjectDomService.Parse will call UpdateFromParseInfo when done
 			} finally {
 				if (monitor != null) monitor.EndTask ();
@@ -261,8 +255,8 @@ namespace MonoDevelop.Projects.Dom.Serialization
 				
 				TypeUpdateInformation res = UpdateTypeInformation (resolved, parserInfo.FileName);
 				
-				FileEntry file = files [fileName] as FileEntry;
-				if (file != null) {
+				FileEntry file;
+				if (files.TryGetValue (fileName, out file)) {
 					if (unresolvedCount > 0) {
 						if (file.ParseErrorRetries != 1) {
 							file.ParseErrorRetries = 1;

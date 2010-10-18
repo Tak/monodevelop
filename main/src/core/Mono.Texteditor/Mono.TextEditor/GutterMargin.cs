@@ -34,14 +34,13 @@ namespace Mono.TextEditor
 	public class GutterMargin : Margin
 	{
 		TextEditor editor;
-		Pango.Layout layout;
 		int width;
 		int oldLineCountLog10 = -1;
 		
 		public GutterMargin (TextEditor editor)
 		{
 			this.editor = editor;
-			layout = PangoUtil.CreateLayout (editor, null);
+			
 			base.cursor = new Gdk.Cursor (Gdk.CursorType.RightPtr);
 			this.editor.Document.LineChanged += UpdateWidth;
 			this.editor.Document.TextSet += HandleEditorDocumenthandleTextSet;
@@ -63,13 +62,15 @@ namespace Mono.TextEditor
 
 		void CalculateWidth ()
 		{
-			layout.SetText (editor.Document.LineCount.ToString ());
-			layout.Alignment = Pango.Alignment.Left;
-			layout.Width = -1;
-			
-			int height;
-			layout.GetPixelSize (out this.width, out height);
-			this.width += 4;
+			using (var layout = PangoUtil.CreateLayout (editor)) {
+				layout.FontDescription = editor.Options.Font;
+				layout.SetText (editor.Document.LineCount.ToString ());
+				layout.Alignment = Pango.Alignment.Left;
+				layout.Width = -1;
+				int height;
+				layout.GetPixelSize (out this.width, out height);
+				this.width += 4;
+			}
 		}
 		
 		void UpdateWidth (object sender, LineEventArgs args)
@@ -82,23 +83,24 @@ namespace Mono.TextEditor
 			}
 		}
 		
-		public override int Width {
+		public override double Width {
 			get {
 				return width;
 			}
 		}
-		DocumentLocation anchorLocation = DocumentLocation.Empty;
+		
+		DocumentLocation anchorLocation = new DocumentLocation (DocumentLocation.MinLine, DocumentLocation.MinColumn);
 		internal protected override void MousePressed (MarginMouseEventArgs args)
 		{
 			base.MousePressed (args);
 			
-			if (args.Button != 1)
+			if (args.Button != 1 || args.LineNumber < DocumentLocation.MinLine)
 				return;
 			editor.LockedMargin = this;
 			int lineNumber       = args.LineNumber;
 			bool extendSelection = (args.ModifierState & Gdk.ModifierType.ShiftMask) == Gdk.ModifierType.ShiftMask;
-			if (lineNumber < editor.Document.LineCount) {
-				DocumentLocation loc = new DocumentLocation (lineNumber, 0);
+			if (lineNumber <= editor.Document.LineCount) {
+				DocumentLocation loc = new DocumentLocation (lineNumber, DocumentLocation.MinColumn);
 				LineSegment line = args.LineSegment;
 				if (args.Type == EventType.TwoButtonPress) {
 					if (line != null)
@@ -128,7 +130,7 @@ namespace Mono.TextEditor
 		{
 			LineSegment line = data.Document.GetLine (lineNumber);
 			
-			DocumentLocation result = new DocumentLocation (lineNumber, line.EditableLength);
+			DocumentLocation result = new DocumentLocation (lineNumber, line.EditableLength + 1);
 			
 			FoldSegment segment = null;
 			foreach (FoldSegment folding in data.Document.GetStartFoldings (line)) {
@@ -138,7 +140,7 @@ namespace Mono.TextEditor
 				}
 			}
 			if (segment != null) 
-				result = data.Document.OffsetToLocation (segment.EndLine.Offset + segment.EndColumn); 
+				result = data.Document.OffsetToLocation (segment.EndLine.Offset + segment.EndColumn - 1); 
 			return result;
 		}
 		
@@ -149,9 +151,9 @@ namespace Mono.TextEditor
 			if (args.Button == 1) {
 			//	DocumentLocation loc = editor.Document.LogicalToVisualLocation (editor.GetTextEditorData (), editor.Caret.Location);
 				
-				int lineNumber = args.LineNumber != -1 ? args.LineNumber : editor.Document.LineCount - 1;
+				int lineNumber = args.LineNumber >= DocumentLocation.MinLine ? args.LineNumber : editor.Document.LineCount;
 				editor.Caret.PreserveSelection = true;
-				editor.Caret.Location = new DocumentLocation (lineNumber, 0);
+				editor.Caret.Location = new DocumentLocation (lineNumber, DocumentLocation.MinColumn);
 				editor.MainSelection = new Selection (anchorLocation, editor.Caret.Location);
 				editor.Caret.PreserveSelection = false;
 			}
@@ -167,45 +169,40 @@ namespace Mono.TextEditor
 			
 			this.editor.Document.TextSet -= HandleEditorDocumenthandleTextSet;
 			this.editor.Document.LineChanged -= UpdateWidth;
-			layout = layout.Kill ();
-			DisposeGCs ();
+//			layout = layout.Kill ();
 			base.Dispose ();
 		}
 		
-		void DisposeGCs ()
-		{
-			lineNumberBgGC = lineNumberBgGC.Kill ();
-			lineNumberGC = lineNumberGC.Kill ();
-			lineNumberHighlightGC = lineNumberHighlightGC.Kill ();
-		}
-		
-		Gdk.GC lineNumberBgGC, lineNumberGC, lineNumberHighlightGC;
+		Cairo.Color lineNumberBgGC, lineNumberGC, lineNumberHighlightGC;
 		internal protected override void OptionsChanged ()
 		{
-			layout.FontDescription = editor.Options.Font;
 			CalculateWidth ();
 			
-			DisposeGCs ();
-			lineNumberBgGC = new Gdk.GC (editor.GdkWindow);
-			lineNumberBgGC.RgbFgColor = editor.ColorStyle.LineNumber.BackgroundColor;
-			
-			lineNumberGC = new Gdk.GC (editor.GdkWindow);
-			lineNumberGC.RgbFgColor = editor.ColorStyle.LineNumber.Color;
-			
-			lineNumberHighlightGC = new Gdk.GC (editor.GdkWindow);
-			lineNumberHighlightGC.RgbFgColor = editor.ColorStyle.LineNumberFgHighlighted;
+			lineNumberBgGC = editor.ColorStyle.LineNumber.CairoBackgroundColor;
+			lineNumberGC = editor.ColorStyle.LineNumber.CairoColor;
+			lineNumberHighlightGC = editor.ColorStyle.LineNumberFgHighlighted;
 		}
 		
-		internal protected override void Draw (Gdk.Drawable win, Gdk.Rectangle area, int line, int x, int y, int lineHeight)
+		internal protected override void Draw (Cairo.Context cr, Cairo.Rectangle area, LineSegment lineSegment, int line, double x, double y, double lineHeight)
 		{
-			Gdk.Rectangle drawArea = new Rectangle (x, y, Width, lineHeight);
-			win.DrawRectangle (lineNumberBgGC, true, drawArea);
-			layout.Alignment = Pango.Alignment.Right;
-			layout.Width = Width;
+			cr.Rectangle (x, y, Width, lineHeight);
+			cr.Color = lineNumberBgGC;
+			cr.Fill ();
 			
-			if (line < editor.Document.LineCount) {
-				layout.SetText ((line + 1).ToString ());
-				win.DrawLayout (editor.Caret.Line == line ? lineNumberHighlightGC : lineNumberGC, x + Width, y, layout);
+			if (line <= editor.Document.LineCount) {
+				// Due to a mac? gtk bug I need to re-create the layout here
+				// otherwise I get pango exceptions.
+				using (var layout = PangoUtil.CreateLayout (editor)) {
+					layout.FontDescription = editor.Options.Font;
+					layout.Width = (int)Width;
+					layout.Alignment = Pango.Alignment.Right;
+					layout.SetText (line.ToString ());
+					cr.Save ();
+					cr.Translate (x + (int)Width, y);
+					cr.Color = editor.Caret.Line == line ? lineNumberHighlightGC : lineNumberGC;
+					cr.ShowLayout (layout);
+					cr.Restore ();
+				}
 			}
 		}
 	}

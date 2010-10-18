@@ -55,7 +55,7 @@ namespace Mono.TextEditor.Tests
 				char ch = doc.GetCharAt (i);
 				
 				if ((ch == '+' || ch == '-') && doc.GetCharAt(i + 1) == '[') {
-					FoldSegment segment = new FoldSegment ("...", i, 0, FoldingType.None);
+					FoldSegment segment = new FoldSegment (doc, "...", i, 0, FoldingType.None);
 					segment.IsFolded = ch == '+';
 					foldSegments.Push (segment);
 				} else if (ch == ']' && foldSegments.Count > 0) {
@@ -126,10 +126,8 @@ namespace Mono.TextEditor.Tests
 			do {
 				Gtk.Application.RunIteration ();
 			} while (!document.HasFoldSegments);
-			Assert.AreEqual (12, document.VisualToLogicalLine (4));
-			Assert.AreEqual (17, document.VisualToLogicalLine (7));
+			Assert.AreEqual (13, document.VisualToLogicalLine (5));
+			Assert.AreEqual (18, document.VisualToLogicalLine (8));
 		}
-		
-		
 	}
 }

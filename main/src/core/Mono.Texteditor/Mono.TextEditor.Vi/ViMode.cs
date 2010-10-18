@@ -34,7 +34,24 @@ using System.Linq;
 
 namespace Mono.TextEditor.Vi
 {
-
+	public class NewViEditMode : EditMode
+	{
+		ViEditor viEditor;
+		
+		public NewViEditMode ()
+		{
+			viEditor = new ViEditor (this);
+		}
+		
+		protected override void HandleKeypress (Gdk.Key key, uint unicodeKey, Gdk.ModifierType modifier)
+		{
+			viEditor.ProcessKey (modifier, key, (char)unicodeKey);
+		}
+		
+		public new TextEditor Editor { get { return base.Editor; } }
+		public new TextEditorData Data { get { return base.Data; } }
+	}
+	
 	public class ViEditMode : EditMode
 	{
 		bool searchBackward;
@@ -77,7 +94,7 @@ namespace Mono.TextEditor.Vi
 					
 				int line;
 				if (int.TryParse (command.Substring (1), out line)) {
-					if (line < 0 || line > Data.Document.LineCount) {
+					if (line < DocumentLocation.MinLine || line > Data.Document.LineCount) {
 						return "Invalid line number.";
 					} else if (line == 0) {
 						RunAction (CaretMoveActions.ToDocumentStart);
@@ -199,7 +216,7 @@ namespace Mono.TextEditor.Vi
 			
 			if (CaretMode.Block != data.Caret.Mode) {
 				data.Caret.Mode = CaretMode.Block;
-				if (data.Caret.Column > 0)
+				if (data.Caret.Column > DocumentLocation.MinColumn)
 					data.Caret.Column--;
 			}
 			ViActions.RetreatFromLineEnd (data);
@@ -354,7 +371,7 @@ namespace Mono.TextEditor.Vi
 						return;
 						
 					case 'x':
-						if (Data.Caret.Column == Data.Document.GetLine (Data.Caret.Line).EditableLength)
+						if (Data.Caret.Column == Data.Document.GetLine (Data.Caret.Line).EditableLength + 1)
 							return;
 						Status = string.Empty;
 						if (!Data.IsSomethingSelected)
@@ -365,7 +382,7 @@ namespace Mono.TextEditor.Vi
 						return;
 						
 					case 'X':
-						if (Data.Caret.Column == 0)
+						if (Data.Caret.Column == DocumentLocation.MinColumn)
 							return;
 						Status = string.Empty;
 						if (!Data.IsSomethingSelected && 0 < Caret.Offset)
@@ -423,21 +440,21 @@ namespace Mono.TextEditor.Vi
 						return;
 						
 					case 'H':
-						Caret.Line = System.Math.Max (0, Editor.VisualToDocumentLocation (0, Editor.LineHeight - 1).Line);
+						Caret.Line = System.Math.Max (DocumentLocation.MinLine, Editor.PointToLocation (0, Editor.LineHeight - 1).Line);
 						return;
 					case 'J':
 						RunAction (ViActions.Join);
 						return;
 					case 'L':
-						int line = Editor.VisualToDocumentLocation (0, Editor.Allocation.Height - Editor.LineHeight * 2 - 2).Line;
-						if (line < 0)
-							line = Document.LineCount - 1;
+						int line = Editor.PointToLocation (0, Editor.Allocation.Height - Editor.LineHeight * 2 - 2).Line;
+						if (line < DocumentLocation.MinLine)
+							line = Document.LineCount;
 						Caret.Line = line;
 						return;
 					case 'M':
-						line = Editor.VisualToDocumentLocation (0, Editor.Allocation.Height/2).Line;
-						if (line < 0)
-							line = Document.LineCount - 1;
+						line = Editor.PointToLocation (0, Editor.Allocation.Height/2).Line;
+						if (line < DocumentLocation.MinLine)
+							line = Document.LineCount;
 						Caret.Line = line;
 						return;
 						
@@ -581,7 +598,6 @@ namespace Mono.TextEditor.Vi
 			case State.Insert:
 			case State.Replace:
 				action = GetInsertAction (key, modifier);
-				
 				
 				if (action != null)
 					RunAction (action);
@@ -957,6 +973,7 @@ namespace Mono.TextEditor.Vi
 		private void PasteAfter (bool linemode)
 		{
 			TextEditorData data = Data;
+			this.Document.BeginAtomicUndo();
 			
 			Gtk.Clipboard.Get (ClipboardActions.CopyOperation.CLIPBOARD_ATOM).RequestText 
 				(delegate (Gtk.Clipboard cb, string contents) {
@@ -994,6 +1011,7 @@ namespace Mono.TextEditor.Vi
 				}
 				Reset (string.Empty);
 			});
+			this.Document.EndAtomicUndo();
 		}
 
 		/// <summary>
@@ -1004,6 +1022,7 @@ namespace Mono.TextEditor.Vi
 		{
 			TextEditorData data = Data;
 			
+			this.Document.BeginAtomicUndo();
 			Gtk.Clipboard.Get (ClipboardActions.CopyOperation.CLIPBOARD_ATOM).RequestText 
 				(delegate (Gtk.Clipboard cb, string contents) {
 				if (contents == null)
@@ -1039,6 +1058,7 @@ namespace Mono.TextEditor.Vi
 				}
 				Reset (string.Empty);
 			});
+			this.Document.EndAtomicUndo();
 		}
 
 		enum State {

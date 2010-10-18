@@ -125,7 +125,7 @@ namespace MonoDevelop.Platform
 			    args += "\"";
 			
 			var psi = new ProcessStartInfo ("cmd.exe", args) {
-				CreateNoWindow = true,
+				CreateNoWindow = false,
 				WorkingDirectory = workingDirectory,
 				UseShellExecute = false,
 			};
@@ -137,5 +137,10 @@ namespace MonoDevelop.Platform
 			proc.Start ();
 			return proc;
         }
+		
+		protected override RecentFiles CreateRecentFilesProvider ()
+		{
+			return new MonoDevelop.Platform.WindowsRecentFiles ();
+		}
 	}
 }

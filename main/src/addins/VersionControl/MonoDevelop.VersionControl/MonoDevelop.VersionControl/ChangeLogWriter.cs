@@ -30,7 +30,8 @@ using System;
 using System.IO;
 using System.Text;
 using System.Collections.Generic;
-using MonoDevelop.Ide.Gui;
+using System.Linq;
+using MonoDevelop.Projects;
 using MonoDevelop.Projects.Text;
 
 using MonoDevelop.Core;
@@ -56,9 +57,8 @@ namespace MonoDevelop.VersionControl
 			}
 			
 			string relative_path = GetRelativeEntryPath (path);
-			if (relative_path == null) {
+			if (relative_path == null)
 				return;
-			}
 			
 			List<string> path_list;
 			if (!messages.TryGetValue (message, out path_list)) {
@@ -114,31 +114,42 @@ namespace MonoDevelop.VersionControl
 			formatter.LeftMargin = message_style.LineAlign;
 			formatter.ParagraphStartMargin = 0;
 			
-			foreach (KeyValuePair<string, List<string>> message in messages) {
-				List<string> paths = message.Value;
-				paths.Sort ((a, b) => a.Length.CompareTo (b.Length));
-				
-				formatter.BeginWord ();
-				
-				formatter.Append (message_style.FirstFilePrefix);
-				for (int i = 0, n = paths.Count; i < n; i++) {
-					if (i > 0) {
-						formatter.Append (fileSeparator1);
-						formatter.EndWord ();
-						formatter.BeginWord ();
-						formatter.Append (fileSeparator2);
+			if (!MessageFormat.ShowFilesForSingleComment && messages.Count == 1) {
+				string msg = messages.Keys.First ();
+				formatter.LeftMargin = formatter.ParagraphStartMargin;
+				formatter.Append (msg);
+			}
+			else {
+				foreach (KeyValuePair<string, List<string>> message in messages) {
+					List<string> paths = message.Value;
+					paths.Sort ((a, b) => a.Length.CompareTo (b.Length));
+					
+					formatter.BeginWord ();
+					
+					formatter.Append (message_style.FirstFilePrefix);
+					for (int i = 0, n = paths.Count; i < n; i++) {
+						if (i > 0) {
+							formatter.Append (fileSeparator1);
+							formatter.EndWord ();
+							formatter.BeginWord ();
+							formatter.Append (fileSeparator2);
+						}
+						string path = paths [i];
+						if (!MessageFormat.Style.IncludeDirectoryPaths)
+							path = Path.GetFileName (path);
+
+						formatter.Append (path);
 					}
-					formatter.Append (paths [i]);
-				}
-				
-				formatter.Append (message_style.LastFilePostfix);
-				formatter.EndWord ();
-				formatter.Append (message.Key);
-				
-				if (m_i++ < messages.Count - 1) {
-					formatter.AppendLine ();
-					for (int n=0; n < message_style.InterMessageLines; n++)
+					
+					formatter.Append (message_style.LastFilePostfix);
+					formatter.EndWord ();
+					formatter.Append (message.Key);
+					
+					if (m_i++ < messages.Count - 1) {
 						formatter.AppendLine ();
+						for (int n=0; n < message_style.InterMessageLines; n++)
+							formatter.AppendLine ();
+					}
 				}
 			}
 			

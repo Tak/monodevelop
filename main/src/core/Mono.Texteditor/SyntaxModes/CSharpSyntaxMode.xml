@@ -172,7 +172,8 @@
 		<Word>using</Word>
 	</Keywords>
 	
-	<Keywords color = "keyword.property">		<Word>get</Word>
+	<Keywords color = "keyword.property">
+		<Word>get</Word>
 		<Word>set</Word>
 		<Word>add</Word>
 		<Word>remove</Word>

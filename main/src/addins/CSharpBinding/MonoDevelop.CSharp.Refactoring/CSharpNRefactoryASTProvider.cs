@@ -32,6 +32,12 @@ using ICSharpCode.NRefactory.PrettyPrinter;
 using ICSharpCode.NRefactory;
 using System.IO;
 using MonoDevelop.CSharp.Formatting;
+using MonoDevelop.Projects.Policies;
+using MonoDevelop.Ide.Gui.Content;
+using MonoDevelop.Projects.Text;
+using System.Reflection;
+using System.Collections.Generic;
+using MonoDevelop.Ide;
 
 namespace MonoDevelop.CSharp.Refactoring
 {
@@ -50,11 +56,60 @@ namespace MonoDevelop.CSharp.Refactoring
 		public string OutputNode (ProjectDom dom, INode node, string indent)
 		{
 			CSharpOutputVisitor outputVisitor = new CSharpOutputVisitor ();
-			CSharpFormatter.SetFormatOptions (outputVisitor, dom != null && dom.Project != null ? dom.Project.Policies : null);
-			int col = CSharpFormatter.GetColumn (indent, 0, 4);
+			SetFormatOptions (outputVisitor, dom != null && dom.Project != null ? dom.Project.Policies : null);
+			int col = GetColumn (indent, 0, 4);
 			outputVisitor.OutputFormatter.IndentationLevel = System.Math.Max (0, col / 4);
 			node.AcceptVisitor (outputVisitor, null);
 			return outputVisitor.Text;
+		}
+		
+		static void SetFormatOptions (CSharpOutputVisitor outputVisitor, PolicyContainer policyParent)
+		{
+			IEnumerable<string> types = DesktopService.GetMimeTypeInheritanceChain (CSharpFormatter.MimeType);
+			TextStylePolicy currentPolicy = policyParent != null ? policyParent.Get<TextStylePolicy> (types) : MonoDevelop.Projects.Policies.PolicyService.GetDefaultPolicy<TextStylePolicy> (types);
+			CSharpFormattingPolicy codePolicy = policyParent != null ? policyParent.Get<CSharpFormattingPolicy> (types) : MonoDevelop.Projects.Policies.PolicyService.GetDefaultPolicy<CSharpFormattingPolicy> (types);
+
+			outputVisitor.Options.IndentationChar = currentPolicy.TabsToSpaces ? ' ' : '\t';
+			outputVisitor.Options.TabSize = currentPolicy.TabWidth;
+			outputVisitor.Options.IndentSize = currentPolicy.TabWidth;
+
+			outputVisitor.Options.EolMarker = TextStylePolicy.GetEolMarker(currentPolicy.EolMarker);
+			Type optionType = outputVisitor.Options.GetType ();
+
+			foreach (var property in typeof (CSharpFormattingPolicy).GetProperties ()) {
+				PropertyInfo info = optionType.GetProperty (property.Name);
+				if (info == null) 
+					continue;
+				object val = property.GetValue (codePolicy, null);
+				object cval = null;
+				if (info.PropertyType.IsEnum) {
+					cval = Enum.Parse (info.PropertyType, val.ToString ());
+				} else if (info.PropertyType == typeof(bool)) {
+					cval = Convert.ToBoolean (val);
+				} else {
+					cval = Convert.ChangeType (val, info.PropertyType);
+				}
+				info.SetValue (outputVisitor.Options, cval, null);
+			}
+		}
+		
+		public static int GetColumn (string wrapper, int i, int tabSize)
+		{
+			int j = i;
+			int col = 0;
+			for (; j < wrapper.Length && (wrapper[j] == ' ' || wrapper[j] == '\t'); j++) {
+				if (wrapper[j] == ' ') {
+					col++;
+				} else {
+					col = GetNextTabstop (col, tabSize);
+				}
+			}
+			return col;
+		}
+		static int GetNextTabstop (int currentColumn, int tabSize)
+		{
+			int result = currentColumn + tabSize;
+			return (result / tabSize) * tabSize;
 		}
 		
 		public ICSharpCode.NRefactory.Parser.Errors LastErrors {

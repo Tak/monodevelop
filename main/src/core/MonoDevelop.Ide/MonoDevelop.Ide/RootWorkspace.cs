@@ -163,7 +163,7 @@ namespace MonoDevelop.Ide
 		public CodeRefactorer GetCodeRefactorer (Solution solution) 
 		{
 			CodeRefactorer refactorer = new CodeRefactorer (solution);
-			refactorer.TextFileProvider = new OpenDocumentFileProvider ();
+			refactorer.TextFileProvider = TextFileProvider.Instance;
 			return refactorer;
 		}
 
@@ -201,21 +201,6 @@ namespace MonoDevelop.Ide
 			get {
 				return BaseDirectory;
 			}
-		}
-		
-		public AuthorInformation GetAuthorInformation  (SolutionItem item)
-		{
-			if (item != null)
-				return GetAuthorInformation (item.ParentSolution);
-			return AuthorInformation.Default;
-		}
-		
-		public AuthorInformation GetAuthorInformation (Solution solution)
-		{
-			if (solution == null)
-				return AuthorInformation.Default;
-			AuthorInformation info = solution.UserProperties.GetValue<AuthorInformation> ("AuthorInfo");
-			return info ?? AuthorInformation.Default;
 		}
 		
 #region Model queries
@@ -584,7 +569,7 @@ namespace MonoDevelop.Ide
 				}
 
 				timer.Trace ("Registering to recent list");
-				IdeApp.Workbench.RecentOpen.AddLastProject (item.FileName, item.Name);
+				DesktopService.RecentFiles.AddProject (item.FileName, item.Name);
 				
 				timer.Trace ("Adding to items list");
 				Items.Add (item);
@@ -717,6 +702,9 @@ namespace MonoDevelop.Ide
 							UseDefaultRuntime = true;
 					}
 				}
+				else {
+					ActiveConfigurationId = GetBestDefaultConfiguration ();
+				}
 			}
 			catch (Exception ex) {
 				LoggingService.LogError ("Exception while loading user solution preferences.", ex);
@@ -732,6 +720,29 @@ namespace MonoDevelop.Ide
 					LoggingService.LogError ("Exception in LoadingUserPreferences.", ex);
 				}
 			}
+		}
+		
+		string GetBestDefaultConfiguration ()
+		{
+			// 'Debug' is always the best candidate. If there is no debug, pick
+			// the configuration with the highest number of built projects.
+			int nbuilds = 0;
+			string bestConfig = null;
+			foreach (Solution sol in GetAllSolutions ()) {
+				foreach (string conf in sol.GetConfigurations ()) {
+					if (conf == "Debug")
+						return conf;
+					SolutionConfiguration sconf = sol.GetConfiguration (new SolutionConfigurationSelector (conf));
+					int c = 0;
+					foreach (var sce in sconf.Configurations)
+						if (sce.Build) c++;
+					if (c > nbuilds) {
+						nbuilds = c;
+						bestConfig = conf;
+					}
+				}
+			}
+			return bestConfig;
 		}
 		
 		public void SavePreferences (WorkspaceItem item)

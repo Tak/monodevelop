@@ -67,12 +67,12 @@ namespace MonoDevelop.CodeGeneration
 		
 		public MonoDevelop.Projects.Dom.Parser.IParser GetParser ()
 		{
-			return ProjectDomService.GetParser (Document.FileName, MimeType);
+			return ProjectDomService.GetParser (Document.FileName);
 		}
 		
 		public ICSharpCode.NRefactory.Ast.TypeReference ShortenTypeName (ICSharpCode.NRefactory.Ast.TypeReference typeReference)
 		{
-			return Document.CompilationUnit.ShortenTypeName (typeReference.ConvertToReturnType (), Document.TextEditor.CursorLine, Document.TextEditor.CursorColumn).ConvertToTypeReference ();
+			return Document.CompilationUnit.ShortenTypeName (typeReference.ConvertToReturnType (), Document.Editor.Caret.Line, Document.Editor.Caret.Column).ConvertToTypeReference ();
 		}
 		
 		public IResolver GetResolver ()
@@ -90,8 +90,8 @@ namespace MonoDevelop.CodeGeneration
 				Document = document,
 			};
 			if (document.ParsedDocument != null && document.ParsedDocument.CompilationUnit != null) {
-				options.EnclosingType = document.ParsedDocument.CompilationUnit.GetTypeAt (document.TextEditor.CursorLine, document.TextEditor.CursorColumn);
-				options.EnclosingMember = document.ParsedDocument.CompilationUnit.GetMemberAt (document.TextEditor.CursorLine, document.TextEditor.CursorColumn);
+				options.EnclosingType = document.ParsedDocument.CompilationUnit.GetTypeAt (document.Editor.Caret.Line, document.Editor.Caret.Column);
+				options.EnclosingMember = document.ParsedDocument.CompilationUnit.GetMemberAt (document.Editor.Caret.Line, document.Editor.Caret.Column);
 			}
 			return options;
 		}

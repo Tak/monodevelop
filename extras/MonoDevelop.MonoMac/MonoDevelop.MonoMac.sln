@@ -1,4 +1,4 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 10.00
 # Visual Studio 2008
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoDevelop.MonoMac", "MonoDevelop.MonoMac\MonoDevelop.MonoMac.csproj", "{89a68f00-c757-4ea3-a611-8307d4683732}"
@@ -27,7 +27,8 @@ Global
 		$1.DirectoryNamespaceAssociation = PrefixedFlat
 		$1.ResourceNamePolicy = FileName
 		$0.ChangeLogPolicy = $2
-		$2.UpdateMode = ProjectRoot
+		$2.UpdateMode = None
+		$2.VcsIntegration = None
 		$2.inheritsSet = Mono
 		$0.TextStylePolicy = $3
 		$3.FileWidth = 120

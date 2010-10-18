@@ -25,13 +25,71 @@
 // THE SOFTWARE.
 using System;
 using MonoDevelop.Projects.Dom;
+using System.Collections.Generic;
 
 namespace MonoDevelop.CSharp.Dom
 {
 	public class CompilationUnit : AbstractCSharpNode 
 	{
+		public override NodeType NodeType {
+			get {
+				return NodeType.Unknown;
+			}
+		}
+		
 		public CompilationUnit ()
 		{
+		}
+		
+		public ICSharpNode GetNodeAt (int line, int column)
+		{
+			return GetNodeAt (new DomLocation (line, column));
+		}
+		
+		public ICSharpNode GetNodeAt (DomLocation location)
+		{
+			ICSharpNode node = this;
+			while (node.FirstChild != null) {
+				ICSharpNode child = node.FirstChild as ICSharpNode;
+				while (child != null) {
+					if (child.StartLocation <= location && location < child.EndLocation) {
+						node = child;
+						break;
+					}
+					child = child.NextSibling as ICSharpNode;
+				}
+				// found no better child node - therefore the parent is the right one.
+				if (child == null)
+					break;
+			}
+			return node;
+		}
+		
+		public IEnumerable<ICSharpNode> GetNodesBetween (int startLine, int startColumn, int endLine, int endColumn)
+		{
+			return GetNodesBetween (new DomLocation (startLine, startColumn), new DomLocation (endLine, endColumn));
+		}
+		
+		public IEnumerable<ICSharpNode> GetNodesBetween (DomLocation start, DomLocation end)
+		{
+			ICSharpNode node = this;
+			while (node != null) {
+				ICSharpNode next;
+				if (start <= node.StartLocation && node.EndLocation < end) {
+					yield return node;
+					next = node.NextSibling as ICSharpNode;
+				} else {
+					if (node.EndLocation < start) {
+						next = node.NextSibling as ICSharpNode; 
+					} else {
+						next = node.FirstChild as ICSharpNode;
+					}
+				}
+				
+				if (next != null && next.StartLocation > end)
+					yield break;
+				node = next;
+			}
 		}
 		
 		public override S AcceptVisitor<T, S> (ICSharpDomVisitor<T, S> visitor, T data)

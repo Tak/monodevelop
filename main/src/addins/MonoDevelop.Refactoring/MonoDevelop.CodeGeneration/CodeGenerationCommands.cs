@@ -46,15 +46,15 @@ namespace MonoDevelop.CodeGeneration
 			var completionWidget = document.GetContent<ICompletionWidget> ();
 			if (completionWidget == null)
 				return;
-			CodeCompletionContext completionContext = completionWidget.CreateCodeCompletionContext (document.TextEditor.CursorPosition);
+			CodeCompletionContext completionContext = completionWidget.CreateCodeCompletionContext (document.Editor.Caret.Offset);
 			GenerateCodeWindow.ShowIfValid (document, completionContext);
 		}
 		
 		protected override void Update (CommandInfo info)
 		{
 			Document document = IdeApp.Workbench.ActiveDocument;
-			info.Enabled = document != null && document.TextEditor != null
-				&& document.TextEditor.HasInputFocus && document.GetContent<ICompletionWidget> () != null;
+			info.Enabled = document != null && document.Editor != null
+				&& document.Editor.HasFocus && document.GetContent<ICompletionWidget> () != null;
 		}
 	}
 }

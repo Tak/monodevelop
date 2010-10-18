@@ -30,6 +30,7 @@ using MonoDevelop.Core;
 using MonoDevelop.Ide.Gui;
 using MonoDevelop.Ide.Gui.Dialogs;
 using MonoDevelop.Ide;
+using MonoDevelop.Projects;
 
 namespace MonoDevelop.VersionControl
 {
@@ -68,9 +69,10 @@ namespace MonoDevelop.VersionControl
 			format.Style.CopyFrom (policy.CommitMessageStyle);
 			AuthorInformation uinfo;
 			if (ConfiguredSolutionItem != null)
-				uinfo = IdeApp.Workspace.GetAuthorInformation (ConfiguredSolutionItem);
+				uinfo = ConfiguredSolutionItem.AuthorInformation;
 			else
-				uinfo = IdeApp.Workspace.GetAuthorInformation (ConfiguredSolution);
+				uinfo = ConfiguredSolution != null ? ConfiguredSolution.AuthorInformation : AuthorInformation.Default;
+			
 			widget.Load (format, uinfo);
 		}
 	}

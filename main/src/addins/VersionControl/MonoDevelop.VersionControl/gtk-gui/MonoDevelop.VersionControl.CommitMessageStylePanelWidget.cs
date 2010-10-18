@@ -5,33 +5,35 @@ namespace MonoDevelop.VersionControl
 	public partial class CommitMessageStylePanelWidget
 	{
 		private global::Gtk.VBox vbox1;
-
+		
 		private global::Gtk.Table table2;
-
+		
 		private global::Gtk.Entry entryHeader;
-
+		
 		private global::Gtk.Label label4;
-
+		
 		private global::Gtk.Table tableFlags;
-
+		
+		private global::Gtk.CheckButton checkIncludeDirs;
+		
 		private global::Gtk.CheckButton checkIndent;
-
+		
 		private global::Gtk.CheckButton checkIndentEntries;
-
+		
 		private global::Gtk.CheckButton checkLineSep;
-
+		
 		private global::Gtk.CheckButton checkMsgInNewLine;
-
+		
 		private global::Gtk.CheckButton checkOneLinePerFile;
-
+		
 		private global::Gtk.CheckButton checkUseBullets;
-
+		
 		private global::Gtk.Label label9;
-
+		
 		private global::Gtk.ScrolledWindow GtkScrolledWindow;
-
+		
 		private global::Gtk.TextView textview;
-
+		
 		protected virtual void Build ()
 		{
 			global::Stetic.Gui.Initialize (this);
@@ -54,29 +56,41 @@ namespace MonoDevelop.VersionControl
 			this.entryHeader.IsEditable = true;
 			this.entryHeader.InvisibleChar = '●';
 			this.table2.Add (this.entryHeader);
-			global::Gtk.Table.TableChild w1 = ((global::Gtk.Table.TableChild)(this.table2[this.entryHeader]));
+			global::Gtk.Table.TableChild w1 = ((global::Gtk.Table.TableChild)(this.table2 [this.entryHeader]));
 			w1.LeftAttach = ((uint)(1));
 			w1.RightAttach = ((uint)(2));
 			w1.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child table2.Gtk.Table+TableChild
 			this.label4 = new global::Gtk.Label ();
 			this.label4.Name = "label4";
-			this.label4.Xalign = 0f;
+			this.label4.Xalign = 0F;
 			this.label4.LabelProp = global::Mono.Unix.Catalog.GetString ("Message Header:");
 			this.table2.Add (this.label4);
-			global::Gtk.Table.TableChild w2 = ((global::Gtk.Table.TableChild)(this.table2[this.label4]));
+			global::Gtk.Table.TableChild w2 = ((global::Gtk.Table.TableChild)(this.table2 [this.label4]));
 			w2.XOptions = ((global::Gtk.AttachOptions)(4));
 			w2.YOptions = ((global::Gtk.AttachOptions)(4));
 			this.vbox1.Add (this.table2);
-			global::Gtk.Box.BoxChild w3 = ((global::Gtk.Box.BoxChild)(this.vbox1[this.table2]));
+			global::Gtk.Box.BoxChild w3 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.table2]));
 			w3.Position = 0;
 			w3.Expand = false;
 			w3.Fill = false;
 			// Container child vbox1.Gtk.Box+BoxChild
-			this.tableFlags = new global::Gtk.Table (((uint)(3)), ((uint)(2)), false);
+			this.tableFlags = new global::Gtk.Table (((uint)(4)), ((uint)(2)), false);
 			this.tableFlags.Name = "tableFlags";
 			this.tableFlags.RowSpacing = ((uint)(6));
 			this.tableFlags.ColumnSpacing = ((uint)(6));
+			// Container child tableFlags.Gtk.Table+TableChild
+			this.checkIncludeDirs = new global::Gtk.CheckButton ();
+			this.checkIncludeDirs.CanFocus = true;
+			this.checkIncludeDirs.Name = "checkIncludeDirs";
+			this.checkIncludeDirs.Label = global::Mono.Unix.Catalog.GetString ("Include file directories");
+			this.checkIncludeDirs.DrawIndicator = true;
+			this.checkIncludeDirs.UseUnderline = true;
+			this.tableFlags.Add (this.checkIncludeDirs);
+			global::Gtk.Table.TableChild w4 = ((global::Gtk.Table.TableChild)(this.tableFlags [this.checkIncludeDirs]));
+			w4.TopAttach = ((uint)(3));
+			w4.BottomAttach = ((uint)(4));
+			w4.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child tableFlags.Gtk.Table+TableChild
 			this.checkIndent = new global::Gtk.CheckButton ();
 			this.checkIndent.CanFocus = true;
@@ -85,10 +99,10 @@ namespace MonoDevelop.VersionControl
 			this.checkIndent.DrawIndicator = true;
 			this.checkIndent.UseUnderline = true;
 			this.tableFlags.Add (this.checkIndent);
-			global::Gtk.Table.TableChild w4 = ((global::Gtk.Table.TableChild)(this.tableFlags[this.checkIndent]));
-			w4.TopAttach = ((uint)(1));
-			w4.BottomAttach = ((uint)(2));
-			w4.YOptions = ((global::Gtk.AttachOptions)(4));
+			global::Gtk.Table.TableChild w5 = ((global::Gtk.Table.TableChild)(this.tableFlags [this.checkIndent]));
+			w5.TopAttach = ((uint)(1));
+			w5.BottomAttach = ((uint)(2));
+			w5.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child tableFlags.Gtk.Table+TableChild
 			this.checkIndentEntries = new global::Gtk.CheckButton ();
 			this.checkIndentEntries.CanFocus = true;
@@ -97,10 +111,10 @@ namespace MonoDevelop.VersionControl
 			this.checkIndentEntries.DrawIndicator = true;
 			this.checkIndentEntries.UseUnderline = true;
 			this.tableFlags.Add (this.checkIndentEntries);
-			global::Gtk.Table.TableChild w5 = ((global::Gtk.Table.TableChild)(this.tableFlags[this.checkIndentEntries]));
-			w5.LeftAttach = ((uint)(1));
-			w5.RightAttach = ((uint)(2));
-			w5.YOptions = ((global::Gtk.AttachOptions)(4));
+			global::Gtk.Table.TableChild w6 = ((global::Gtk.Table.TableChild)(this.tableFlags [this.checkIndentEntries]));
+			w6.LeftAttach = ((uint)(1));
+			w6.RightAttach = ((uint)(2));
+			w6.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child tableFlags.Gtk.Table+TableChild
 			this.checkLineSep = new global::Gtk.CheckButton ();
 			this.checkLineSep.CanFocus = true;
@@ -109,12 +123,12 @@ namespace MonoDevelop.VersionControl
 			this.checkLineSep.DrawIndicator = true;
 			this.checkLineSep.UseUnderline = true;
 			this.tableFlags.Add (this.checkLineSep);
-			global::Gtk.Table.TableChild w6 = ((global::Gtk.Table.TableChild)(this.tableFlags[this.checkLineSep]));
-			w6.TopAttach = ((uint)(1));
-			w6.BottomAttach = ((uint)(2));
-			w6.LeftAttach = ((uint)(1));
-			w6.RightAttach = ((uint)(2));
-			w6.YOptions = ((global::Gtk.AttachOptions)(4));
+			global::Gtk.Table.TableChild w7 = ((global::Gtk.Table.TableChild)(this.tableFlags [this.checkLineSep]));
+			w7.TopAttach = ((uint)(1));
+			w7.BottomAttach = ((uint)(2));
+			w7.LeftAttach = ((uint)(1));
+			w7.RightAttach = ((uint)(2));
+			w7.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child tableFlags.Gtk.Table+TableChild
 			this.checkMsgInNewLine = new global::Gtk.CheckButton ();
 			this.checkMsgInNewLine.CanFocus = true;
@@ -123,12 +137,12 @@ namespace MonoDevelop.VersionControl
 			this.checkMsgInNewLine.DrawIndicator = true;
 			this.checkMsgInNewLine.UseUnderline = true;
 			this.tableFlags.Add (this.checkMsgInNewLine);
-			global::Gtk.Table.TableChild w7 = ((global::Gtk.Table.TableChild)(this.tableFlags[this.checkMsgInNewLine]));
-			w7.TopAttach = ((uint)(2));
-			w7.BottomAttach = ((uint)(3));
-			w7.LeftAttach = ((uint)(1));
-			w7.RightAttach = ((uint)(2));
-			w7.YOptions = ((global::Gtk.AttachOptions)(4));
+			global::Gtk.Table.TableChild w8 = ((global::Gtk.Table.TableChild)(this.tableFlags [this.checkMsgInNewLine]));
+			w8.TopAttach = ((uint)(2));
+			w8.BottomAttach = ((uint)(3));
+			w8.LeftAttach = ((uint)(1));
+			w8.RightAttach = ((uint)(2));
+			w8.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child tableFlags.Gtk.Table+TableChild
 			this.checkOneLinePerFile = new global::Gtk.CheckButton ();
 			this.checkOneLinePerFile.CanFocus = true;
@@ -137,10 +151,10 @@ namespace MonoDevelop.VersionControl
 			this.checkOneLinePerFile.DrawIndicator = true;
 			this.checkOneLinePerFile.UseUnderline = true;
 			this.tableFlags.Add (this.checkOneLinePerFile);
-			global::Gtk.Table.TableChild w8 = ((global::Gtk.Table.TableChild)(this.tableFlags[this.checkOneLinePerFile]));
-			w8.TopAttach = ((uint)(2));
-			w8.BottomAttach = ((uint)(3));
-			w8.YOptions = ((global::Gtk.AttachOptions)(4));
+			global::Gtk.Table.TableChild w9 = ((global::Gtk.Table.TableChild)(this.tableFlags [this.checkOneLinePerFile]));
+			w9.TopAttach = ((uint)(2));
+			w9.BottomAttach = ((uint)(3));
+			w9.YOptions = ((global::Gtk.AttachOptions)(4));
 			// Container child tableFlags.Gtk.Table+TableChild
 			this.checkUseBullets = new global::Gtk.CheckButton ();
 			this.checkUseBullets.CanFocus = true;
@@ -149,23 +163,23 @@ namespace MonoDevelop.VersionControl
 			this.checkUseBullets.DrawIndicator = true;
 			this.checkUseBullets.UseUnderline = true;
 			this.tableFlags.Add (this.checkUseBullets);
-			global::Gtk.Table.TableChild w9 = ((global::Gtk.Table.TableChild)(this.tableFlags[this.checkUseBullets]));
-			w9.YOptions = ((global::Gtk.AttachOptions)(4));
+			global::Gtk.Table.TableChild w10 = ((global::Gtk.Table.TableChild)(this.tableFlags [this.checkUseBullets]));
+			w10.YOptions = ((global::Gtk.AttachOptions)(4));
 			this.vbox1.Add (this.tableFlags);
-			global::Gtk.Box.BoxChild w10 = ((global::Gtk.Box.BoxChild)(this.vbox1[this.tableFlags]));
-			w10.Position = 1;
-			w10.Expand = false;
-			w10.Fill = false;
+			global::Gtk.Box.BoxChild w11 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.tableFlags]));
+			w11.Position = 1;
+			w11.Expand = false;
+			w11.Fill = false;
 			// Container child vbox1.Gtk.Box+BoxChild
 			this.label9 = new global::Gtk.Label ();
 			this.label9.Name = "label9";
-			this.label9.Xalign = 0f;
+			this.label9.Xalign = 0F;
 			this.label9.LabelProp = global::Mono.Unix.Catalog.GetString ("Preview:");
 			this.vbox1.Add (this.label9);
-			global::Gtk.Box.BoxChild w11 = ((global::Gtk.Box.BoxChild)(this.vbox1[this.label9]));
-			w11.Position = 2;
-			w11.Expand = false;
-			w11.Fill = false;
+			global::Gtk.Box.BoxChild w12 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.label9]));
+			w12.Position = 2;
+			w12.Expand = false;
+			w12.Fill = false;
 			// Container child vbox1.Gtk.Box+BoxChild
 			this.GtkScrolledWindow = new global::Gtk.ScrolledWindow ();
 			this.GtkScrolledWindow.Sensitive = false;
@@ -179,8 +193,8 @@ namespace MonoDevelop.VersionControl
 			this.textview.Name = "textview";
 			this.GtkScrolledWindow.Add (this.textview);
 			this.vbox1.Add (this.GtkScrolledWindow);
-			global::Gtk.Box.BoxChild w13 = ((global::Gtk.Box.BoxChild)(this.vbox1[this.GtkScrolledWindow]));
-			w13.Position = 3;
+			global::Gtk.Box.BoxChild w14 = ((global::Gtk.Box.BoxChild)(this.vbox1 [this.GtkScrolledWindow]));
+			w14.Position = 3;
 			this.Add (this.vbox1);
 			if ((this.Child != null)) {
 				this.Child.ShowAll ();
@@ -193,6 +207,7 @@ namespace MonoDevelop.VersionControl
 			this.checkLineSep.Toggled += new global::System.EventHandler (this.OnCheckLineSepToggled);
 			this.checkIndentEntries.Toggled += new global::System.EventHandler (this.OnCheckIndentEntriesToggled);
 			this.checkIndent.Toggled += new global::System.EventHandler (this.OnCheckIndentToggled);
+			this.checkIncludeDirs.Toggled += new global::System.EventHandler (this.OnCheckIncludeDirsToggled);
 		}
 	}
 }

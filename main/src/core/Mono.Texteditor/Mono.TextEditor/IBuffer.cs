@@ -26,6 +26,7 @@
 //
 
 using System;
+using System.Collections.Generic;
 using System.Text;
 
 namespace Mono.TextEditor
@@ -43,43 +44,18 @@ namespace Mono.TextEditor
 		
 		void Insert (int offset, string value);
 		void Remove (int offset, int count);
+		void Remove (ISegment segment);
+		
 		void Replace (int offset, int count, string value);
 		
 		string GetTextAt (int offset, int count);
 		string GetTextAt (ISegment segment);
 		char GetCharAt (int offset);
-	}
-	
-	public abstract class AbstractBuffer : IBuffer
-	{
-		public abstract int Length {
-			get;
-		}
 		
+		IEnumerable<int> SearchForward (string pattern, int startIndex);
+		IEnumerable<int> SearchForwardIgnoreCase (string pattern, int startIndex);
 		
-		public abstract string Text {
-			get;
-			set;
-		}
-		
-		public abstract void Replace (int offset, int count, string value);
-		public abstract string GetTextAt (int offset, int count);
-		public abstract char GetCharAt (int offset);
-		
-		public void Insert (int offset, string text)
-		{
-			Replace (offset, 0, text);
-		}
-		
-		public void Remove (int offset, int count)
-		{
-			Replace (offset, count, null);
-		}
-		
-		public string GetTextAt (ISegment segment)
-		{
-			return GetTextAt (segment.Offset, segment.Length);
-		}
-		
+		IEnumerable<int> SearchBackward (string pattern, int startIndex);
+		IEnumerable<int> SearchBackwardIgnoreCase (string pattern, int startIndex);
 	}
 }

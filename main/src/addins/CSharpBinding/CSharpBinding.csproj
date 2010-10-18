@@ -16,10 +16,9 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>..\..\..\build\AddIns\BackendBindings\</OutputPath>
-    <DefineConstants>GMCS_SOURCE</DefineConstants>
+    <DefineConstants>GMCS_SOURCE;NET_2_0;MS_COMPATIBLE;FULL_AST;BOOTSTRAP_BASIC</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <Execution>
       <Execution clr-version="Net_2_0" />
     </Execution>
@@ -28,7 +27,7 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>..\..\..\build\AddIns\BackendBindings\</OutputPath>
-    <DefineConstants>GMCS_SOURCE</DefineConstants>
+    <DefineConstants>GMCS_SOURCE;NET_2_0;MS_COMPATIBLE;FULL_AST;BOOTSTRAP_BASIC</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
@@ -90,6 +89,7 @@
     <Reference Include="Mono.Posix" />
     <Reference Include="Mono.Addins, Version=0.4.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
       <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="glib-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
       <SpecificVersion>False</SpecificVersion>
@@ -109,6 +109,7 @@
     <Reference Include="System.Core">
       <RequiredTargetFramework>3.5</RequiredTargetFramework>
     </Reference>
+    <Reference Include="Mono.Cairo" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="templates\ConsoleProject.xpt.xml">
@@ -156,8 +157,8 @@
     <EmbeddedResource Include="MonoDevelop.CSharp.Formatting\CSharpFormattingPolicy.xml">
       <LogicalName>CSharpFormattingPolicy.xml</LogicalName>
     </EmbeddedResource>
-    <EmbeddedResource Include="templates\GtkSharp2ProjectMac.xpt.xml">
-      <LogicalName>GtkSharp2ProjectMac.xpt.xml</LogicalName>
+    <EmbeddedResource Include="MonoDevelop.CSharp.Formatting\FormattingProfiles.xml">
+      <LogicalName>FormattingProfiles.xml</LogicalName>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
@@ -291,10 +292,83 @@
     <Compile Include="MonoDevelop.CSharp.Completion\CompletionTextLinkMode.cs" />
     <Compile Include="MonoDevelop.CSharp.Refactoring\CSharpCodeGenerator.cs" />
     <Compile Include="MonoDevelop.CSharp.Refactoring\CSharpRefactorer.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\anonymous.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\argument.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\assign.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\attribute.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\cfold.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\class.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\codegen.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\complete.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\const.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\constant.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\context.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\convert.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\CryptoConvert.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\cs-parser.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\cs-tokenizer.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\decl.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\delegate.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\doc.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\driver.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\dynamic.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\ecore.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\enum.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\eval.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\expression.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\field.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\flowanalysis.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\generic.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\import.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\iterators.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\lambda.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\linq.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\literal.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\location.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\membercache.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\method.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\modifiers.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\MonoSymbolFile.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\MonoSymbolTable.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\MonoSymbolWriter.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\namespace.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\nullable.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\outline.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\parameter.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\pending.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\property.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\report.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\rootcontext.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\roottypes.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\statement.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\support.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\symbolwriter.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\typemanager.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\typespec.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\mcs\visit.cs" />
+    <Compile Include="MonoDevelop.CSharp.Refactoring\CreateMethod\CreateMethodCodeGenerator.cs" />
+    <Compile Include="MonoDevelop.CSharp.Refactoring\CreateMethod\CreateMethodHandler.cs" />
+    <Compile Include="MonoDevelop.CSharp.Parser\McsParser.cs" />
+    <Compile Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\ExtractMethodAstTransformer.cs" />
+    <Compile Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\ExtractMethodDialog.cs" />
+    <Compile Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\ExtractMethodHandler.cs" />
+    <Compile Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\ExtractMethodRefactoring.cs" />
+    <Compile Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\VariableLookupVisitor.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CSharp.Refactoring.ExtractMethod.ExtractMethodDialog.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\CSharpFormattingPolicyPanelWidget.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CSharp.Formatting.CSharpFormattingPolicyPanelWidget.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\NewFormattingProfileDialog.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CSharp.Formatting.NewFormattingProfileDialog.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\CSharpFormattingProfileDialog.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.CSharp.Formatting.CSharpFormattingProfileDialog.cs" />
+    <Compile Include="MonoDevelop.CSharp.Formatting\FormattingProfileService.cs" />
+    <Compile Include="MonoDevelop.CSharp.Dom\ComposedType.cs" />
+    <Compile Include="MonoDevelop.CSharp.Dom\Expressions\DirectionExpression.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ChangeLog" />
     <None Include="Makefile.am" />
+    <None Include="MonoDevelop.CSharp.Parser\mcs\cs-parser.jay" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
@@ -326,5 +400,8 @@
     <Folder Include="MonoDevelop.CSharp.Project\" />
     <Folder Include="MonoDevelop.CSharp\" />
     <Folder Include="MonoDevelop.CSharp.Completion\" />
+    <Folder Include="MonoDevelop.CSharp.Parser\mcs\" />
+    <Folder Include="MonoDevelop.CSharp.Refactoring\CreateMethod\" />
+    <Folder Include="MonoDevelop.CSharp.Refactoring\ExtractMethod\" />
   </ItemGroup>
 </Project>

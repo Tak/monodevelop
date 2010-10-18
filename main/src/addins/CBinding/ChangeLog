@@ -1,3 +1,28 @@
+2010-07-19  Mike Krüger  <mkrueger@novell.com>
+
+	* Gui/CTextEditorExtension.cs: Fixed the C return command.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* Gui/DataProvider.cs:
+	* Navigation/LanguageItemCommandHandler.cs: Track API changes.
+
+2010-07-18  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* CBinding.csproj:
+	* Gui/CTextEditorExtension.cs: Track API changes.
+
+2010-07-15  Mike Krüger  <mkrueger@novell.com>
+
+	* Gui/DataProvider.cs: Track API changes.
+
+2010-07-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* CBinding.addin.xml:
+	* Parser/CDocumentParser.cs: Track ProjectDomService/Parser
+	  API.
+
 2010-06-04  Lluis Sanchez Gual  <lluis@novell.com>
 
 	* Project/CProject.cs: Allow setting the External Console flag

@@ -35,26 +35,39 @@ namespace Mono.TextEditor.Theatrics
 	/// </summary>
 	public abstract class BounceFadePopupWindow : Gtk.Window
 	{
-		Rectangle bounds;
-		TextEditor editor;
 		Stage<BounceFadePopupWindow> stage = new Stage<BounceFadePopupWindow> ();
 		Gdk.Pixbuf textImage = null;
+		TextEditor editor;
 		
-		double scale = 0.0;
-		double opacity = 1.0;
+		protected double scale = 0.0;
+		protected double opacity = 1.0;
 		
-		public BounceFadePopupWindow (TextEditor editor, Rectangle bounds) : base (Gtk.WindowType.Popup)
+		public BounceFadePopupWindow (TextEditor editor) : base (Gtk.WindowType.Popup)
 		{
-			this.Decorated = false;
-			this.BorderWidth = 0;
-			this.HasFrame = true;
+			if (!IsComposited)
+				throw new InvalidOperationException ("Only works with composited screen. Check Widget.IsComposited.");
+			DoubleBuffered = true;
+			Decorated = false;
+			BorderWidth = 0;
+			HasFrame = true;
 			this.editor = editor;
-			this.bounds = bounds;
-			this.Duration = 500;
+			Events = Gdk.EventMask.ExposureMask;
+			Duration = 500;
 			ExpandWidth = 12;
 			ExpandHeight = 2;
 			BounceEasing = Easing.Sine;
+			
+			var rgbaColormap = Screen.RgbaColormap;
+			if (rgbaColormap == null)
+				return;
+			Colormap = rgbaColormap;
+
+			stage.ActorStep += OnAnimationActorStep;
+			stage.Iteration += OnAnimationIteration;
+			stage.UpdateFrequency = 10;
 		}
+		
+		protected TextEditor Editor { get { return editor; } }
 		
 		/// <summary>Duration of the animation, in milliseconds.</summary>
 		public uint Duration { get; set; }
@@ -68,40 +81,78 @@ namespace Mono.TextEditor.Theatrics
 		/// <summary>The easing used for the bounce part of the animation.</summary>
 		public Easing BounceEasing { get; set; }
 		
-		public void Popup ()
+		int x, y;
+		protected int width, height;
+		double vValue, hValue;
+		protected Rectangle bounds;
+
+		public virtual void Popup ()
 		{
-			if (!IsComposited)
-				throw new InvalidOperationException ("Only works with composited screen. Check Widget.IsComposited.");
-			
-			var rgbaColormap = Screen.RgbaColormap;
-			if (rgbaColormap == null)
-				return;
-			Colormap = rgbaColormap;
-			
-			int x, y;
 			editor.GdkWindow.GetOrigin (out x, out y);
-			Move (x + bounds.X - (int)(ExpandWidth / 2), y + bounds.Y - (int)(ExpandHeight / 2));
-			Resize (bounds.Width + (int)ExpandWidth, bounds.Height + (int)ExpandHeight);
+			bounds = CalculateInitialBounds ();
+			x = x + bounds.X - (int)(ExpandWidth / 2);
+			y = y + bounds.Y - (int)(ExpandHeight / 2);
+			Move (x, y);
 			
-			stage.ActorStep += OnAnimationActorStep;
-			stage.Iteration += OnAnimationIteration;
+			width = bounds.Width + (int)ExpandWidth;
+			height = bounds.Height + (int)ExpandHeight;
+			Resize (width, height);
 			
-			stage.UpdateFrequency = 10;
-			stage.Add (this, Duration);
 			
+			stage.AddOrReset (this, Duration);
+			stage.Play ();
+			ListenToEvents ();
 			Show ();
 		}
+
+		protected void ListenToEvents ()
+		{
+			editor.VAdjustment.ValueChanged += HandleEditorVAdjustmentValueChanged;
+			editor.HAdjustment.ValueChanged += HandleEditorHAdjustmentValueChanged;
+			vValue = editor.VAdjustment.Value;
+			hValue = editor.HAdjustment.Value;
+		}
+
+		protected override void OnShown ()
+		{
+			base.OnShown ();
+		}
 		
+		protected void DetachEvents ()
+		{
+			editor.VAdjustment.ValueChanged -= HandleEditorVAdjustmentValueChanged;
+			editor.HAdjustment.ValueChanged -= HandleEditorHAdjustmentValueChanged;
+		}
+
+		protected override void OnHidden ()
+		{
+			base.OnHidden ();
+			DetachEvents ();
+		}
+		
+		void HandleEditorVAdjustmentValueChanged (object sender, EventArgs e)
+		{
+			y += (int)(vValue - editor.VAdjustment.Value);
+			Move (x, y);
+			vValue = editor.VAdjustment.Value;
+		}
+		
+		void HandleEditorHAdjustmentValueChanged (object sender, EventArgs e)
+		{
+			x += (int)(hValue - editor.HAdjustment.Value);
+			Move (x, y);
+			hValue = editor.HAdjustment.Value;
+		}
 		
 		void OnAnimationIteration (object sender, EventArgs args)
 		{
 			QueueDraw ();
 		}
 		
-		bool OnAnimationActorStep (Actor<BounceFadePopupWindow> actor)
+		protected virtual bool OnAnimationActorStep (Actor<BounceFadePopupWindow> actor)
 		{
 			if (actor.Expired) {
-				Destroy ();
+				OnAnimationCompleted ();
 				return false;
 			}
 			
@@ -112,15 +163,26 @@ namespace Mono.TextEditor.Theatrics
 			}
 			//for the second half, vary opacity linearly from 1 to 0.
 			else {
-				scale = scale = Choreographer.Compose (1.0, BounceEasing);
+				scale = Choreographer.Compose (1.0, BounceEasing);
 				opacity = 2.0 - actor.Percent * 2;
 			}
 			return true;
 		}
+
+		protected virtual void OnAnimationCompleted ()
+		{
+			StopPlaying ();
+		}
 		
 		protected override void OnDestroyed ()
 		{
+			editor.VAdjustment.ValueChanged -= HandleEditorVAdjustmentValueChanged;
 			base.OnDestroyed ();
+			StopPlaying ();
+		}
+		
+		internal void StopPlaying ()
+		{
 			stage.Playing = false;
 			
 			if (textImage != null) {
@@ -128,9 +190,10 @@ namespace Mono.TextEditor.Theatrics
 				textImage = null;
 			}
 		}
+
+		protected abstract Rectangle CalculateInitialBounds ();
 		
 		protected abstract Pixbuf RenderInitialPixbuf (Gdk.Window parentwindow, Rectangle bounds);
-		
 		
 		protected override bool OnExposeEvent (Gdk.EventExpose evnt)
 		{
@@ -145,7 +208,7 @@ namespace Mono.TextEditor.Theatrics
 					var img = RenderInitialPixbuf (evnt.Window, bounds);
 					if (!img.HasAlpha) {
 						textImage = img.AddAlpha (false, 0, 0, 0);
-						img.Dispose ();
+						img.Dispose (); 
 					} else {
 						textImage = img;
 					}
@@ -196,4 +259,3 @@ namespace Mono.TextEditor.Theatrics
 		}
 	}
 }
-

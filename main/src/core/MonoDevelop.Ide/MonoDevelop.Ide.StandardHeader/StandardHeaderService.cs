@@ -46,7 +46,7 @@ namespace MonoDevelop.Ide.StandardHeader
 		{
 			StandardHeaderPolicy headerPolicy = policyParent != null ? policyParent.Policies.Get<StandardHeaderPolicy> () : MonoDevelop.Projects.Policies.PolicyService.GetDefaultPolicy<StandardHeaderPolicy> ();
 			TextStylePolicy textPolicy = policyParent != null ? policyParent.Policies.Get<TextStylePolicy> ("text/plain") : MonoDevelop.Projects.Policies.PolicyService.GetDefaultPolicy<TextStylePolicy> ("text/plain");
-			AuthorInformation authorInfo = IdeApp.Workspace.GetAuthorInformation (policyParent);
+			AuthorInformation authorInfo = policyParent != null ? policyParent.AuthorInformation : AuthorInformation.Default;
 			
 			return GetHeader (authorInfo, headerPolicy, textPolicy, fileName, newFile);
 		}
@@ -54,7 +54,7 @@ namespace MonoDevelop.Ide.StandardHeader
 		public static string GetHeader (AuthorInformation authorInfo, StandardHeaderPolicy policy, TextStylePolicy textPolicy,
 		                                string fileName, bool newFile)
 		{
-			string[] comment = TextEditor.GetCommentTags (fileName);
+			string[] comment = Document.GetCommentTags (fileName);
 			if (comment == null)
 				return "";
 			

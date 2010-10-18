@@ -1,3 +1,23 @@
+2010-07-22  Mike Krüger  <mkrueger@novell.com>
+
+	* Makefile.am:
+	* MonoDevelop.GtkCore.csproj: Added System.Core reference for
+	  windows.
+
+2010-07-12  Michael Hutchinson  <mhutchinson@novell.com>
+
+	* MonoDevelop.GtkCore.GuiBuilder/CodeBinder.cs:
+	* MonoDevelop.GtkCore.GuiBuilder/GuiBuilderWindow.cs:
+	* MonoDevelop.GtkCore.GuiBuilder/GuiBuilderService.cs:
+	* MonoDevelop.GtkCore/WidgetFileDescriptionTemplate.cs:
+	* MonoDevelop.GtkCore.GuiBuilder/ActionGroupDisplayBinding.cs:
+	  Track ProjectDomService/Parser API.
+
+2010-07-05  Mike Krüger  <mkrueger@novell.com>
+
+	* MonoDevelop.GtkCore.GuiBuilder/CombinedDesignView.cs: Track
+	  API changes.
+
 2010-06-01  Lluis Sanchez Gual  <lluis@novell.com>
 
 	* MonoDevelop.GtkCore.Dialogs/GtkFeatureWidget.cs: Don't offer

@@ -42,6 +42,7 @@ using MonoDevelop.Core.ProgressMonitoring;
 using MonoDevelop.Core.Collections;
 using MonoDevelop.Projects;
 using Mono.Addins;
+using MonoDevelop.Projects.Extensions;
 //using MonoDevelop.Projects.Dom.Database;
 
 namespace MonoDevelop.Projects.Dom.Parser
@@ -76,7 +77,7 @@ namespace MonoDevelop.Projects.Dom.Parser
 		class ParsingJob
 		{
 			public string File;
-			public JobCallback ParseCallback;
+			public Action<string, IProgressMonitor> ParseCallback;
 			public ProjectDom Database;
 		}
 
@@ -127,60 +128,40 @@ namespace MonoDevelop.Projects.Dom.Parser
 			}
 		}
 
-		static List<IParser> parsers;
-		static IParser[] cachedParsers = new IParser [0];
-		public static IEnumerable<IParser> Parsers {
+		static List<ParserNode> parsers;
+		static IEnumerable<ParserNode> Parsers {
 			get {
 				if (parsers == null) {
 					LoggingService.Trace ("ProjectDomService", "Initializing");
-					parsers = new List<IParser>();
-					AddinManager.AddExtensionNodeHandler ("/MonoDevelop/ProjectModel/DomParser", delegate(object sender, ExtensionNodeEventArgs args) {
+					parsers = new List<ParserNode> ();
+					AddinManager.AddExtensionNodeHandler ("/MonoDevelop/ProjectModel/DomParser", delegate (object sender, ExtensionNodeEventArgs args) {
 						switch (args.Change) {
 						case ExtensionChange.Add:
-							parsers.Add ((IParser) args.ExtensionObject);
+							parsers.Add ((ParserNode) args.ExtensionNode);
 							break;
 						case ExtensionChange.Remove:
-							parsers.Remove ((IParser) args.ExtensionObject);
+							parsers.Remove ((ParserNode) args.ExtensionNode);
 							break;
 						}
-						cachedParsers = parsers.ToArray ();
 					});
 					LoggingService.Trace ("ProjectDomService", "Initialized");
 				}
-				return cachedParsers;
+				return parsers;
 			}
 		}
 		
-		public static IParser GetParserByMime (string mimeType)
+		public static IParser GetParser (string fileName)
 		{
-			return Parsers.FirstOrDefault (p => p.CanParseMimeType (mimeType));
-		}
-		
-		public static IParser GetParserByFileName (string fileName)
-		{
-			return Parsers.FirstOrDefault (p => p.CanParse (fileName));
-		}
-		
-		public static IParser GetParser (string fileName, string mimeType)
-		{
-			if (mimeType != null) {
-				IParser result = GetParserByMime (mimeType);
-				if (result != null) 
-					return result;
-			}
-			
-			if (!String.IsNullOrEmpty (fileName)) 
-				return GetParserByFileName (fileName);
-				
-			// give up
-			return null;
+			return Parsers.Where (n => n.Supports (fileName)).Select (n => n.Parser)
+				.Where (p => p.CanParse (fileName))
+				.FirstOrDefault ();
 		}
 
 		#endregion
 		
 		public static IExpressionFinder GetExpressionFinder (string fileName)
 		{
-			IParser parser = GetParserByFileName (fileName);
+			IParser parser = GetParser (fileName);
 			if (parser != null)
 				return parser.CreateExpressionFinder (null);
 			return null;
@@ -229,7 +210,7 @@ namespace MonoDevelop.Projects.Dom.Parser
 			return path;
 		}
 
-		public static ParsedDocument Parse (string fileName, string mimeType, ContentDelegate getContent)
+		public static ParsedDocument Parse (string fileName, Func<string> getContent)
 		{
 			List<Project> projects = new List<Project> ();
 			
@@ -243,15 +224,15 @@ namespace MonoDevelop.Projects.Dom.Parser
 			}
 
 			if (projects.Count > 0)
-				return UpdateFile (projects.ToArray (), fileName, mimeType, getContent);
+				return UpdateFile (projects.ToArray (), fileName, getContent);
 			else
 				return ParseFile (null, fileName, getContent);
 		}
 
 		// Parses a file an updates the parser database
-		public static ParsedDocument Parse (Project project, string fileName, string mimeType)
+		public static ParsedDocument Parse (Project project, string fileName)
 		{
-			return Parse (project, fileName, mimeType, delegate () {
+			return Parse (project, fileName, delegate () {
 				if (!System.IO.File.Exists (fileName))
 					return "";
 				try {
@@ -263,16 +244,15 @@ namespace MonoDevelop.Projects.Dom.Parser
 			});
 		}
 		
-		public static ParsedDocument Parse (Project project, string fileName, string mimeType, string content)
+		public static ParsedDocument Parse (Project project, string fileName, string content)
 		{
-			return Parse (project, fileName, mimeType, delegate () { return content; });
+			return Parse (project, fileName, delegate () { return content; });
 		}
 		
-		
-		public static ParsedDocument Parse (Project project, string fileName, string mimeType, ContentDelegate getContent)
+		public static ParsedDocument Parse (Project project, string fileName, Func<string> getContent)
 		{
 			Project[] projects = project != null ? new Project[] { project } : null;
-			return UpdateFile (projects, fileName, mimeType, getContent);
+			return UpdateFile (projects, fileName, getContent);
 		}
 
 		// Parses a file. It does not update the parser database
@@ -282,7 +262,7 @@ namespace MonoDevelop.Projects.Dom.Parser
 		}
 		
 		// Parses a file. It does not update the parser database
-		public static ParsedDocument ParseFile (ProjectDom dom, string fileName, ContentDelegate getContent)
+		public static ParsedDocument ParseFile (ProjectDom dom, string fileName, Func<string> getContent)
 		{
 			string fileContent = getContent != null ? getContent () : null;
 			return DoParseFile (dom, fileName, fileContent);
@@ -678,7 +658,7 @@ namespace MonoDevelop.Projects.Dom.Parser
 			}
 		}
 		
-		internal static void QueueParseJob (ProjectDom db, JobCallback callback, string file)
+		public static void QueueParseJob (ProjectDom db, Action<string, IProgressMonitor> callback, string file)
 		{
 			ParsingJob job = new ParsingJob ();
 			job.ParseCallback = callback;
@@ -876,10 +856,10 @@ namespace MonoDevelop.Projects.Dom.Parser
 			}
 		}
 
-		static ParsedDocument UpdateFile (Project[] projects, string fileName, string mimeType, ContentDelegate getContent)
+		static ParsedDocument UpdateFile (Project[] projects, string fileName, Func<string> getContent)
 		{
 			try {
-				if (GetParser (fileName, mimeType) == null)
+				if (GetParser (fileName) == null)
 					return null;
 				
 				ParsedDocument parseInformation = null;
@@ -890,7 +870,7 @@ namespace MonoDevelop.Projects.Dom.Parser
 					sr.Close ();
 				} else
 					fileContent = getContent ();
-
+				
 				// Remove any pending jobs for this file
 				RemoveParseJob (fileName);
 				ProjectDom dom = projects != null && projects.Length > 0 ? GetProjectDom (projects [0]) : null;
@@ -901,6 +881,14 @@ namespace MonoDevelop.Projects.Dom.Parser
 				// information.
 				if (projects != null && projects.Length > 0 && parseInformation.CompilationUnit != null)
 					SetSourceProject (parseInformation.CompilationUnit, dom);
+				
+//				if (parseInformation.Errors.Any ()) {
+//					Console.WriteLine (fileName + "-- Errors:");
+//					foreach (var e in parseInformation.Errors) {
+//						Console.WriteLine (e);
+//					}
+//				}
+				
 				if (parseInformation.CompilationUnit != null &&
 				    (parseInformation.Flags & ParsedDocumentFlags.NonSerializable) == 0) {
 					if (projects != null && projects.Length > 0) {
@@ -939,12 +927,9 @@ namespace MonoDevelop.Projects.Dom.Parser
 		static ParsedDocument DoParseFile (ProjectDom dom, string fileName, string fileContent)
 		{
 			using (Counters.FileParse.BeginTiming ()) {
-				IParser parser = GetParserByFileName (fileName);
-				
+				IParser parser = GetParser (fileName);
 				if (parser == null)
 					return null;
-				
-				parser.LexerTags = SpecialCommentTags.GetNames ();
 				
 				ParsedDocument parserOutput = null;
 				
@@ -953,7 +938,8 @@ namespace MonoDevelop.Projects.Dom.Parser
 						using (StreamReader sr = File.OpenText (fileName)) {
 							fileContent = sr.ReadToEnd();
 						}
-					} catch (Exception) {
+					} catch (Exception e) {
+						LoggingService.LogError ("Got exception while reading file", e);
 						return null;
 					}
 				}
@@ -1046,12 +1032,14 @@ namespace MonoDevelop.Projects.Dom.Parser
 				tr.UnresolvedCount = 0;
 				DomType rc = (DomType)c.AcceptVisitor (tr, null);
 				rc.Resolved = true;
-				
+				// no need to set the base type here - the completion db handles that
+				// (setting to system.object is wrong for enums & structs - and interfaces may never have a base)
+/*				
 				if (tr.UnresolvedCount == 0 && c.FullName != "System.Object") {
 					// If the class has no base classes, make sure it subclasses System.Object
 					if (rc.BaseType == null)
 						rc.BaseType = new DomReturnType ("System.Object");
-				}
+				}*/
 				
 				result.Add (rc);
 				unresolvedCount += tr.UnresolvedCount;
@@ -1125,9 +1113,6 @@ namespace MonoDevelop.Projects.Dom.Parser
 			ProjectDomService.EndParseOperation ();
 		}
 	}
-		
-	public delegate string ContentDelegate ();
-	public delegate void JobCallback (string file, IProgressMonitor monitor);
 	
 	public interface IProgressMonitorFactory
 	{

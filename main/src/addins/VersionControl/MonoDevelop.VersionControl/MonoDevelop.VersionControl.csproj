@@ -78,6 +78,7 @@
     <Reference Include="System.Xml" />
     <Reference Include="Mono.Addins, Version=0.4.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756">
       <SpecificVersion>False</SpecificVersion>
+      <Private>False</Private>
     </Reference>
     <Reference Include="pango-sharp, Version=2.12.0.0, Culture=neutral, PublicKeyToken=35e10195dab3c99f">
       <SpecificVersion>False</SpecificVersion>
@@ -149,7 +150,6 @@
   <ItemGroup>
     <Compile Include="gtk-gui\generated.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\CellRendererDiff.cs" />
-    <Compile Include="MonoDevelop.VersionControl.Views\DiffView.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\LogView.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\StatusView.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\AnnotateView.cs" />
@@ -202,14 +202,20 @@
     <Compile Include="MonoDevelop.VersionControl.Dialogs\VersionControlPolicyPanel.cs" />
     <Compile Include="MonoDevelop.VersionControl\CreatePatchCommand.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\DiffParser.cs" />
-    <Compile Include="MonoDevelop.VersionControl.Views\ComparisonView.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\BlameView.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\ComparisonWidget.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\BlameWidget.cs" />
-    <Compile Include="MonoDevelop.VersionControl.Views\PatchWidget.cs" />
-    <Compile Include="gtk-gui\MonoDevelop.VersionControl.Views.PatchWidget.cs" />
-    <Compile Include="MonoDevelop.VersionControl.Views\PatchView.cs" />
     <Compile Include="MonoDevelop.VersionControl.Views\DropDownBox.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\ChangeSetView.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\MergeView.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\MergeWidget.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\EditorCompareWidgetBase.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\DiffView.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\DiffWidget.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.VersionControl.Views.DiffWidget.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\SubviewAttachmentHandler.cs" />
+    <Compile Include="MonoDevelop.VersionControl.Views\LogWidget.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.VersionControl.Views.LogWidget.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Makefile.am" />

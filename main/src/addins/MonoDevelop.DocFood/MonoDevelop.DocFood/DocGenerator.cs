@@ -34,19 +34,27 @@ using MonoDevelop.Projects.Dom;
 using MonoDevelop.Projects.Dom.Output;
 using MonoDevelop.Refactoring;
 
+
+
 namespace MonoDevelop.DocFood
 {
-	public class DocGenerator
+	public class DocGenerator : MonoDevelop.Projects.Text.DocGenerator
 	{
 		public List<Section> sections = new List<Section> ();
 		public Dictionary<string, string> tags = new Dictionary<string, string> ();
 		TextEditorData data;
 		INRefactoryASTProvider provider;
-		
+
+		public DocGenerator ()
+		{
+			
+		}
+
 		public DocGenerator (TextEditorData data)
 		{
 			this.data = data;
-			provider = RefactoringService.GetASTProvider (data.Document.MimeType);
+			if (data != null)
+				provider = RefactoringService.GetASTProvider (data.Document.MimeType);
 		}
 		
 		public static string GetBaseDocumentation (IMember member)
@@ -352,7 +360,7 @@ namespace MonoDevelop.DocFood
 			
 			this.currentType = "exception";
 			foreach (var exception in visitor.Exceptions) {
-				var exceptionType = HelperMethods.ConvertToReturnType (exception);
+				var exceptionType = MonoDevelop.Refactoring.HelperMethods.ConvertToReturnType (exception);
 				
 				
 				curName = exceptionType.FullName;
@@ -377,9 +385,9 @@ namespace MonoDevelop.DocFood
 		void Init (IMember member)
 		{
 			FillDocumentation (GetBaseDocumentation (member));
-			if (provider != null && !member.Location.IsEmpty && member.BodyRegion.End.Line > 0) {
-				LineSegment start = data.Document.GetLine (member.Location.Line - 1);
-				LineSegment end = data.Document.GetLine (member.BodyRegion.End.Line - 1);
+			if (provider != null && !member.Location.IsEmpty && member.BodyRegion.End.Line > 1) {
+				LineSegment start = data.Document.GetLine (member.Location.Line);
+				LineSegment end = data.Document.GetLine (member.BodyRegion.End.Line);
 				if (start != null && end != null) {
 					var result = provider.ParseFile ("class A {" + data.Document.GetTextAt (start.Offset, end.EndOffset - start.Offset) + "}");
 					result.AcceptVisitor (visitor, null);
@@ -460,8 +468,10 @@ namespace MonoDevelop.DocFood
 							result.Append (name[i]);
 							i++;
 						}
-						if (i + 1 < name.Length)
+						if (i + 1 < name.Length) {
 							result.Append (" ");
+							result.Append (char.ToLower (name[i]));
+						}
 						continue;
 					}
 				}
@@ -471,8 +481,9 @@ namespace MonoDevelop.DocFood
 			List<string> words = new List<string> (result.ToString ().Split (' '));
 			wordCount = words.Count;
 			for (int i = 0; i < words.Count; i++) {
-				if (DocConfig.Instance.WordExpansions.ContainsKey (words[i].ToLower ())) {
-					words[i] = DocConfig.Instance.WordExpansions[words[i]];
+				string lowerWord = words[i].ToLower ();
+				if (DocConfig.Instance.WordExpansions.ContainsKey (lowerWord)) {
+					words[i] = DocConfig.Instance.WordExpansions[lowerWord];
 				} else if (DocConfig.Instance.WordLists["acronyms"].Contains (words[i].ToUpper ())) {
 					words[i] = words[i].ToUpper ();
 				}
@@ -542,6 +553,13 @@ namespace MonoDevelop.DocFood
 			
 			sections.Add (newSection);
 		}
-}
+		
+		#region implemented abstract members of MonoDevelop.Projects.Text.DocGenerator
+		public override string GenerateDocumentation (IMember member, string linePrefix)
+		{
+			return DocumentBufferHandler.GenerateDocumentation (null, member, "", linePrefix);
+		}
+		#endregion
+	}
 }
 

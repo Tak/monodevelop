@@ -40,18 +40,19 @@ using MonoDevelop.CSharp.Parser;
 using System.Text.RegularExpressions;
 using MonoDevelop.CSharp.Dom;
 using MonoDevelop.CSharp.Resolver;
+using Mono.TextEditor;
 
 namespace MonoDevelop.CSharp.Completion
 {
 	public class NRefactoryParameterDataProvider : IParameterDataProvider
 	{
-		MonoDevelop.Ide.Gui.TextEditor editor;
+		TextEditorData editor;
 		List<IMethod> methods = new List<IMethod> ();
 		CSharpAmbience ambience = new CSharpAmbience ();
 		
 		//bool staticResolve = false;
 		
-		public NRefactoryParameterDataProvider (MonoDevelop.Ide.Gui.TextEditor editor, NRefactoryResolver resolver, MethodResolveResult resolveResult)
+		public NRefactoryParameterDataProvider (TextEditorData editor, NRefactoryResolver resolver, MethodResolveResult resolveResult)
 		{
 			this.editor = editor;
 			//this.staticResolve = resolveResult.StaticResolve;
@@ -76,7 +77,7 @@ namespace MonoDevelop.CSharp.Completion
 			return left.Parameters.Count - right.Parameters.Count;
 		}
 		
-		public NRefactoryParameterDataProvider (MonoDevelop.Ide.Gui.TextEditor editor, NRefactoryResolver resolver, ThisResolveResult resolveResult)
+		public NRefactoryParameterDataProvider (TextEditorData editor, NRefactoryResolver resolver, ThisResolveResult resolveResult)
 		{
 			this.editor = editor;
 			HashSet<string> alreadyAdded = new HashSet<string> ();
@@ -96,7 +97,7 @@ namespace MonoDevelop.CSharp.Completion
 			}
 		}
 		
-		public NRefactoryParameterDataProvider (MonoDevelop.Ide.Gui.TextEditor editor, NRefactoryResolver resolver, BaseResolveResult resolveResult)
+		public NRefactoryParameterDataProvider (TextEditorData editor, NRefactoryResolver resolver, BaseResolveResult resolveResult)
 		{
 			this.editor = editor;
 			HashSet<string> alreadyAdded = new HashSet<string> ();
@@ -124,7 +125,7 @@ namespace MonoDevelop.CSharp.Completion
 		}
 
 		// used for constructor completion
-		public NRefactoryParameterDataProvider (MonoDevelop.Ide.Gui.TextEditor editor, NRefactoryResolver resolver, IType type)
+		public NRefactoryParameterDataProvider (TextEditorData editor, NRefactoryResolver resolver, IType type)
 		{
 			this.editor = editor;
 			
@@ -175,7 +176,7 @@ namespace MonoDevelop.CSharp.Completion
 		}
 		
  		string delegateName = null;
-		public NRefactoryParameterDataProvider (MonoDevelop.Ide.Gui.TextEditor editor, string delegateName, IType type)
+		public NRefactoryParameterDataProvider (TextEditorData editor, string delegateName, IType type)
 		{
 			this.editor = editor;
 			this.delegateName = delegateName;
@@ -186,14 +187,14 @@ namespace MonoDevelop.CSharp.Completion
 		
 		#region IParameterDataProvider implementation
 		
-		public int GetCurrentParameterIndex (CodeCompletionContext ctx)
+		public int GetCurrentParameterIndex (ICompletionWidget widget, CodeCompletionContext ctx)
 		{
-			return GetCurrentParameterIndex (editor, ctx.TriggerOffset, 0);
+			return GetCurrentParameterIndex (widget, ctx.TriggerOffset, 0);
 		}
 		
-		internal static int GetCurrentParameterIndex (MonoDevelop.Ide.Gui.TextEditor editor, int offset, int memberStart)
+		internal static int GetCurrentParameterIndex (ICompletionWidget widget, int offset, int memberStart)
 		{
-			int cursor = editor.CursorPosition;
+			int cursor = widget.CurrentCodeCompletionContext.TriggerOffset;
 			int i = offset;
 			
 			if (i > cursor)
@@ -206,7 +207,7 @@ namespace MonoDevelop.CSharp.Completion
 			int parentheses = 0;
 			int bracket = 0;
 			do {
-				char c = editor.GetCharAt (i - 1);
+				char c = widget.GetChar (i - 1);
 				engine.Push (c);
 				switch (c) {
 				case '{':
@@ -263,7 +264,7 @@ namespace MonoDevelop.CSharp.Completion
 				sb.Append (GettextCatalog.GetString ("(Extension) "));
 			sb.Append (prefix);
 			sb.Append ("<b>");
-			sb.Append (name);
+			sb.Append (CSharpAmbience.FilterName (name));
 			sb.Append ("</b> (");
 			sb.Append (parameters.ToString ());
 			sb.Append (")");

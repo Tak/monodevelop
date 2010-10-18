@@ -6,7 +6,6 @@ using System.Collections;
 using System.Text;
 using MonoDevelop.Core;
 using MonoDevelop.Core.Collections;
-using MonoDevelop.Components.Diff;
 using MonoDevelop.Ide;
 
 namespace MonoDevelop.VersionControl.Subversion
@@ -71,7 +70,12 @@ namespace MonoDevelop.VersionControl.Subversion
 			return Svn.CanCommit (this, localPath);
 		}
 
-		public override string GetPathToBaseText (FilePath sourcefile)
+		public override string GetBaseText (FilePath sourcefile)
+		{
+			return File.ReadAllText (Svn.GetPathToBaseText (sourcefile));
+		}
+
+		public string GetPathToBaseText (FilePath sourcefile)
 		{
 			return Svn.GetPathToBaseText (sourcefile);
 		}
@@ -470,19 +474,15 @@ namespace MonoDevelop.VersionControl.Subversion
 		public override Annotation[] GetAnnotations (FilePath localPath)
 		{
 			List<Annotation> annotations = new List<Annotation> (Svn.GetAnnotations (this, localPath, SvnRevision.First, SvnRevision.Base));
-			Range    original,
-			         local;
-			Annotation nextRev = new Annotation (GettextCatalog.GetString ("working copy"), "", "");
-
+			Annotation nextRev = new Annotation (GettextCatalog.GetString ("working copy"), "", DateTime.MinValue);
+			var baseDocument = new Mono.TextEditor.Document (File.ReadAllText (GetPathToBaseText (localPath)));
+			var workingDocument = new Mono.TextEditor.Document (File.ReadAllText (localPath));
+			
 			// "SubversionException: blame of the WORKING revision is not supported"
-			foreach (Hunk hunk in new Diff (GetPathToBaseText (localPath), localPath.FullPath, true, true)) {
-				if (!hunk.Same) {
-					original = hunk.Original ();
-					local = hunk.Changes (0);
-					annotations.RemoveRange (local.Start, original.Count);
-					for (int i=0; i<local.Count; ++i) {
-						annotations.Insert (local.Start, nextRev);
-					}
+			foreach (var hunk in baseDocument.Diff (workingDocument)) {
+				annotations.RemoveRange (hunk.InsertStart, hunk.Inserted);
+				for (int i = 0; i < hunk.Inserted; ++i) {
+					annotations.Insert (hunk.InsertStart, nextRev);
 				}
 			}
 			

@@ -57,7 +57,7 @@ namespace MonoDevelop.Core
 		public static FilePath ConfigPath {
 			get {
 				string configPath = Environment.GetFolderPath (Environment.SpecialFolder.ApplicationData);
-				return Path.Combine (configPath, "MonoDevelop-Unity");
+				return Path.Combine (configPath, "MonoDevelop");
 			}
 		}
 		
@@ -65,7 +65,7 @@ namespace MonoDevelop.Core
 			get {
 				string result = System.Configuration.ConfigurationManager.AppSettings ["DataDirectory"];
 				if (String.IsNullOrEmpty (result)) 
-					result = Path.Combine (EntryAssemblyPath, Path.Combine ("..", Path.Combine ("data", "options")));
+					result = Path.Combine (EntryAssemblyPath, Path.Combine ("..", "data"));
 				return result;
 			}
 		}

@@ -55,6 +55,11 @@ namespace MonoDevelop.CSharp.Dom
 			return default (S);
 		}
 		
+		public virtual S VisitComposedType (ComposedType composedType, T data)
+		{
+			return default (S);
+		}
+		
 		public virtual S VisitAttribute (Attribute attribute, T data) 
 		{
 			return VisitChildren (attribute, data);
@@ -351,6 +356,11 @@ namespace MonoDevelop.CSharp.Dom
 		public virtual S VisitInvocationExpression (InvocationExpression invocationExpression, T data) 
 		{
 			return VisitChildren (invocationExpression, data);
+		}
+		
+		public virtual S VisitDirectionExpression (DirectionExpression directionExpression, T data)
+		{
+			return VisitChildren (directionExpression, data);
 		}
 		
 		public virtual S VisitMemberReferenceExpression (MemberReferenceExpression memberReferenceExpression, T data) 

@@ -29,23 +29,21 @@
 // THE SOFTWARE.
 
 using System;
-using System.Text;
-using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
 using System.Threading;
 using Gdk;
 using Gtk;
-using MonoDevelop.Projects;
-using MonoDevelop.Projects.Dom;
-using MonoDevelop.Projects.Dom.Parser;
 using MonoDevelop.Components;
 using MonoDevelop.Core;
 using MonoDevelop.Core.Instrumentation;
+using MonoDevelop.Core.Text;
 using MonoDevelop.Ide.Gui;
-using MonoDevelop.Projects.Dom.Output;
-using MonoDevelop.Ide.CodeCompletion;
-using System.ComponentModel;
+using MonoDevelop.Projects;
+using MonoDevelop.Projects.Dom;
+using MonoDevelop.Projects.Dom.Parser;
 
 namespace MonoDevelop.Ide.NavigateToDialog
 {
@@ -88,6 +86,7 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			}
 		}
 		
+		bool useFullSearch;
 		bool isAbleToSearchMembers;
 		public NavigateToDialog (NavigateToType navigateTo, bool isAbleToSearchMembers)
 		{
@@ -98,7 +97,9 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			this.matchEntry.Ready = true;
 			this.matchEntry.Visible = true;
 			this.matchEntry.IsCheckMenu = true;
+			lastResult = new WorkerResult (this);
 			HasSeparator = false;
+			useFullSearch = PropertyService.Get ("UseFullSearchMatch", true);
 			
 			CheckMenuItem includeFilesItem = this.matchEntry.AddFilterOption (0, GettextCatalog.GetString ("Include _Files"));
 			includeFilesItem.DrawAsRadio = false;
@@ -138,6 +139,15 @@ namespace MonoDevelop.Ide.NavigateToDialog
 				};
 			}
 			
+			CheckMenuItem useComplexMatching = this.matchEntry.AddFilterOption (3, GettextCatalog.GetString ("Use complex matching"));
+			useComplexMatching.DrawAsRadio = false;
+			useComplexMatching.Active = useFullSearch;
+			useComplexMatching.Toggled += delegate {
+				useFullSearch = useComplexMatching.Active;
+				PropertyService.Set ("UseFullSearchMatch", useFullSearch);
+				PerformSearch ();
+			};
+			
 			this.matchEntry.Changed += delegate {
 				PerformSearch ();
 			};
@@ -148,7 +158,7 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			this.matchEntry.Entry.KeyPressEvent += HandleKeyPress;
 			this.matchEntry.Activated += delegate {
 				OpenFile ();
-			}; 
+			};
 			this.buttonOpen.Clicked += delegate {
 				OpenFile ();
 			};
@@ -167,6 +177,9 @@ namespace MonoDevelop.Ide.NavigateToDialog
 		Thread collectFiles, collectTypes;
 		void StartCollectThreads ()
 		{
+			members = new List<IMember> ();
+			types = new List<IType> ();
+			
 			StartCollectFiles ();
 			StartCollectTypes ();
 		}
@@ -175,46 +188,40 @@ namespace MonoDevelop.Ide.NavigateToDialog
 		
 		void StartCollectTypes ()
 		{
-			collectTypes = new Thread (new ThreadStart (delegate {
-				types = GetTypes ();
+			ThreadPool.QueueUserWorkItem (delegate {
+				CollectTypes ();
+				
 				if (isAbleToSearchMembers) {
 					getMembersTimer.BeginTiming ();
 					try {
-						members = new List<IMember> ();
-						foreach (IType type in types) {
-							foreach (IMember m in type.Members) {
-								if (m is IType)
-									continue;
-								members.Add (m);
+						lock (members) {
+							foreach (IType type in types) {
+								foreach (IMember m in type.Members) {
+									if (m is IType)
+										continue;
+									members.Add (m);
+								}
 							}
 						}
 					} finally {
 						getMembersTimer.EndTiming ();
 					}
 				}
-			}));
-			collectTypes.IsBackground = true;
-			collectTypes.Name = "Navigate to: Collect Types and members";
-			collectTypes.Priority = ThreadPriority.Lowest;
-			collectTypes.Start ();
+			});
 		}
 		
 		void StartCollectFiles ()
 		{
-			collectFiles= new Thread (new ThreadStart (delegate {
+			ThreadPool.QueueUserWorkItem (delegate {
 				files = GetFiles ();
-			}));
-			collectFiles.IsBackground = true;
-			collectFiles.Name = "Navigate to: Collect Files";
-			collectFiles.Priority = ThreadPriority.Lowest;
-			collectFiles.Start ();
+			});
 		}
 		
 		void SetupTreeView ()
 		{
 			list = new ListView ();
 			list.AllowMultipleSelection = true;
-			list.DataSource = new ResultsDataSource ();
+			list.DataSource = new ResultsDataSource (this);
 			list.Show ();
 			list.ItemActivated += delegate { 
 				OpenFile ();
@@ -267,10 +274,10 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			WaitForCollectFiles ();
 			WaitForCollectTypes ();
 			
-			string toMatch = matchEntry.Query.ToLower ();
+			string toMatch = matchEntry.Query;
 			
 			if (string.IsNullOrEmpty (toMatch)) {
-				list.DataSource = new ResultsDataSource ();
+				list.DataSource = new ResultsDataSource (this);
 				labelResults.LabelProp = GettextCatalog.GetString ("_Results: Enter search term to start.");
 				return;
 			} else {
@@ -278,7 +285,7 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			}
 			
 			if (!string.IsNullOrEmpty (lastResult.pattern) && toMatch.StartsWith (lastResult.pattern))
-				list.DataSource = new ResultsDataSource ();
+				list.DataSource = new ResultsDataSource (this);
 			
 			searchWorker = new System.ComponentModel.BackgroundWorker  ();
 			searchWorker.WorkerSupportsCancellation = true;
@@ -307,65 +314,70 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			public List<IMember> filteredMembers  = null;
 			
 			public string pattern = null;
-			public ResultsDataSource results = new ResultsDataSource ();
+			public bool isGotoFilePattern;
+			public ResultsDataSource results;
+			
+			public bool FullSearch;
 			
 			public bool IncludeFiles, IncludeTypes, IncludeMembers;
-			public bool UseFastMatch = false;
 			
-			internal SearchResult CheckFile (ProjectFile file, string toMatch)
+			public StringMatcher matcher = null;
+			
+			public WorkerResult (Widget widget)
+			{
+				results = new ResultsDataSource (widget);
+			}
+			
+			internal SearchResult CheckFile (ProjectFile file)
 			{
 				int rank;
 				string matchString = System.IO.Path.GetFileName (file.FilePath);
-				if (MatchName (matchString, toMatch, out rank)) 
-					return new FileSearchResult (toMatch, matchString, rank, file, true);
+				if (MatchName (matchString, out rank)) 
+					return new FileSearchResult (pattern, matchString, rank, file, true);
 				
+				if (!FullSearch)
+					return null;
 				matchString = FileSearchResult.GetRelProjectPath (file);
-				if (MatchName (FileSearchResult.GetRelProjectPath (file), toMatch, out rank)) 
-					return new FileSearchResult (toMatch, matchString, rank, file, false);
+				if (MatchName (FileSearchResult.GetRelProjectPath (file), out rank)) 
+					return new FileSearchResult (pattern, matchString, rank, file, false);
 				
 				return null;
 			}
 			
-			internal SearchResult CheckType (IType type, string toMatch)
+			internal SearchResult CheckType (IType type)
 			{
 				int rank;
-				if (MatchName (type.Name, toMatch, out rank))
-					return new TypeSearchResult (toMatch, type.Name, rank, type, false);
-				if (MatchName (type.FullName, toMatch, out rank))
-					return new TypeSearchResult (toMatch, type.FullName, rank, type, true);
+				if (MatchName (type.Name, out rank))
+					return new TypeSearchResult (pattern, type.Name, rank, type, false);
+				if (!FullSearch)
+					return null;
+				if (MatchName (type.FullName, out rank))
+					return new TypeSearchResult (pattern, type.FullName, rank, type, true);
 				return null;
 			}
 			
-			internal SearchResult CheckMember (IMember member, string toMatch)
+			internal SearchResult CheckMember (IMember member)
 			{
 				int rank;
 				bool useDeclaringTypeName = member is IMethod && (((IMethod)member).IsConstructor || ((IMethod)member).IsFinalizer);
 				string memberName = useDeclaringTypeName ? member.DeclaringType.Name : member.Name;
-				if (MatchName (memberName, toMatch, out rank))
-					return new MemberSearchResult (toMatch, memberName, rank, member, false);
+				if (MatchName (memberName, out rank))
+					return new MemberSearchResult (pattern, memberName, rank, member, false);
+				if (!FullSearch)
+					return null;
 				memberName = useDeclaringTypeName ? member.DeclaringType.FullName : member.FullName;
-				if (MatchName (memberName, toMatch, out rank))
-					return new MemberSearchResult (toMatch, memberName, rank, member, true);
+				if (MatchName (memberName, out rank))
+					return new MemberSearchResult (pattern, memberName, rank, member, true);
 				return null;
 			}
 			
 			Dictionary<string, MatchResult> savedMatches = new Dictionary<string, MatchResult> ();
-			bool MatchName (string name, string toMatch, out int matchRank)
+			bool MatchName (string name, out int matchRank)
 			{
 				MatchResult savedMatch;
 				if (!savedMatches.TryGetValue (name, out savedMatch)) {
-					if (UseFastMatch) {
-						if (MonoDevelop.Ide.CodeCompletion.ListWidget.Matches (toMatch, name)) {
-							bool doesMatch = CalcMatchRank (name, toMatch, out matchRank);
-							savedMatch = new MatchResult (doesMatch, matchRank);
-						} else {
-							savedMatch = new MatchResult (false, int.MinValue);
-						}
-					} else {
-						bool doesMatch = CalcMatchRank (name, toMatch, out matchRank);
-						savedMatch = new MatchResult (doesMatch, matchRank);
-					}
-					savedMatches[name] = savedMatch;
+					bool doesMatch = matcher.CalcMatchRank (name, out matchRank);
+					savedMatches[name] = savedMatch = new MatchResult (doesMatch, matchRank);
 				}
 				
 				matchRank = savedMatch.Rank;
@@ -377,7 +389,7 @@ namespace MonoDevelop.Ide.NavigateToDialog
 		List<IType> types;
 		List<IMember> members;
 		
-		WorkerResult lastResult = new WorkerResult ();
+		WorkerResult lastResult;
 		
 		void SearchWorker (object sender, DoWorkEventArgs e)
 		{
@@ -386,11 +398,20 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			
 			WorkerResult lastResult = arg.Value;
 			
-			WorkerResult newResult = new WorkerResult ();
+			WorkerResult newResult = new WorkerResult (this);
 			newResult.pattern = arg.Key;
 			newResult.IncludeFiles = (NavigateToType & NavigateToType.Files) == NavigateToType.Files;
 			newResult.IncludeTypes = (NavigateToType & NavigateToType.Types) == NavigateToType.Types;
-			newResult.UseFastMatch = newResult.IncludeMembers = (NavigateToType & NavigateToType.Members) == NavigateToType.Members;
+			newResult.IncludeMembers = (NavigateToType & NavigateToType.Members) == NavigateToType.Members;
+			
+			string toMatch = arg.Key;
+			int i = toMatch.IndexOf (':');
+			if (i != -1) {
+				toMatch = toMatch.Substring (0,i);
+				newResult.isGotoFilePattern = true;
+			}
+			newResult.matcher = StringMatcher.GetMatcher (toMatch, false);
+			newResult.FullSearch = useFullSearch;
 			
 			foreach (SearchResult result in AllResults (worker, lastResult, newResult)) {
 				if (worker.CancellationPending)
@@ -409,39 +430,38 @@ namespace MonoDevelop.Ide.NavigateToDialog
 		
 		IEnumerable<SearchResult> AllResults (BackgroundWorker worker, WorkerResult lastResult, WorkerResult newResult)
 		{
-			string toMatch = newResult.pattern;
-			int i = toMatch.IndexOf (':');
-			if (i != -1)
-				toMatch = toMatch.Substring (0,i);
-			
 			// Search files
 			if (newResult.IncludeFiles) {
 				newResult.filteredFiles = new List<ProjectFile> ();
-				bool startsWithLastFilter = lastResult.pattern != null && toMatch.StartsWith (lastResult.pattern) && lastResult.filteredFiles != null;
+				bool startsWithLastFilter = lastResult.pattern != null && newResult.pattern.StartsWith (lastResult.pattern) && lastResult.filteredFiles != null;
 				IEnumerable<ProjectFile> allFiles = startsWithLastFilter ? lastResult.filteredFiles : files;
 				foreach (ProjectFile file in allFiles) {
 					if (worker.CancellationPending) 
 						yield break;
-					SearchResult curResult = newResult.CheckFile (file, toMatch);
+					SearchResult curResult = newResult.CheckFile (file);
 					if (curResult != null) {
 						newResult.filteredFiles.Add (file);
 						yield return curResult;
 					}
 				}
 			}
+			if (newResult.isGotoFilePattern)
+				yield break;
 			
 			// Search Types
 			if (newResult.IncludeTypes) {
 				newResult.filteredTypes = new List<IType> ();
-				bool startsWithLastFilter = lastResult.pattern != null && toMatch.StartsWith (lastResult.pattern) && lastResult.filteredTypes != null;
-				List<IType> allTypes = startsWithLastFilter ? lastResult.filteredTypes : types;
-				foreach (IType type in allTypes) {
-					if (worker.CancellationPending)
-						yield break;
-					SearchResult curResult = newResult.CheckType (type, toMatch);
-					if (curResult != null) {
-						newResult.filteredTypes.Add (type);
-						yield return curResult;
+				lock (types) {
+					bool startsWithLastFilter = lastResult.pattern != null && newResult.pattern.StartsWith (lastResult.pattern) && lastResult.filteredTypes != null;
+					List<IType> allTypes = startsWithLastFilter ? lastResult.filteredTypes : types;
+					foreach (IType type in allTypes) {
+						if (worker.CancellationPending)
+							yield break;
+						SearchResult curResult = newResult.CheckType (type);
+						if (curResult != null) {
+							newResult.filteredTypes.Add (type);
+							yield return curResult;
+						}
 					}
 				}
 			}
@@ -449,15 +469,17 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			// Search members
 			if (newResult.IncludeMembers) {
 				newResult.filteredMembers = new List<IMember> ();
-				bool startsWithLastFilter = lastResult.pattern != null && toMatch.StartsWith (lastResult.pattern) && lastResult.filteredMembers != null;
-				List<IMember> allMembers = startsWithLastFilter ? lastResult.filteredMembers : members;
-				foreach (IMember member in allMembers) {
-					if (worker.CancellationPending)
-						yield break;
-					SearchResult curResult = newResult.CheckMember (member, toMatch);
-					if (curResult != null) {
-						newResult.filteredMembers.Add (member);
-						yield return curResult;
+				lock (members) {
+					bool startsWithLastFilter = lastResult.pattern != null && newResult.pattern.StartsWith (lastResult.pattern) && lastResult.filteredMembers != null;
+					List<IMember> allMembers = startsWithLastFilter ? lastResult.filteredMembers : members;
+					foreach (IMember member in allMembers) {
+						if (worker.CancellationPending)
+							yield break;
+						SearchResult curResult = newResult.CheckMember (member);
+						if (curResult != null) {
+							newResult.filteredMembers.Add (member);
+							yield return curResult;
+						}
 					}
 				}
 			}
@@ -515,38 +537,38 @@ namespace MonoDevelop.Ide.NavigateToDialog
 		
 		static TimerCounter getTypesTimer = InstrumentationService.CreateTimerCounter ("Time to get all types", "NavigateToDialog");
 		
-		List<IType> GetTypes ()
+		void CollectTypes ()
 		{
-			List<IType> list = new List<IType> ();
-			getTypesTimer.BeginTiming ();
-			try {
-				foreach (Document doc in IdeApp.Workbench.Documents) {
-					// We only want to check it here if it's not part
-					// of the open combine.  Otherwise, it will get
-					// checked down below.
-					if (doc.Project == null && doc.IsFile) {
-						ICompilationUnit info = doc.CompilationUnit;
-						if (info != null) {
-							foreach (IType c in info.Types) {
-								list.Add (c);
+			lock (types) {
+				getTypesTimer.BeginTiming ();
+				try {
+					foreach (Document doc in IdeApp.Workbench.Documents) {
+						// We only want to check it here if it's not part
+						// of the open combine.  Otherwise, it will get
+						// checked down below.
+						if (doc.Project == null && doc.IsFile) {
+							ICompilationUnit info = doc.CompilationUnit;
+							if (info != null) {
+								foreach (IType c in info.Types) {
+									types.Add (c);
+								}
 							}
 						}
 					}
+					
+					ReadOnlyCollection<Project> projects = IdeApp.Workspace.GetAllProjects ();
+		
+					foreach (Project p in projects) {
+						ProjectDom dom = ProjectDomService.GetProjectDom (p);
+						if (dom == null)
+							continue;
+						foreach (IType c in dom.Types)
+							AddType (c, types);
+					}
+				} finally {
+					getTypesTimer.EndTiming ();
 				}
-				
-				ReadOnlyCollection<Project> projects = IdeApp.Workspace.GetAllProjects ();
-	
-				foreach (Project p in projects) {
-					ProjectDom dom = ProjectDomService.GetProjectDom (p);
-					if (dom == null)
-						continue;
-					foreach (IType c in dom.Types)
-						AddType (c, list);
-				}
-			} finally {
-				getTypesTimer.EndTiming ();
 			}
-			return list;
 		}
 
 		void AddType (IType c, List<IType> list)
@@ -555,7 +577,6 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			foreach (IType ct in c.InnerTypes)
 				AddType (ct, list);
 		}
-		
 		
 		struct MatchResult 
 		{
@@ -566,160 +587,6 @@ namespace MonoDevelop.Ide.NavigateToDialog
 			{
 				this.Match = match;
 				this.Rank = rank;
-			}
-		}
-		
-		
-		
-		static bool CalcMatchRank (string name, string toMatch, out int matchRank)
-		{
-			if (toMatch.Length == 0) {
-				matchRank = int.MinValue;
-				return true;
-			}
-			MatchLane lane = MatchString (name, toMatch);
-			if (lane != null) {
-				matchRank = -(lane.Positions [0] + (name.Length - toMatch.Length));
-				return true;
-			}
-			matchRank = int.MinValue;
-			return false;
-		}
-		
-		internal static MatchLane MatchString (string text, string toMatch)
-		{
-			if (text.Length < toMatch.Length)
-				return null;
-			
-			List<MatchLane> matchLanes = null;
-			bool lastWasSeparator = false;
-			int tn = 0;
-			
-			while (tn < text.Length) {
-				char ct = text [tn];
-				
-				// Keep the lane count in a var because new lanes don't have to be updated
-				// until the next iteration
-				int laneCount = matchLanes != null ? matchLanes.Count : 0;
-				
-				char cm = toMatch [0]; 
-				if (char.ToLower (ct) == char.ToLower (cm)) {
-					if (matchLanes == null)
-						matchLanes = new List<MatchLane> ();
-					matchLanes.Add (new MatchLane (MatchMode.Substring, tn, text.Length - tn));
-					if (toMatch.Length == 1)
-						return matchLanes[0];
-					if (char.IsUpper (ct) || lastWasSeparator)
-						matchLanes.Add (new MatchLane (MatchMode.Acronym, tn, text.Length - tn));
-				}
-					
-				for (int n=0; n<laneCount; n++) {
-					MatchLane lane = matchLanes [n];
-					if (lane == null)
-						continue;
-					cm = toMatch [lane.MatchIndex]; 
-					bool match = char.ToLower (ct) == char.ToLower (cm);
-					bool wordStartMatch = match && (tn == 0 || char.IsUpper (ct) || lastWasSeparator);
-	
-					if (lane.MatchMode == MatchMode.Substring) {
-						if (wordStartMatch) {
-							// Possible acronym match after a substring. Start a new lane.
-							MatchLane newLane = lane.Clone ();
-							newLane.MatchMode = MatchMode.Acronym;
-							newLane.Index++;
-							newLane.Positions [newLane.Index] = tn;
-							newLane.Lengths [newLane.Index] = 1;
-							newLane.MatchIndex++;
-							matchLanes.Add (newLane);
-						}
-						if (match) {
-							// Maybe it is a false substring start, so add a new lane to keep
-							// track of the old lane
-							MatchLane newLane = lane.Clone ();
-							newLane.MatchMode = MatchMode.Acronym;
-							matchLanes.Add (newLane);
-	
-							// Update the current lane
-							lane.Lengths [lane.Index]++;
-							lane.MatchIndex++;
-						} else {
-							if (lane.Lengths [lane.Index] > 1)
-								lane.MatchMode = MatchMode.Acronym;
-							else
-								matchLanes [n] = null; // Kill the lane
-						}
-					}
-					else if (lane.MatchMode == MatchMode.Acronym) {
-						if (match && lane.Positions [lane.Index] == tn - 1) {
-							// Possible substring match after an acronim. Start a new lane.
-							MatchLane newLane = lane.Clone ();
-							newLane.MatchMode = MatchMode.Substring;
-							newLane.Lengths [newLane.Index]++;
-							newLane.MatchIndex++;
-							matchLanes.Add (newLane);
-							if (newLane.MatchIndex == toMatch.Length)
-								return newLane;
-						}
-						if (wordStartMatch || (match && char.IsPunctuation (cm))) {
-							// Maybe it is a false acronym start, so add a new lane to keep
-							// track of the old lane
-							MatchLane newLane = lane.Clone ();
-							matchLanes.Add (newLane);
-	
-							// Update the current lane
-							lane.Index++;
-							lane.Positions [lane.Index] = tn;
-							lane.Lengths [lane.Index] = 1;
-							lane.MatchIndex++;
-						}
-					}
-					if (lane.MatchIndex == toMatch.Length)
-						return lane;
-				}
-				lastWasSeparator = (ct == '.' || ct == '_' || ct == '-' || ct == ' ' || ct == '/' || ct == '\\');
-				tn++;
-			}
-			return null;
-		}
-
-		internal enum MatchMode
-		{
-			Substring,
-			Acronym
-		}
-
-		internal class MatchLane
-		{
-			public int[] Positions;
-			public int[] Lengths;
-			public MatchMode MatchMode;
-			public int Index;
-			public int MatchIndex;
-	
-			public MatchLane ()
-			{
-			}
-	
-			public MatchLane (MatchMode mode, int pos, int len)
-			{
-				MatchMode = mode;
-				Positions = new int [len];
-				Lengths = new int [len];
-				Positions [0] = pos;
-				Lengths [0] = 1;
-				Index = 0;
-				MatchIndex = 1;
-			}
-	
-			public MatchLane Clone ()
-			{
-				MatchLane lane = new MatchLane ();
-				lane.Positions = (int[]) Positions.Clone ();
-				lane.Lengths = (int[]) Lengths.Clone ();
-				lane.MatchMode = MatchMode;
-				lane.MatchIndex = MatchIndex;
-				lane.Index = Index;
-				return lane;
 			}
 		}
 		

@@ -6,7 +6,7 @@
        url         = "http://monodevelop.com/"
        description = "Support for developing MonoMac applications"
        category    = "Mac Development"
-       version     = "2.4">
+       version     = "2.4.0.6">
 	
 	<Runtime>
 		<Import file = "templates/MonoMacProject.xpt.xml"/>
@@ -20,12 +20,15 @@
 		<Import file = "templates/MonoMacApplicationManifest.xft.xml"/>
 		<Import file = "templates/MonoMacPlist.xft.xml"/>
 		<Import file = "MonoMac.dll"/>
+		<Import file = "MonoMac.dll.mdb"/>
 		<Import file = "MonoMacLaunchScript.sh"/>
+		<Import file = "mono-version-check"/>
 	</Runtime>
 	
 	<Dependencies>
 		<Addin id="Core" version="2.4"/>
 		<Addin id="Ide"  version="2.4"/>
+		<Addin id="MacDev" version="2.4"/>
 	</Dependencies>
 	
 	<Extension path = "/MonoDevelop/Ide/FileTemplates">
@@ -85,4 +88,27 @@
 			<Assembly file="MonoMac.dll" />
 		</Package>
 	</Extension>
+
+	<!-- debugger addin -->
+	<Module>
+		<Runtime>
+			<Import assembly="MonoDevelop.Debugger.Soft.MonoMac.dll" />
+		</Runtime>
+
+		<Dependencies>
+			<Addin id="Core" version="2.4"/>
+			<Addin id="Ide"  version="2.4"/>
+			<Addin id="Debugger" version="2.4"/>
+			<Addin id="Debugger.Soft" version="2.4"/>
+		</Dependencies>
+	
+		<Extension path="/MonoDevelop/Debugging/DebuggerEngines">
+			<Condition id="Platform" value="mac">
+				<DebuggerEngine id="Mono.Debugger.Soft.MonoMac"
+					name="Mono Soft Debugger for MonoMac"
+					features="Breakpoints, Pause, Stepping, DebugFile, ConditionalBreakpoints, Tracepoints, Catchpoints"
+					type="MonoDevelop.Debugger.Soft.MonoMac.MonoMacSoftDebuggerEngine" />
+			</Condition>
+		</Extension>
+	</Module>
 </Addin> 
