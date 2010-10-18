@@ -42,9 +42,8 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 		Engine engine;
 		string file;
 		ILogWriter currentLogWriter;
-		ConsoleLogger consoleLogger;
+		MDConsoleLogger consoleLogger;
 
-		AutoResetEvent moreWorkEvent = new AutoResetEvent (false);
 		AutoResetEvent wordDoneEvent = new AutoResetEvent (false);
 		ThreadStart workDelegate;
 		object workLock = new object ();
@@ -59,7 +58,7 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 				engine = new Engine (binDir);
 				engine.GlobalProperties.SetProperty ("BuildingInsideVisualStudio", "true");
 
-				consoleLogger = new ConsoleLogger (LoggerVerbosity.Normal, LogWriteLine, null, null);
+				consoleLogger = new MDConsoleLogger (LoggerVerbosity.Normal, LogWriteLine, null, null);
 				engine.RegisterLogger (consoleLogger);
 			});
 			
@@ -164,7 +163,7 @@ namespace MonoDevelop.Projects.Formats.MSBuild
 					workError = null;
 					if (workThread == null) {
 						workThread = new Thread (STARunner);
-						workThread.ApartmentState = ApartmentState.STA;
+						workThread.SetApartmentState (ApartmentState.STA);
 						workThread.IsBackground = true;
 						workThread.Start ();
 					}
