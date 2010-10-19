@@ -9,9 +9,11 @@ DEPS =  \
 REFS =  \
 	$(GLIB_SHARP_LIBS) \
 	$(GTK_SHARP_LIBS) \
+	-r:../../../../extras/MonoDevelop.MonoMac/MonoDevelop.MonoMac/MonoMac.dll \
 	-r:Mono.Posix \
 	-r:System \
 	-r:System.Core \
+	-r:System.Drawing \
 	-r:System.Web \
 	-r:System.Xml \
 	-r:System.Xml.Linq
