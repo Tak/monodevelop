@@ -34,6 +34,7 @@ using Mono.Debugging.Client;
 using Mono.Debugger.Soft;
 using Mono.Debugging.Evaluation;
 using MDB = Mono.Debugger.Soft;
+using System.Net;
 using System.Net.Sockets;
 using System.IO;
 using System.Reflection;
@@ -319,7 +320,13 @@ namespace Mono.Debugging.Soft
 
 		protected override void OnAttachToProcess (long processId)
 		{
-			throw new System.NotImplementedException ();
+			// FIXME: Come up with a scheme for this.
+			int port = 4242; // (int)processId;
+			
+			if (1025 > processId)
+				port += 1024;
+				
+			vm = VirtualMachineManager.Connect (new IPEndPoint (IPAddress.Loopback, port));
 		}
 
 		protected override void OnContinue ()
@@ -334,7 +341,8 @@ namespace Mono.Debugging.Soft
 
 		protected override void OnDetach ()
 		{
-			throw new System.NotImplementedException ();
+			EndLaunch ();
+			vm = null;
 		}
 
 		protected override void OnExit ()
