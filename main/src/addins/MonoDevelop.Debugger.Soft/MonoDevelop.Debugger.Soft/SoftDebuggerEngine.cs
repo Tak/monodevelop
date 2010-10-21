@@ -108,7 +108,8 @@ namespace MonoDevelop.Debugger.Soft
 					   DebuggerFeatures.DebugFile |
 					   DebuggerFeatures.ConditionalBreakpoints |
 					   DebuggerFeatures.Tracepoints |
-					   DebuggerFeatures.Catchpoints;
+					   DebuggerFeatures.Catchpoints | 
+					   DebuggerFeatures.Attaching;
 			}
 		}
 		
