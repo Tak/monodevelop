@@ -1,10 +1,10 @@
 // 
-// SubviewAttachmentHandler.cs
+// ErrorDialog.cs
 //  
 // Author:
-//       Mike Krüger <mkrueger@novell.com>
+//       Michael Hutchinson <mhutchinson@novell.com>
 // 
-// Copyright (c) 2010 Novell, Inc (http://www.novell.com)
+// Copyright (c) 2010 Novell, Inc.
 // 
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,30 +23,40 @@
 // LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
+
 using System;
-using MonoDevelop.Components.Commands;
 
-namespace MonoDevelop.VersionControl.Views
+namespace MonoDevelop.Components.Extensions
 {
-	class SubviewAttachmentHandler : CommandHandler
+	public interface IExceptionDialogHandler : IDialogHandler<ExceptionDialogData>
 	{
-		protected override void Run ()
-		{
-			Ide.IdeApp.Workbench.DocumentOpened += HandleDocumentOpened;
+	}
+	
+	public class ExceptionDialogData : PlatformDialogData
+	{
+		public string Message { get; set; }
+		public Exception Exception { get; set; }
+	}
+	
+	public class ExceptionDialog : PlatformDialog<ExceptionDialogData>
+	{
+		public string Message {
+			get { return data.Message; }
+			set { data.Message = value; }
 		}
-
-		void HandleDocumentOpened (object sender, Ide.Gui.DocumentEventArgs e)
+		
+		public Exception Exception {
+			get { return data.Exception; }
+			set { data.Exception = value; }
+		}
+		
+		protected override bool RunDefault ()
 		{
-			if (e.Document.Project == null)
-				return;
-			var repo = VersionControlService.GetRepository (e.Document.Project);
-			if (repo == null)
-				return;
-			if (!repo.IsVersioned (e.Document.FileName))
-				return;
-			var item = new VersionControlItem (repo, e.Document.Project, e.Document.FileName, false);
-			
-			DiffView.AttachViewContents (e.Document, item);
+			var errorDialog = new MonoDevelop.Ide.Gui.Dialogs.GtkErrorDialog (TransientFor);
+			errorDialog.Message = Message;
+			errorDialog.AddDetails (Exception.ToString (), false);
+			MonoDevelop.Ide.MessageService.ShowCustomDialog (errorDialog, TransientFor);
+			return true;
 		}
 	}
 }

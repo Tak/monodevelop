@@ -203,6 +203,9 @@ namespace MonoDevelop.CSharp.Completion
 				int idx = result.Expression.LastIndexOf ('.');
 				if (idx > 0)
 					result.Expression = result.Expression.Substring (0, idx);
+				// don't parse expressions that end with more than 1 dot - see #646820
+				if (result.Expression.EndsWith ("."))
+					return null;
 				NRefactoryResolver resolver = CreateResolver ();
 				ResolveResult resolveResult = resolver.Resolve (result, location);
 				if (resolver.ResolvedExpression is ICSharpCode.NRefactory.Ast.PrimitiveExpression) {
@@ -998,6 +1001,8 @@ namespace MonoDevelop.CSharp.Completion
 						break;
 				}
 				IType overrideCls = NRefactoryResolver.GetTypeAtCursor (Document.CompilationUnit, Document.FileName, new DomLocation (completionContext.TriggerLine, completionContext.TriggerLineOffset));
+				if (overrideCls == null)
+					overrideCls = overrideCls = NRefactoryResolver.GetTypeAtCursor (Document.CompilationUnit, Document.FileName, new DomLocation (completionContext.TriggerLine - 1, 1));
 				if (overrideCls != null && (overrideCls.ClassType == ClassType.Class || overrideCls.ClassType == ClassType.Struct)) {
 					string modifiers = textEditorData.GetTextBetween (firstMod, wordStart);
 					return GetOverrideCompletionData (completionContext, overrideCls, modifiers);

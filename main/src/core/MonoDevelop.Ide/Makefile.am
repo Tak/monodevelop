@@ -45,7 +45,7 @@ FILES =  \
 	gtk-gui/MonoDevelop.Ide.Gui.Components.ExecutionModeComboBox.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Components.StringTagSelectorButton.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.AddinLoadErrorDialog.cs \
-	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.ErrorDialog.cs \
+	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.GtkErrorDialog.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.MultiMessageDialog.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.MultiTaskProgressDialog.cs \
 	gtk-gui/MonoDevelop.Ide.Gui.Dialogs.NewLayoutDialog.cs \
@@ -194,8 +194,11 @@ FILES =  \
 	MonoDevelop.Components.DockToolbars/FloatingPosition.cs \
 	MonoDevelop.Components.DockToolbars/IDockBar.cs \
 	MonoDevelop.Components.DockToolbars/PlaceholderWindow.cs \
+	MonoDevelop.Components.Extensions/AlertDialog.cs \
+	MonoDevelop.Components.Extensions/ErrorDialog.cs \
 	MonoDevelop.Components.Extensions/ISelectFileDialog.cs \
 	MonoDevelop.Components.Extensions/PlatformDialog.cs \
+	MonoDevelop.Components.Extensions/TextQuestionDialog.cs \
 	MonoDevelop.Components.PropertyGrid.Editors/BooleanEditorCell.cs \
 	MonoDevelop.Components.PropertyGrid.Editors/CharPropertyEditor.cs \
 	MonoDevelop.Components.PropertyGrid.Editors/CollectionEditor.cs \
@@ -430,11 +433,11 @@ FILES =  \
 	MonoDevelop.Ide.Gui.Content/TextStylePolicy.cs \
 	MonoDevelop.Ide.Gui.Dialogs/AboutMonoDevelopTabPage.cs \
 	MonoDevelop.Ide.Gui.Dialogs/AddinLoadErrorDialog.cs \
-	MonoDevelop.Ide.Gui.Dialogs/AlertDialog.cs \
 	MonoDevelop.Ide.Gui.Dialogs/CommonAboutDialog.cs \
 	MonoDevelop.Ide.Gui.Dialogs/DirtyFilesDialog.cs \
-	MonoDevelop.Ide.Gui.Dialogs/ErrorDialog.cs \
 	MonoDevelop.Ide.Gui.Dialogs/FileSelectorDialog.cs \
+	MonoDevelop.Ide.Gui.Dialogs/GtkAlertDialog.cs \
+	MonoDevelop.Ide.Gui.Dialogs/GtkErrorDialog.cs \
 	MonoDevelop.Ide.Gui.Dialogs/IOptionsPanel.cs \
 	MonoDevelop.Ide.Gui.Dialogs/ItemOptionsDialog.cs \
 	MonoDevelop.Ide.Gui.Dialogs/ItemOptionsPanel.cs \
