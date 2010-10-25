@@ -78,17 +78,16 @@ where running an explicit exec causes it to quit after the exec runs, so we can'
 bash pause on exit trick
 */ 
 		string tabId, windowId;
-		bool pauseWhenFinished, cancelled;
+		bool cancelled;
 		
 		public ExternalConsoleProcess (string command, string arguments, string workingDirectory,
 		                               IDictionary<string, string> environmentVariables,
 		                               string title, bool pauseWhenFinished)
 		{
-			this.pauseWhenFinished = pauseWhenFinished;
-			
 			//build the sh command
 			var sb = new StringBuilder ();
-			sb.AppendFormat ("cd \"{0}\"; ", Escape (workingDirectory));
+			if (!string.IsNullOrEmpty (workingDirectory))
+				sb.AppendFormat ("cd \"{0}\"; ", Escape (workingDirectory));
 			foreach (string env in environmentVariables.Keys)
 				sb.AppendFormat ("{0}=\"{1}\" ", env, Escape (environmentVariables[env]));
 			sb.AppendFormat ("{0} {1}", Escape (command), arguments);
@@ -96,7 +95,6 @@ bash pause on exit trick
 				sb.Append ("; echo; read -p 'Press any key to continue...' -n1");
 			sb.Append ("; exit");
 			var cmd = Escape (sb.ToString ());
-			Console.WriteLine (cmd);
 			
 			//run the command in Terminal.app and extrac tab and window handles
 			var ret = AppleScript.Run ("tell app \"Terminal\" to do script \"{0}\"", cmd);
@@ -162,6 +160,7 @@ end tell", tabId, windowId);
 		public void Cancel ()
 		{
 			cancelled = true;
+			//FIXME: try to kill the process without closing the window, if pauseWhenFinished is true
 			CloseTerminalWindow ();
 		}
 		
@@ -172,9 +171,9 @@ end tell", tabId, windowId);
 			}
 		}
 		
-		
 		public bool IsCompleted {
 			get {
+				//FIXME: get the status of the process, not the whole script
 				var ret = AppleScript.Run ("tell app \"Terminal\" to get exists of {0} of {1}", tabId, windowId);
 				return ret != "true";
 			}

@@ -153,27 +153,6 @@ namespace OSXIntegration.Framework
 		
 		#endregion
 		
-		[DllImport (CarbonLib)]
-		static extern int FSRefMakePath (ref FSRef fsRef, IntPtr buffer, uint bufferSize);
-		
-		public static string FSRefToPath (ref FSRef fsRef)
-		{
-			//FIXME: is this big enough?
-			const int MAX_LENGTH = 4096;
-			IntPtr buf = IntPtr.Zero;
-			string ret;
-			try {
-				buf = Marshal.AllocHGlobal (MAX_LENGTH);
-				CheckReturn (FSRefMakePath (ref fsRef, buf, (uint)MAX_LENGTH));
-				//FIXME: on Mono, auto is UTF-8, which is correct but I'd prefer to be more explicit
-				ret = Marshal.PtrToStringAuto (buf, MAX_LENGTH);
-			} finally {
-				if (buf != IntPtr.Zero)
-					Marshal.FreeHGlobal (buf);
-			}
-			return ret;
-		}
-		
 		#region Error checking
 		
 		public static void CheckReturn (EventStatus status)
@@ -217,38 +196,6 @@ namespace OSXIntegration.Framework
 		
 		#endregion
 		
-		#region Navigation services
-		
-		[DllImport (CarbonLib)]
-		static extern NavStatus NavDialogSetFilterTypeIdentifiers (IntPtr getFileDialogRef, IntPtr typeIdentifiersCFArray);
-		
-		
-		[DllImport (CarbonLib)]
-		static extern NavEventUPP NewNavEventUPP (NavEventProc userRoutine);
-		
-		[DllImport (CarbonLib)]
-		static extern NavObjectFilterUPP NewNavObjectFilterUPP (NavObjectFilterProc userRoutine);
-		
-		[DllImport (CarbonLib)]
-		static extern NavPreviewUPP NewNavPreviewUPP (NavPreviewProc userRoutine);
-		
-		delegate void NavEventProc (NavEventCallbackMessage callBackSelector, ref NavCBRec callBackParms, IntPtr callBackUD);
-		
-		delegate bool NavObjectFilterProc (ref AEDesc theItem, IntPtr info, IntPtr callBackUD, NavFilterModes filterMode);
-		
-		delegate bool NavPreviewProc (ref NavCBRec callBackParms, IntPtr callBackUD);
-		
-		[DllImport (CarbonLib)]
-		static extern void DisposeNavEventUPP (NavEventUPP userUPP);
-		
-		[DllImport (CarbonLib)]
-		static extern void DisposeNavObjectFilterUPP (NavObjectFilterUPP userUPP);
-		
-		[DllImport (CarbonLib)]
-		static extern void DisposeNavPreviewUPP (NavPreviewUPP userUPP);
-		
-		#endregion
-		
 		#region Internal Mac API for setting process name
 		
 		[DllImport (CarbonLib)]
@@ -284,8 +231,8 @@ namespace OSXIntegration.Framework
 				} catch {
 				}
 				
-				var arr = AppleEvent.GetListFromAEDesc<string,FSRef> (ref list, (ref FSRef t) => FSRefToPath (ref t),
-				                                                      (OSType)(int)CarbonEventParameterType.FSRef);
+				var arr = AppleEvent.GetListFromAEDesc<string,FSRef> (ref list, CoreFoundation.FSRefToString,
+					(OSType)(int)CarbonEventParameterType.FSRef);
 				var files = new Dictionary<string,int> ();
 				foreach (var s in arr) {
 					if (!string.IsNullOrEmpty (s))
@@ -312,7 +259,9 @@ namespace OSXIntegration.Framework
 	struct FSRef
 	{
 		//this is an 80-char opaque byte array
+		#pragma warning disable 0169
 		private byte hidden;
+		#pragma warning restore 0169
 	}
 	
 	[StructLayout(LayoutKind.Sequential)]
@@ -599,26 +548,6 @@ namespace OSXIntegration.Framework
 		FromMenu = 1,
 		FromControl = 1 << 1,
 		FromWindow  = 1 << 2,
-	}
-
-	[StructLayout(LayoutKind.Sequential, Pack = 2)]
-	struct FileTranslationSpec
-	{
-		uint componentSignature; // OSType
-		IntPtr translationSystemInfo; // void*
-		FileTypeSpec src;
-		FileTypeSpec dst;
-	}
-	
-	[StructLayout(LayoutKind.Sequential, Pack = 2)]
-	struct FileTypeSpec
-	{/*
-		uint format; // FileType
-		long hint;
-		TranslationAttributes flags;
-		uint catInfoType; // OSType
-		uint catInfoCreator; // OSType
-		*/
 	}
 	
 	struct OSType {

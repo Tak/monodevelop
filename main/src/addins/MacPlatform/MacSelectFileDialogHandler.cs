@@ -68,9 +68,11 @@ namespace MonoDevelop.Platform.Mac
 				
 				SetCommonPanelProperties (data, panel);
 				
-				var popup = CreateFileFilterPopup (data, panel);
-				if (popup != null) {
-					panel.AccessoryView = popup;
+				if (data.Action == Gtk.FileChooserAction.Open || data.Action == Gtk.FileChooserAction.Save) {
+					var popup = CreateFileFilterPopup (data, panel);
+					if (popup != null) {
+						panel.AccessoryView = popup;
+					}
 				}
 				
 				var action = panel.RunModal ();
@@ -194,38 +196,12 @@ namespace MonoDevelop.Platform.Mac
 			}
 			panel.ShouldEnableUrl = GetFileFilter (filters[defaultIndex]);
 			
-			ActivationReceiver.Bind (popup).Activated += delegate {
+			popup.Activated += delegate {
 				panel.ShouldEnableUrl = GetFileFilter (filters[popup.IndexOfSelectedItem]);
 				panel.Display ();
 			};
 			
 			return popup;
-		}
-		
-		class ActivationReceiver : NSObject
-		{
-			NSControl parent;
-			
-			public static ActivationReceiver Bind (NSControl parent)
-			{
-				return new ActivationReceiver (parent);
-			}
-			
-			ActivationReceiver (NSControl parent)
-			{
-				this.parent = parent;
-				parent.Target = this;
-				parent.Action = new MonoMac.ObjCRuntime.Selector ("activated");
-			}
-			
-			[Export ("activated")]
-			void OnActivated ()
-			{
-				if (Activated != null)
-					Activated (parent, EventArgs.Empty);
-			}
-			
-			public event EventHandler Activated;
 		}
 		
 		internal static NSView CreateLabelledDropdown (string label, float popupWidth, out NSPopUpButton popup)
@@ -263,14 +239,6 @@ namespace MonoDevelop.Platform.Mac
 			view.AddSubview (popup);
 			
 			return view;
-		}
-	}
-	
-	class MacOpenFileDialogHandler : IOpenFileDialogHandler
-	{
-		public bool Run (OpenFileDialogData data)
-		{
-			throw new NotImplementedException ();
 		}
 	}
 }
