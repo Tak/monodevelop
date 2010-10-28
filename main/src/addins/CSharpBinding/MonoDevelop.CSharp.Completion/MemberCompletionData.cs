@@ -202,15 +202,6 @@ namespace MonoDevelop.CSharp.Completion
 			if (overloads == null)
 				overloads = new Dictionary<string, CompletionData> ();
 			
-			// always set the member with the least type parameters as the main member.
-			if (Member is ITypeParameterMember && overload.Member is ITypeParameterMember) {
-				if (((ITypeParameterMember)Member).TypeParameters.Count > ((ITypeParameterMember)overload.Member).TypeParameters.Count) {
-					INode member = Member;
-					SetMember (overload.Member);
-					overload.Member = member;
-				}
-			}
-			
 			if (overload.Member is IMember && Member is IMember) {
 				// filter virtual & overriden members that came from base classes
 				// note that the overload tree is traversed top down.
@@ -227,8 +218,8 @@ namespace MonoDevelop.CSharp.Completion
 				
 				string MemberId = (overload.Member as IMember).HelpUrl;
 				if (Member is IMethod && overload.Member is IMethod) {
-					string signature1 = ambience.GetString (Member, OutputFlags.IncludeParameters | OutputFlags.IncludeGenerics);
-					string signature2 = ambience.GetString (overload.Member, OutputFlags.IncludeParameters | OutputFlags.IncludeGenerics);
+					string signature1 = ambience.GetString (Member, OutputFlags.IncludeParameters | OutputFlags.IncludeGenerics | OutputFlags.GeneralizeGenerics);
+					string signature2 = ambience.GetString (overload.Member, OutputFlags.IncludeParameters | OutputFlags.IncludeGenerics | OutputFlags.GeneralizeGenerics);
 					if (signature1 == signature2)
 						return;
 				}
@@ -251,6 +242,17 @@ namespace MonoDevelop.CSharp.Completion
 					}*/
 				}
 			}
+			
+			
+			// always set the member with the least type parameters as the main member.
+			if (Member is ITypeParameterMember && overload.Member is ITypeParameterMember) {
+				if (((ITypeParameterMember)Member).TypeParameters.Count > ((ITypeParameterMember)overload.Member).TypeParameters.Count) {
+					INode member = Member;
+					SetMember (overload.Member);
+					overload.Member = member;
+				}
+			}
+			
 		}
 		
 		#endregion

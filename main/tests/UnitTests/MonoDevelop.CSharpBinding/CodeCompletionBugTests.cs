@@ -2768,5 +2768,71 @@ class TestClass
 			Assert.IsNull (provider.Find ("System.IO.Path"), "'System.IO.Path' found but shouldn't.");
 			Assert.IsNotNull (provider.Find ("Path"), "property 'Path' not found.");
 		}
+		
+		
+		/// <summary>
+		/// Bug 648562 – Abstract members are allowed by base call
+		/// </summary>
+		[Test()]
+		public void TestBug648562 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"using System;
+
+abstract class A
+{
+    public abstract void Foo<T> (T type);
+}
+
+class B : A
+{
+    public override void Foo<U> (U type)
+    {
+        $base.$
+    }
+}
+");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNull (provider.Find ("Foo"), "method 'Foo' found, but shouldn't.");
+		}
+		
+		/// <summary>
+		/// Bug 633767 - Wrong intellisense for simple lambda
+		/// </summary>
+		[Test()]
+		public void TestBug633767 ()
+		{
+			CompletionDataList provider = CreateCtrlSpaceProvider (
+@"using System;
+
+public class E
+{
+	public int Foo { get; set; }
+}
+
+public class C
+{
+	delegate void D<T> (T t);
+	
+	static T M<T> (T t, D<T> a)
+	{
+		return t;
+	}
+
+	static void MethodArg (object o)
+	{
+	}
+
+	public static int Main ()
+	{
+		D<object> action = l => Console.WriteLine (l);
+		var b = M (new E (), action);
+		$b.$
+	}
+}");
+			Assert.IsNotNull (provider, "provider not found.");
+			Assert.IsNull (provider.Find ("Foo"), "property 'Foo' found, but shouldn't.");
+		}
+		
 	}
 }

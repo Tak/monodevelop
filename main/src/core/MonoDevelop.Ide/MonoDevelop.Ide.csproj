@@ -1180,7 +1180,6 @@
     <Compile Include="MonoDevelop.Components.Docking\TabStrip.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Components\FileBrowser.cs" />
     <Compile Include="MonoDevelop.Components\MenuButtonEntry.cs" />
-    <Compile Include="MonoDevelop.Ide.Gui.Dialogs\ErrorDialog.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Dialogs\IOptionsPanel.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Dialogs\MultiMessageDialog.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Dialogs\MultiTaskProgressDialog.cs" />
@@ -1212,12 +1211,10 @@
     <Compile Include="MonoDevelop.Ide.CodeCompletion\ListWidget.cs" />
     <Compile Include="MonoDevelop.Ide.CodeCompletion\CodeCompletionContext.cs" />
     <Compile Include="MonoDevelop.Ide.CodeCompletion\CodeCompletionContextEventArgs.cs" />
-    <Compile Include="gtk-gui\MonoDevelop.Ide.Gui.Dialogs.ErrorDialog.cs" />
     <Compile Include="gtk-gui\MonoDevelop.Ide.Gui.Dialogs.MultiMessageDialog.cs" />
     <Compile Include="gtk-gui\MonoDevelop.Ide.Gui.Dialogs.MultiTaskProgressDialog.cs" />
     <Compile Include="gtk-gui\MonoDevelop.Ide.Gui.Dialogs.OptionsDialog.cs" />
     <Compile Include="gtk-gui\MonoDevelop.Ide.Gui.Dialogs.ProgressDialog.cs" />
-    <Compile Include="MonoDevelop.Ide.Gui.Dialogs\AlertDialog.cs" />
     <Compile Include="MonoDevelop.Ide.Gui.Components\CellRendererPixbuf.cs" />
     <Compile Include="MonoDevelop.Ide\DesktopService.cs" />
     <Compile Include="MonoDevelop.Ide\DispatchService.cs" />
@@ -1373,6 +1370,12 @@
     <Compile Include="MonoDevelop.Ide.Updater\UpdateCommands.cs" />
     <Compile Include="gtk-gui\MonoDevelop.Ide.Updater.UpdateDialog.cs" />
     <Compile Include="MonoDevelop.Ide.Updater\UpdateInfoExtensionNode.cs" />
+    <Compile Include="MonoDevelop.Components.Extensions\AlertDialog.cs" />
+    <Compile Include="MonoDevelop.Ide.Gui.Dialogs\GtkAlertDialog.cs" />
+    <Compile Include="MonoDevelop.Components.Extensions\TextQuestionDialog.cs" />
+    <Compile Include="MonoDevelop.Components.Extensions\ErrorDialog.cs" />
+    <Compile Include="gtk-gui\MonoDevelop.Ide.Gui.Dialogs.GtkErrorDialog.cs" />
+    <Compile Include="MonoDevelop.Ide.Gui.Dialogs\GtkErrorDialog.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="ChangeLog" />

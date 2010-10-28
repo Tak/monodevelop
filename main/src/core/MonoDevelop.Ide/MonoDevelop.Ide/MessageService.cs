@@ -32,6 +32,8 @@ using Gtk;
 using MonoDevelop.Ide.Gui;
 using MonoDevelop.Ide.Gui.Dialogs;
 using System.Collections.Generic;
+using MonoDevelop.Components.Extensions;
+using Mono.Addins;
 
 namespace MonoDevelop.Ide
 {
@@ -363,68 +365,31 @@ namespace MonoDevelop.Ide
 		{
 			public void ShowException (Gtk.Window parent, Exception e, string primaryText)
 			{
-				var errorDialog = new MonoDevelop.Ide.Gui.Dialogs.ErrorDialog (parent);
-				try {
-					errorDialog.Message = primaryText;
-					errorDialog.AddDetails (e.ToString (), false);
-					PlaceDialog (errorDialog, parent);
-					errorDialog.Run ();
-				} finally {
-					errorDialog.Destroy ();
-				}
+				var exceptionDialog = new ExceptionDialog () {
+					Message = primaryText,
+					Exception = e,
+					TransientFor = parent,
+				};
+				exceptionDialog.Run ();
 			}
 			
 			public AlertButton GenericAlert (MessageDescription message)
 			{
-				if (message.ApplyToAllButton != null)
-					return message.ApplyToAllButton;
-				AlertDialog alertDialog = new AlertDialog (message);
-				alertDialog.FocusButton (message.DefaultButton);
-				ShowCustomDialog (alertDialog);
-				if (alertDialog.ApplyToAll)
-					message.ApplyToAllButton = alertDialog.ResultButton;
-				return alertDialog.ResultButton;
+				var dialog = new AlertDialog (message);
+				return dialog.Run ();
 			}
 			
 			public string GetTextResponse (string question, string caption, string initialValue, bool isPassword)
 			{
-				string returnValue = null;
-				
-				Dialog md = new Dialog (caption, rootWindow, DialogFlags.Modal | DialogFlags.DestroyWithParent);
-				try {
-					// add a label with the question
-					Label questionLabel = new Label(question);
-					questionLabel.UseMarkup = true;
-					questionLabel.Xalign = 0.0F;
-					md.VBox.PackStart(questionLabel, true, false, 6);
-					
-					// add an entry with initialValue
-					Entry responseEntry = (initialValue != null) ? new Entry(initialValue) : new Entry();
-					md.VBox.PackStart(responseEntry, false, true, 6);
-					responseEntry.Visibility = !isPassword;
-					
-					// add action widgets
-					md.AddActionWidget(new Button(Gtk.Stock.Cancel), ResponseType.Cancel);
-					md.AddActionWidget(new Button(Gtk.Stock.Ok), ResponseType.Ok);
-					
-					md.VBox.ShowAll();
-					md.ActionArea.ShowAll();
-					md.HasSeparator = false;
-					md.BorderWidth = 6;
-					
-					PlaceDialog (md, rootWindow);
-					
-					int response = md.Run ();
-					md.Hide ();
-					
-					if ((ResponseType) response == ResponseType.Ok) {
-						returnValue =  responseEntry.Text;
-					}
-					
-					return returnValue;
-				} finally {
-					md.Destroy ();
-				}
+				var dialog = new TextQuestionDialog () {
+					Question = question,
+					Caption = caption,
+					Value = initialValue,
+					IsPassword = isPassword,
+				};
+				if (dialog.Run ())
+					return dialog.Value;
+				return null;
 			}
 		}
 		#endregion

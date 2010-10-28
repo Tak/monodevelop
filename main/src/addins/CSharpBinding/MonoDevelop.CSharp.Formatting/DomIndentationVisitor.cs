@@ -60,9 +60,15 @@ namespace MonoDevelop.CSharp.Formatting
 			get { return this.changes; }
 		}
 		
-		public bool AutoAcceptChanges { get; set;
+		public bool AutoAcceptChanges {
+			get;
+			set;
 		}
 		
+		public bool CorrectBlankLines {
+			get;
+			set;
+		}
 		
 		public DomIndentationVisitor (CSharpFormattingPolicy policy, TextEditorData data)
 		{
@@ -71,6 +77,7 @@ namespace MonoDevelop.CSharp.Formatting
 			this.curIndent.TabsToSpaces = this.data.Options.TabsToSpaces;
 			this.curIndent.TabSize = this.data.Options.TabSize;
 			AutoAcceptChanges = true;
+			CorrectBlankLines = true;
 		}
 		
 		public override object VisitCompilationUnit (MonoDevelop.CSharp.Dom.CompilationUnit unit,     object data)
@@ -83,22 +90,27 @@ namespace MonoDevelop.CSharp.Formatting
 		
 		public void EnsureBlankLinesAfter (ICSharpNode node, int blankLines)
 		{
+			if (!CorrectBlankLines)
+				return;
 			var loc = node.EndLocation;
 			int line = loc.Line;
 			LineSegment lineSegment;
 			do {
 				line++;
 				lineSegment = data.Document.GetLine (line);
-			} while (lineSegment.EditableLength == lineSegment.GetIndentation (data.Document).Length);
+			} while (lineSegment != null && lineSegment.EditableLength == lineSegment.GetIndentation (data.Document).Length);
 			int start = data.Document.GetLine (loc.Line).EndOffset;
 			StringBuilder sb = new StringBuilder ();
 			for (int i = 0; i < blankLines; i++)
 				sb.Append (data.EolMarker);
-			AddChange (start, lineSegment.Offset - start, sb.ToString ());
+			int removedChars = lineSegment != null ? lineSegment.Offset - start : 0;
+			AddChange (start, removedChars, sb.ToString ());
 		}
 		
 		public void EnsureBlankLinesBefore (ICSharpNode node, int blankLines)
 		{
+			if (!CorrectBlankLines)
+				return;
 			var loc = node.StartLocation;
 			int line = loc.Line;
 			LineSegment lineSegment;
@@ -192,7 +204,7 @@ namespace MonoDevelop.CSharp.Formatting
 		
 		bool IsSimpleAccessor (Accessor accessor)
 		{
-			if (accessor.Body == null || accessor.Body.FirstChild == null)
+			if (accessor == null || accessor.Body == null || accessor.Body.FirstChild == null)
 				return true;
 			if (accessor.Body.Children.Count () != 1)
 				return false;

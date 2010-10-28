@@ -91,7 +91,7 @@ namespace MonoDevelop.CSharp.Formatting
 		
 		public override void OnTheFlyFormat (object textEditorData, IType type, IMember member, ProjectDom dom, ICompilationUnit unit, DomLocation caretLocation)
 		{
-			OnTheFlyFormatter.Format ((TextEditorData)textEditorData, dom, caretLocation);
+			OnTheFlyFormatter.Format ((TextEditorData)textEditorData, dom, caretLocation, true);
 		}
 		
 		public override void OnTheFlyFormat (PolicyContainer policyParent, object textEditorData, int startOffset, int endOffset)
@@ -196,6 +196,7 @@ namespace MonoDevelop.CSharp.Formatting
 			TextEditorData data = new TextEditorData ();
 			data.Text = input;
 			data.Document.MimeType = mimeType;
+			data.Document.SuppressHighlightUpdate = true;
 			data.Document.FileName = "toformat.cs";
 			var textPolicy = policyParent != null ? policyParent.Get<TextStylePolicy> (types) : MonoDevelop.Projects.Policies.PolicyService.GetDefaultPolicy<TextStylePolicy> (types);
 			data.Options.TabsToSpaces = textPolicy.TabsToSpaces;

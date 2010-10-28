@@ -141,7 +141,10 @@ namespace OSXIntegration.Framework
 		
 		[DllImport (hiToolboxLib)]
 		internal static extern CarbonMenuStatus SetMenuItemHierarchicalMenu (IntPtr parentMenu, ushort parent_index, IntPtr submenu);
-
+		
+		[DllImport (hiToolboxLib)]
+		internal static extern CarbonMenuStatus GetMenuItemHierarchicalMenu (IntPtr parentMenu, ushort parent_index, out IntPtr submenu);
+		
 		[DllImport (hiToolboxLib)]
 		static extern CarbonMenuStatus SetMenuTitleWithCFString (IntPtr menuRef, IntPtr cfstring);
 		
@@ -310,6 +313,7 @@ namespace OSXIntegration.Framework
 	[StructLayout(LayoutKind.Sequential, Pack = 2)]
 	internal struct MenuItemData
 	{
+		#pragma warning disable 0169
 		MenuItemDataFlags whichData; //8
 		IntPtr text; //Str255 //12
 		[MarshalAs (UnmanagedType.U2)] //14
@@ -344,6 +348,7 @@ namespace OSXIntegration.Framework
 		//these aren't documented
 		IntPtr attributedText; //84
 		IntPtr font; //88
+		#pragma warning restore 0169
 		
 		#region Properties
 		
