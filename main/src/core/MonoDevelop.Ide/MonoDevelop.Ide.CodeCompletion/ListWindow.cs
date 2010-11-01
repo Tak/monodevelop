@@ -242,15 +242,19 @@ namespace MonoDevelop.Ide.CodeCompletion
 		{
 			switch (key) {
 			case Gdk.Key.Home:
+				if ((modifier & ModifierType.ShiftMask) == ModifierType.ShiftMask)
+					return KeyActions.Process;
 				List.Selection = 0;
 				return KeyActions.Ignore;
 			case Gdk.Key.End:
+				if ((modifier & ModifierType.ShiftMask) == ModifierType.ShiftMask)
+					return KeyActions.Process;
 				List.Selection = List.filteredItems.Count - 1;
 				return KeyActions.Ignore;
 				
 			case Gdk.Key.Up:
 				if ((modifier & Gdk.ModifierType.ShiftMask) == Gdk.ModifierType.ShiftMask) {
-					if (!SelectionEnabled && !CompletionWindowManager.ForceSuggestionMode)
+					if (!SelectionEnabled /*&& !CompletionWindowManager.ForceSuggestionMode*/)
 						AutoCompleteEmptyMatch = AutoSelect = true;
 					if (!List.InCategoryMode) {
 						List.InCategoryMode = true;
@@ -261,7 +265,7 @@ namespace MonoDevelop.Ide.CodeCompletion
 				}
 				if (SelectionEnabled && list.filteredItems.Count < 2)
 					return KeyActions.CloseWindow | KeyActions.Process;
-				if (!SelectionEnabled && !CompletionWindowManager.ForceSuggestionMode) {
+				if (!SelectionEnabled /*&& !CompletionWindowManager.ForceSuggestionMode*/) {
 					AutoCompleteEmptyMatch = AutoSelect = true;
 				} else {
 					list.MoveCursor (-1);
@@ -270,7 +274,7 @@ namespace MonoDevelop.Ide.CodeCompletion
 
 			case Gdk.Key.Down:
 				if ((modifier & Gdk.ModifierType.ShiftMask) == Gdk.ModifierType.ShiftMask) {
-					if (!SelectionEnabled && !CompletionWindowManager.ForceSuggestionMode)
+					if (!SelectionEnabled /*&& !CompletionWindowManager.ForceSuggestionMode*/)
 						AutoCompleteEmptyMatch = AutoSelect = true;
 					if (!List.InCategoryMode) {
 						List.InCategoryMode = true;
@@ -282,7 +286,7 @@ namespace MonoDevelop.Ide.CodeCompletion
 				if (SelectionEnabled && list.filteredItems.Count < 2)
 					return KeyActions.CloseWindow | KeyActions.Process;
 				
-				if (!SelectionEnabled && !CompletionWindowManager.ForceSuggestionMode) {
+				if (!SelectionEnabled /*&& !CompletionWindowManager.ForceSuggestionMode*/) {
 					AutoCompleteEmptyMatch = AutoSelect = true;
 				} else {
 					list.MoveCursor (1);
@@ -290,12 +294,16 @@ namespace MonoDevelop.Ide.CodeCompletion
 				return KeyActions.Ignore;
 
 			case Gdk.Key.Page_Up:
+				if ((modifier & ModifierType.ShiftMask) == ModifierType.ShiftMask)
+					return KeyActions.Process;
 				if (list.filteredItems.Count < 2)
 					return KeyActions.CloseWindow | KeyActions.Process;
 				list.MoveCursor (-(list.VisibleRows - 1));
 				return KeyActions.Ignore;
 
 			case Gdk.Key.Page_Down:
+				if ((modifier & ModifierType.ShiftMask) == ModifierType.ShiftMask)
+					return KeyActions.Process;
 				if (list.filteredItems.Count < 2)
 					return KeyActions.CloseWindow | KeyActions.Process;
 				list.MoveCursor (list.VisibleRows - 1);
