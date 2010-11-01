@@ -42,11 +42,9 @@ cp "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc.in" "${MONO_FRAMEWORK_PATH}/etc/pan
 sed -i'.orig' "s,/Library/Frameworks/Mono.framework/Versions/Current,${TMPDIR},g" "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc"
 mv "${MONO_FRAMEWORK_PATH}/etc/pango/pangorc" "${TMPDIR}/etc/pango/pangorc"
 
-if test ! -d "${TMPDIR}/lib/pango"; then
-	rm -rf "${TMPDIR}/lib/pango"
-	mkdir -p "${TMPDIR}/lib"
-	cp -R "${MONO_FRAMEWORK_PATH}/lib/pango" "${TMPDIR}/lib"
-fi
+rm -rf "${TMPDIR}/lib/pango"
+mkdir -p "${TMPDIR}/lib"
+cp -R "${MONO_FRAMEWORK_PATH}/lib/pango" "${TMPDIR}/lib"
 
 find "${MONO_FRAMEWORK_PATH}/bin" -name '*.in' -execdir "${DIR}/replacePath.sh" "{}" \;
 
