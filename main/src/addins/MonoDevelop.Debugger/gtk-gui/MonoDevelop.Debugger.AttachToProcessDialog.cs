@@ -149,6 +149,7 @@ namespace MonoDevelop.Debugger
 			this.DefaultHeight = 413;
 			this.Show ();
 			this.entryFilter.Changed += new global::System.EventHandler (this.OnEntryFilterChanged);
+			this.tree.RowActivated += new global::Gtk.RowActivatedHandler (this.OnRowActivated);
 		}
 	}
 }

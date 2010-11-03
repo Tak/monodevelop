@@ -131,6 +131,11 @@ namespace MonoDevelop.Debugger
 			FillList ();
 		}
 		
+		protected virtual void OnRowActivated (object o, Gtk.RowActivatedArgs args)
+		{
+			Respond (Gtk.ResponseType.Ok);
+		}
+		
 		public ProcessInfo SelectedProcess {
 			get {
 				Gtk.TreeIter iter;
