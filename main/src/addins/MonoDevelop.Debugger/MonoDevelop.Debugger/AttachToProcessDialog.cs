@@ -77,6 +77,7 @@ namespace MonoDevelop.Debugger
 			
 			comboDebs.Sensitive = false;
 			buttonOk.Sensitive = false;
+			tree.Selection.UnselectAll ();
 			tree.Selection.Changed += OnSelectionChanged;
 			
 			Gtk.TreeIter it;
