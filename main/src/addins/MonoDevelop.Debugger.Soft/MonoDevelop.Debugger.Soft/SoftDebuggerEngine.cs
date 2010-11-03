@@ -32,6 +32,7 @@ using MonoDevelop.Core.Assemblies;
 using MonoDevelop.Core;
 using System.IO;
 using System.Reflection;
+using System.Diagnostics;
 using Mono.Debugging.Soft;
 using MDLS = MonoDevelop.Core.LoggingService;
 
@@ -92,7 +93,17 @@ namespace MonoDevelop.Debugger.Soft
 		
 		public ProcessInfo[] GetAttachableProcesses ()
 		{
-			return new ProcessInfo [0];
+			// return new ProcessInfo[]{ new ProcessInfo (1, "mono"), new ProcessInfo (2, "nothing") };
+			var infos = new List<ProcessInfo> ();
+			foreach (var process in Process.GetProcesses ()) {
+				try {
+					if (process.ProcessName.StartsWith ("mono", StringComparison.OrdinalIgnoreCase))
+						infos.Add (new ProcessInfo (process.Id, string.Format ("{0} ({1})", process.MainWindowTitle, process.ProcessName)));
+				} catch {
+					// This can fail, but it doesn't matter
+				}
+			}
+			return infos.ToArray ();
 		}
 		
 		public DebuggerSession CreateSession ()
