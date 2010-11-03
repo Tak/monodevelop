@@ -328,7 +328,7 @@ namespace Mono.Debugging.Soft
 			if (port <= 1024)
 				port += 1024;
 				
-			ConnectionStarted (VirtualMachineManager.Connect (new IPEndPoint (IPAddress.Loopback, (int)port)));
+			HandleConnection (VirtualMachineManager.Connect (new IPEndPoint (IPAddress.Loopback, (int)port)));
 		}
 
 		protected override void OnContinue ()
